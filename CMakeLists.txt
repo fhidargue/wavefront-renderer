@@ -16,6 +16,13 @@ include_directories(include)
 find_package(TBB REQUIRED)
 find_package(embree 4 REQUIRED)
 
-add_executable(renderer src/main.cpp)
+add_executable(renderer
+    src/main.cpp
+    src/core/Scene.cpp
+    src/geometry/Mesh.cpp
+    src/shading/Material.cpp
+    src/render/WavefrontRenderer.cpp
+    src/scene/CornellBox.cpp
+)
 
 target_link_libraries(renderer PRIVATE TBB::tbb embree)

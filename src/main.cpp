@@ -8,8 +8,8 @@
 #include <core/Scene.h>
 #include <shading/Material.h>
 #include <render/WavefrontRenderer.h>
-#include <scene_io/SceneGenerator.h>
-#include <scene_io/CornellBox.h>
+#include <scene/SceneGenerator.h>
+#include <scene/CornellBox.h>
 
 using std::cout;
 using std::endl;
