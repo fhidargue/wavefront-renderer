@@ -1,103 +1,48 @@
 #include <iostream>
-#include <cstdlib>
-#include "Vec3.h"
-#include "Ray.h"
-#include "Camera.h"
-#include "Image.h"
-#include "Scene.h"
-#include "HitRecord.h"
-#include "Material.h"
+#include <chrono>
+#include <vector>
+#include <numeric>
+#include <math/Vec3.h>
+#include <core/Camera.h>
+#include <core/Image.h>
+#include <core/Scene.h>
+#include <shading/Material.h>
+#include <render/WavefrontRenderer.h>
+#include <scene/SceneGenerator.h>
+#include <scene/CornellBox.h>
 
 using std::cout;
 using std::endl;
 using std::srand;
-
-// Trace a light ray
-Color traceRay(const Ray& ray, const Scene& scene, int maxDepth) {
-    if (maxDepth <= 0)
-        return Color(0.0f, 0.0f, 0.0f);
-
-    HitRecord record;
-
-    if (scene.hit(ray, 0.001f, 1e9f, record)) {
-        const Material& material = scene.getMaterial(record);
-        
-        Color emittedLight = material.emitted();
-
-        // Logic for when the ray is scattered
-        Color attenuation;
-        Ray scattered;
-
-        if (material.scatter(ray, record, attenuation, scattered)) {
-            Color bouncedLight = traceRay(scattered, scene, maxDepth - 1);
-
-            return emittedLight + attenuation * bouncedLight;
-        }
-
-        return emittedLight;
-    }
-}
+using std::string;
 
 int main() {
+    const int imageWidth = 600;
+    const int imageHeight = 600;
+    const int samplesPerPixel = 64;
+    const int maxBounceDepth = 8;
+
     srand(42);
 
-    const int WIDTH = 800;
-    const int HEIGHT = 450;
-    const int SAMPLES = 32; 
-    const int MAX_DEPTH = 8; 
+    Scene scene = CornellBox::build();
 
-    Scene scene;
+    Image image(imageWidth, imageHeight);
+    Camera camera(
+        Point3(0.0f, 5.0f, 14.0f),
+        Point3(0.0f, 5.0f, 0.0f), 
+        Vec3(0.0f, 1.0f, 0.0f),   
+        55.0f, 
+        imageWidth, imageHeight
+    );
 
-    // Build materials
-    int diffuseGray = scene.addMaterial(Material::makeDiffuse(Color(0.5f, 0.5f, 0.5f)));
-    int diffuseRed = scene.addMaterial(Material::makeDiffuse(Color(0.8f, 0.2f, 0.2f)));
-    int metalSilver = scene.addMaterial(Material::makeMetal(Color(0.8f, 0.8f, 0.8f), 0.1f));
-    int metalGold = scene.addMaterial(Material::makeMetal(Color(0.8f, 0.6f, 0.2f), 0.3f));
-    int lightMat = scene.addMaterial(Material::makeEmissive(Color(1.0f, 0.9f, 0.8f), 3.0f));
+    cout << "Rendering Cornell Box: " << imageWidth << "x" << imageHeight << endl;
 
-    // Build scene
-    scene.addSphere(Sphere(Point3( 0.0f, -100.5f, -1.0f), 100.0f, diffuseGray));  // floor
-    scene.addSphere(Sphere(Point3( 0.0f, 0.0f, -1.0f), 0.5f, diffuseRed));  
-    scene.addSphere(Sphere(Point3(-1.1f, 0.0f, -1.0f), 0.5f, metalSilver));
-    scene.addSphere(Sphere(Point3( 1.1f, 0.0f, -1.0f), 0.5f, metalGold));   
-    scene.addSphere(Sphere(Point3( 0.0f, 1.5f, -1.0f), 0.3f, lightMat));    
+    WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::None);
+    double shadingTimeMs = renderer.renderScene(scene, camera, image);
 
-    Image image(WIDTH, HEIGHT);
-    Camera camera(WIDTH, HEIGHT);
+    cout << "Shading time: " << shadingTimeMs << "ms" << endl;
 
-    cout << "Rendering " << WIDTH << "x" << HEIGHT << " image..." << endl;
-
-    for (int y = 0; y < HEIGHT; ++y) {
-        // Progress indicator
-        if (y % 50 == 0)
-            cout << "Row " << y << " / " << HEIGHT << endl;
-
-        for (int x = 0; x < WIDTH; ++x)
-        {
-            Color pixelColor(0.0f, 0.0f, 0.0f);
-
-            // Multiple samples per pixel to reduce noise
-            for (int sample = 0; sample < SAMPLES; ++sample) {
-                float u = (static_cast<float>(x) + randomFloat()) / (WIDTH  - 1);
-                float v = 1.0f - (static_cast<float>(y) + randomFloat()) / (HEIGHT - 1);
-
-                Ray ray = camera.getRay(u, v);
-                pixelColor = pixelColor + traceRay(ray, scene, MAX_DEPTH);
-            }
-
-            // Average the samples
-            pixelColor = pixelColor / static_cast<float>(SAMPLES);
-
-            // Convert linear to sRGB for gamma correction
-            pixelColor.x = std::sqrt(pixelColor.x);
-            pixelColor.y = std::sqrt(pixelColor.y);
-            pixelColor.z = std::sqrt(pixelColor.z);
-
-            image.setPixel(x, y, pixelColor);
-        }
-    }
-
-    image.writePPMFile("output/render.ppm");
+    image.writePPMFile("../output/cornell_box.ppm");
 
     return 0;
 }
