@@ -13,7 +13,7 @@ EmbreeAccelerator::~EmbreeAccelerator() {
     if (m_device) rtcReleaseDevice(m_device);
 }
 
-// Build the BHV from all meshes
+// Build the BVH from all meshes
 void EmbreeAccelerator::build(const Scene& scene) {
     m_sourceScene = &scene;
     m_scene = rtcNewScene(m_device);
