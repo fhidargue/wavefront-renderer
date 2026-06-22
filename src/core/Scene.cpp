@@ -43,7 +43,7 @@ bool Scene::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord&
     }
 
     if (acceleratorBuilt) {
-        if (accelerator.intersect(ray, minDistance, maxDistance, tempRecord)) {
+        if (accelerator.intersect(ray, minDistance, closestHit, tempRecord)) {
             hitAnything = true;
             closestHit = tempRecord.distance;
             record = tempRecord;
