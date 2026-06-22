@@ -20,6 +20,11 @@ void Scene::addMesh(const Mesh& mesh) {
     meshes.push_back(mesh);
 }
 
+void Scene::buildAccelerator() {
+    accelerator.build(*this);
+    acceleratorBuilt = true;
+}
+
 const Material& Scene::getMaterial(const HitRecord& record) const {
     return materials[record.materialID];
 }
@@ -37,11 +42,20 @@ bool Scene::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord&
         }
     }
 
-    for (const Mesh& mesh : meshes) {
-        if (mesh.hit(ray, minDistance, closestHit, tempRecord)) {
+    if (acceleratorBuilt) {
+        if (accelerator.intersect(ray, minDistance, maxDistance, tempRecord)) {
             hitAnything = true;
             closestHit = tempRecord.distance;
             record = tempRecord;
+        }
+    } else {
+        // Fallback if the accelerator is not built
+        for (const Mesh& mesh : meshes) {
+            if (mesh.hit(ray, minDistance, closestHit, tempRecord)) {
+                hitAnything = true;
+                closestHit = tempRecord.distance;
+                record = tempRecord;
+            }
         }
     }
 

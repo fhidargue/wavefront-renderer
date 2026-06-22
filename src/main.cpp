@@ -26,6 +26,11 @@ int main() {
 
     Scene scene = CornellBox::build();
 
+    // Build the Embree BVH before rendering
+    cout << "Building BVH..." << endl;
+    scene.buildAccelerator();
+    cout << "BVH built successfully" << endl;
+
     Image image(imageWidth, imageHeight);
     Camera camera(
         Point3(0.0f, 5.0f, 14.0f),
