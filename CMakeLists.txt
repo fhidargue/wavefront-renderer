@@ -12,6 +12,7 @@ list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
 
 
 include_directories(include)
+include_directories(${EMBREE_INCLUDE_DIRS})
 
 find_package(TBB REQUIRED)
 find_package(embree 4 REQUIRED)
@@ -23,6 +24,7 @@ add_executable(renderer
     src/shading/Material.cpp
     src/render/WavefrontRenderer.cpp
     src/scene/CornellBox.cpp
+    src/accelerator/Embree.cpp
 )
 
 target_link_libraries(renderer PRIVATE TBB::tbb embree)

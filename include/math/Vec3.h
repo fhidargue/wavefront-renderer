@@ -33,12 +33,12 @@ struct Vec3 {
     }
 
     float length() const {
-        return sqrt(x*x + y*y + z*z);
+        return sqrt(x * x + y * y + z * z);
     }
 
     // Dot product
     float dot(const Vec3& other) const {
-        return x*other.x + y*other.y + z*other.z; 
+        return x * other.x + y * other.y + z * other.z; 
     }
 
     // Cross product
