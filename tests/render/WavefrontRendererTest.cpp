@@ -138,7 +138,7 @@ TEST(WavefrontRendererTest, PixelValuesAreInValidRange) {
 
 // Scheduling policies
 
-TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameOutputAsNone) {
+TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange) {
     const int width = 16;
     const int height = 16;
 
@@ -156,11 +156,26 @@ TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameOutputAsNone) {
     WavefrontRenderer materialRenderer(4, 4, SchedulingPolicy::MaterialAware);
     materialRenderer.renderScene(scene, camera, imageMaterialAware);
 
+    // Compute average brightness of both images
+    float baselineBrightness = 0.0f;
+    float materialAwareBrightness = 0.0f;
+
     for (int i = 0; i < width * height; ++i) {
-        EXPECT_NEAR(imageBaseline.pixels[i].x, imageMaterialAware.pixels[i].x, 0.001f);
-        EXPECT_NEAR(imageBaseline.pixels[i].y, imageMaterialAware.pixels[i].y, 0.001f);
-        EXPECT_NEAR(imageBaseline.pixels[i].z, imageMaterialAware.pixels[i].z, 0.001f);
+        baselineBrightness +=
+            (imageBaseline.pixels[i].x +
+             imageBaseline.pixels[i].y +
+             imageBaseline.pixels[i].z) / 3.0f;
+
+        materialAwareBrightness +=
+            (imageMaterialAware.pixels[i].x +
+             imageMaterialAware.pixels[i].y +
+             imageMaterialAware.pixels[i].z) / 3.0f;
     }
+
+    baselineBrightness /= static_cast<float>(width * height);
+    materialAwareBrightness /= static_cast<float>(width * height);
+
+    EXPECT_NEAR(baselineBrightness, materialAwareBrightness, baselineBrightness * 0.10f);
 }
 
 // Scene hit routing

@@ -20,9 +20,9 @@ public:
 
 private:
     void generatePrimaryRays(const Camera& camera, int width, int height, RayQueue& queue);
-    void intersectAll(const RayQueue& queue, const Scene& scene, 
-        ShadingQueue& shadingQueue, RayQueue& missQueue);
-    void shadeAll(ShadingQueue& shadingQueue, const Scene& scene, 
-        std::vector<Color>& accumulator, RayQueue& nextQueue);
+    void intersectAll(const RayQueue& inputQueue, const Scene& scene,
+                       ShadingQueue& outputShadingQueue, RayQueue& outputMissQueue);
+    void shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
+                  std::vector<Color>& accumulator, RayQueue& outputNextQueue);
     Color getSkyColor(const Ray& ray) const;
 };
