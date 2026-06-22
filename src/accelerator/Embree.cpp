@@ -3,6 +3,9 @@
 #include <geometry/Mesh.h>
 #include <cmath>
 
+using std::cout;
+using std::endl;
+
 EmbreeAccelerator::EmbreeAccelerator()
     :   m_device(nullptr), 
         m_scene(nullptr), 
@@ -71,14 +74,14 @@ void EmbreeAccelerator::build(const Scene& scene) {
 }
 
 void EmbreeAccelerator::printStats() const {
-    std::cout << "\n========================================" << std::endl;
-    std::cout << "  Embree BVH Stats" << std::endl;
-    std::cout << "========================================" << std::endl;
-    std::cout << "  Meshes registered : " << m_meshCount << std::endl;
-    std::cout << "  Total triangles   : " << m_totalTriangles << std::endl;
-    std::cout << "  Total vertices    : " << m_totalVertices << std::endl;
-    std::cout << "  BVH build time    : " << m_buildTimeMs << "ms" << std::endl;
-    std::cout << "========================================\n" << std::endl;
+    cout << "\n========================================" << endl;
+    cout << "  Embree BVH Stats" << endl;
+    cout << "========================================" << endl;
+    cout << "  Meshes registered : " << m_meshCount << endl;
+    cout << "  Total triangles   : " << m_totalTriangles << endl;
+    cout << "  Total vertices    : " << m_totalVertices << endl;
+    cout << "  BVH build time    : " << m_buildTimeMs << "ms" << endl;
+    cout << "========================================\n" << endl;
 }
 
 // Trace one ray against the BVH
