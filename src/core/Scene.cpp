@@ -22,6 +22,7 @@ void Scene::addMesh(const Mesh& mesh) {
 
 void Scene::buildAccelerator() {
     accelerator.build(*this);
+    accelerator.printStats();
     acceleratorBuilt = true;
 }
 

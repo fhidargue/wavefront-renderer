@@ -1,0 +1,15 @@
+Cornell Box BVH Stats - Baseline
+Date: 2026-06-22
+Hardware: Apple M4 (arm64 native)
+
+Meshes registered : 18
+Total triangles   : 36
+Total vertices    : 72
+BVH build time    : 3.07808ms
+
+Scene description:
+- 5 room walls (floor, ceiling, back, left/red, right/green)
+- 1 ceiling light
+- 2 rotated boxes (tall + short), 6 faces each
+- No spheres
+- Embree 4.4.1 BVH

@@ -4,7 +4,13 @@
 #include <cmath>
 
 EmbreeAccelerator::EmbreeAccelerator()
-    : m_device(nullptr), m_scene(nullptr), m_sourceScene(nullptr) {
+    :   m_device(nullptr), 
+        m_scene(nullptr), 
+        m_sourceScene(nullptr),
+        m_meshCount(0),
+        m_totalTriangles(0),
+        m_totalVertices(0),
+        m_buildTimeMs(0.0) {
         m_device = rtcNewDevice(nullptr);
     }
 
@@ -18,11 +24,19 @@ void EmbreeAccelerator::build(const Scene& scene) {
     m_sourceScene = &scene;
     m_scene = rtcNewScene(m_device);
 
+    auto buildStart = std::chrono::high_resolution_clock::now();
+
+    m_meshCount = 0;
+    m_totalTriangles = 0;
+    m_totalVertices = 0;
+
     for (const Mesh& mesh : scene.meshes) {
         RTCGeometry geometry = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
-        // Vertex buffer
         int vertexCount = static_cast<int>(mesh.vertexPositions.size());
+        int triangleCount = mesh.triangleCount();
+        
+        // Vertex buffer
         float* vertices = static_cast<float*>(rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, 
             RTC_FORMAT_FLOAT3, 3 * sizeof(float), vertexCount));
 
@@ -33,7 +47,6 @@ void EmbreeAccelerator::build(const Scene& scene) {
         }
 
         // Index buffer
-        int triangleCount = mesh.triangleCount();
         unsigned* indices = static_cast<unsigned*>(rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0,
             RTC_FORMAT_UINT3, 3 * sizeof(unsigned), triangleCount));  
         
@@ -44,9 +57,28 @@ void EmbreeAccelerator::build(const Scene& scene) {
         rtcCommitGeometry(geometry);
         rtcAttachGeometry(m_scene, geometry);
         rtcReleaseGeometry(geometry);
+
+        m_meshCount++;
+        m_totalTriangles += triangleCount;
+        m_totalVertices += vertexCount;
     }
 
     rtcCommitScene(m_scene);
+    
+    auto buildEnd = std::chrono::high_resolution_clock::now();
+    m_buildTimeMs = std::chrono::duration<double, std::milli>(
+        buildEnd - buildStart).count();
+}
+
+void EmbreeAccelerator::printStats() const {
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "  Embree BVH Stats" << std::endl;
+    std::cout << "========================================" << std::endl;
+    std::cout << "  Meshes registered : " << m_meshCount << std::endl;
+    std::cout << "  Total triangles   : " << m_totalTriangles << std::endl;
+    std::cout << "  Total vertices    : " << m_totalVertices << std::endl;
+    std::cout << "  BVH build time    : " << m_buildTimeMs << "ms" << std::endl;
+    std::cout << "========================================\n" << std::endl;
 }
 
 // Trace one ray against the BVH
