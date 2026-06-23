@@ -7,7 +7,6 @@ on:
     branches: ["main"]
 
 jobs:
-  # Python linting and formatting
   python-lint:
     name: Python (ruff)
     runs-on: ubuntu-latest
@@ -28,7 +27,6 @@ jobs:
       - name: Ruff lint
         run: uv run ruff check tools/
 
-  # C++ linting and formatting
   cpp-format:
     name: C++ (clang-format)
     runs-on: ubuntu-latest
@@ -46,7 +44,6 @@ jobs:
             -name "*.cpp" -o -name "*.h" \
           | xargs clang-format --dry-run --Werror
 
-  # C++ build and tests
   cpp-build:
     name: C++ build and tests
     runs-on: ubuntu-latest
@@ -66,10 +63,13 @@ jobs:
 
       - name: Install Embree
         run: |
-          wget -q https://github.com/embree/embree/releases/download/v4.4.0/embree-4.4.0.x86_64.linux.tar.gz
-          tar -xzf embree-4.4.0.x86_64.linux.tar.gz
-          sudo cp -r embree-4.4.0.x86_64.linux/include/* /usr/local/include/
-          sudo cp -r embree-4.4.0.x86_64.linux/lib/* /usr/local/lib/
+          wget -q https://github.com/RenderKit/embree/releases/download/v4.4.1/embree-4.4.1.x86_64.linux.tar.gz
+          tar -xzf embree-4.4.1.x86_64.linux.tar.gz
+          ls -la
+          EMBREE_DIR=$(find . -maxdepth 1 -type d -name "embree*" | head -1)
+          echo "Found Embree at: $EMBREE_DIR"
+          sudo cp -r $EMBREE_DIR/include/* /usr/local/include/
+          sudo cp -r $EMBREE_DIR/lib/* /usr/local/lib/
           sudo ldconfig
 
       - name: Configure
