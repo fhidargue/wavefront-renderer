@@ -54,19 +54,28 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update 
-          sudo apt-get install -y \ 
-          cmake \ 
-          ninja-build \ 
-          libgtest-dev \ 
-          libtbb-dev \ 
-          libembree-dev
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            libtbb-dev \
+            libgtest-dev \
+            wget
+
+      - name: Install Embree
+        run: |
+          wget -q https://github.com/RenderKit/embree/releases/download/v4.4.1/embree-4.4.1.x86_64.linux.tar.gz
+          tar -xzf embree-4.4.1.x86_64.linux.tar.gz
+          sudo cp -r include/embree4 /usr/local/include/
+          sudo cp -r lib64/* /usr/local/lib/
+          sudo mkdir -p /usr/local/lib64
+          sudo cp -r lib64/* /usr/local/lib64/
+          sudo ldconfig
 
       - name: Configure
         run: |
           cmake -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH=/usr/local
 
       - name: Build
         run: cmake --build build --parallel
