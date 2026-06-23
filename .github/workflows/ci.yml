@@ -57,7 +57,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             cmake \
-            libtbb-dev \
             libgtest-dev \
             wget
 
@@ -69,6 +68,8 @@ jobs:
           sudo cp -r lib64/* /usr/local/lib/
           sudo mkdir -p /usr/local/lib64
           sudo cp -r lib64/* /usr/local/lib64/
+          sudo cp -r tbb/include/* /usr/local/include/
+          sudo cp -r tbb/lib/intel64/gcc4.8/* /usr/local/lib/
           sudo ldconfig
 
       - name: Configure
