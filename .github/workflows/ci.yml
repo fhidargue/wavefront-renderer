@@ -68,9 +68,11 @@ jobs:
           sudo cp -r lib64 /usr/local/
           sudo cp -r share /usr/local/
           echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/embree.conf
-          sudo ldconfig
-          echo "=== lib64 TBB files ==="
-          find /usr/local/lib64 -name "*tbb*" | sort
+          sudo ldconfig || true
+          echo "=== All cmake files ==="
+          find /usr/local -name "*.cmake" | sort
+          echo "=== All TBB related ==="
+          find /usr/local -name "*[Tt][Bb][Bb]*" | sort
 
       - name: Configure
         run: |
