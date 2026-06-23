@@ -12,19 +12,27 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(APPLE)
     list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
+    find_package(TBB REQUIRED)
+    set(TBB_LINK TBB::tbb)
+else()
+    # Linux: Link directly against the .so in lib64
+    find_library(TBB_LIB tbb
+        HINTS /usr/local/lib64 /usr/lib
+        REQUIRED
+    )
+    message(STATUS "Found TBB: ${TBB_LIB}")
+    set(TBB_LINK ${TBB_LIB})
 endif()
 
 include_directories(include)
 include_directories(external)
 
-find_package(TBB REQUIRED)
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
 
 include_directories(${EMBREE_INCLUDE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 
-# Shared sources used by both renderer and tests
 set(RENDERER_SOURCES
     src/core/Scene.cpp
     src/geometry/Mesh.cpp
@@ -34,18 +42,16 @@ set(RENDERER_SOURCES
     src/accelerator/Embree.cpp
 )
 
-# Main renderer executable
 add_executable(renderer
     src/main.cpp
     ${RENDERER_SOURCES}
 )
 
 target_link_libraries(renderer PRIVATE
-    TBB::tbb
+    ${TBB_LINK}
     embree
 )
 
-# Test executable
 add_executable(tests
     tests/main.cpp
     tests/math/Vec3Test.cpp
@@ -61,7 +67,7 @@ add_executable(tests
 )
 
 target_link_libraries(tests PRIVATE
-    TBB::tbb
+    ${TBB_LINK}
     embree
     GTest::GTest
     GTest::Main
