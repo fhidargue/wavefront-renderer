@@ -58,6 +58,7 @@ jobs:
           sudo apt-get install -y \
             cmake \
             libgtest-dev \
+            libtbb-dev \
             wget
 
       - name: Install Embree
@@ -70,17 +71,11 @@ jobs:
           echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/embree.conf
           sudo ldconfig
 
-      - name: Debug Embree install
-        run: |
-          find /usr/local -name "*embree*"
-          find /usr/local -name "*TBB*"
-          find /usr/local -name "*tbb*"
-
       - name: Configure
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH=/usr/local
+            -DCMAKE_PREFIX_PATH="/usr/local/lib64/cmake/embree-4.4.1;/usr/local"
 
       - name: Build
         run: cmake --build build --parallel
