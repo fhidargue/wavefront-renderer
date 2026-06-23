@@ -8,10 +8,13 @@ dependencies = [
     "usd-core>=26.5",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "ruff>=0.15.18",
 ]
+
+[tool.uv]
+dev-dependencies = []
 
 [tool.ruff]
 line-length = 88
