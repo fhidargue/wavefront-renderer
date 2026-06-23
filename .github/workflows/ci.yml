@@ -64,13 +64,12 @@ jobs:
         run: |
           wget -q https://github.com/RenderKit/embree/releases/download/v4.4.1/embree-4.4.1.x86_64.linux.tar.gz
           tar -xzf embree-4.4.1.x86_64.linux.tar.gz
-          sudo cp -r include/embree4 /usr/local/include/
-          sudo cp -r lib64/* /usr/local/lib/
-          sudo mkdir -p /usr/local/lib64
-          sudo cp -r lib64/* /usr/local/lib64/
-          sudo cp -r tbb/include/* /usr/local/include/
-          sudo cp -r tbb/lib/intel64/gcc4.8/* /usr/local/lib/
-          sudo ldconfig
+          echo "=== Root contents ==="
+          ls -la
+          echo "=== lib64 contents ==="
+          ls -la lib64/
+          echo "=== All tbb-related files ==="
+          find . -name "*tbb*" | sort
 
       - name: Configure
         run: |
