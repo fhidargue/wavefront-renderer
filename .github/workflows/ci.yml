@@ -58,7 +58,13 @@ jobs:
           sudo apt-get install -y \
             cmake \
             libgtest-dev \
+            libtbb-dev \
             wget
+
+      - name: Check packages
+        run: |
+          apt-cache search embree
+          apt-cache search libembree
 
       - name: Install Embree
         run: |

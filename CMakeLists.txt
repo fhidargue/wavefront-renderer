@@ -10,23 +10,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(APPLE)
-    list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
-    find_package(TBB REQUIRED)
-    set(TBB_LINK TBB::tbb)
-else()
-    # Linux: Link directly against the .so in lib64
-    find_library(TBB_LIB tbb
-        HINTS /usr/local/lib64 /usr/lib
-        REQUIRED
-    )
-    message(STATUS "Found TBB: ${TBB_LIB}")
-    set(TBB_LINK ${TBB_LIB})
-endif()
 
 include_directories(include)
 include_directories(external)
 
+find_package(TBB REQUIRED)
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
 
