@@ -3,14 +3,16 @@
 #include <cmath>
 #include <core/Ray.h>
 
-struct Camera {
+struct Camera
+{
     Point3 origin;
     Point3 topLeftCorner;
     Vec3 horizontal;
     Vec3 vertical;
 
-    Camera(Point3 lookFrom, Point3 lookAt, Vec3 upDirection, 
-        float verticalFieldOfViewDegrees, int imageWidth, int imageHeight) {
+    Camera(Point3 lookFrom, Point3 lookAt, Vec3 upDirection, float verticalFieldOfViewDegrees,
+           int imageWidth, int imageHeight)
+    {
         float aspectRatio = static_cast<float>(imageWidth) / imageHeight;
 
         // Convert field of view from degrees to a viewport height
@@ -30,9 +32,10 @@ struct Camera {
         topLeftCorner = origin - horizontal / 2.0f - vertical / 2.0f - forward;
     }
 
-    Ray getRay(float u, float v) const {
+    Ray getRay(float u, float v) const
+    {
         Vec3 direction = topLeftCorner + horizontal * u + vertical * v - origin;
-        
+
         return Ray(origin, direction.normalized());
     }
 };

@@ -5,7 +5,8 @@
 #include <core/Ray.h>
 #include <core/HitRecord.h>
 
-struct Mesh {
+struct Mesh
+{
     std::vector<Point3> vertexPositions;
     std::vector<int> triangleIndices;
     int materialID;

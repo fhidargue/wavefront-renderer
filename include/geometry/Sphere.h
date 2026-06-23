@@ -7,17 +7,21 @@
 
 using std::sqrt;
 
-struct Sphere {
+struct Sphere
+{
     Point3 center;
     float radius;
     int materialID;
     const float PI = 3.14159265f;
 
     Sphere(const Point3& center, float radius, int materialID)
-        : center(center), radius(radius), materialID(materialID) {}
+        : center(center), radius(radius), materialID(materialID)
+    {
+    }
 
     // Validate if a ray hits the sphere
-    bool hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const {
+    bool hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const
+    {
         Vec3 originToCenter = ray.origin - center;
 
         // Quadratic equation coefficients: at² + bt + c = 0
@@ -28,15 +32,16 @@ struct Sphere {
         // Discriminant tells us how many solutions exist
         float discriminant = b * b - 4.0f * a * c;
 
-        if (discriminant < 0.0f) 
+        if (discriminant < 0.0f)
             return false;
-        
+
         float sqrtDiscriminant = sqrt(discriminant);
 
         // Find the nearest hit distance within our valid range
         float hitDistance = (-b - sqrtDiscriminant) / (2.0f * a);
 
-        if (hitDistance < minDistance || hitDistance > maxDistance) {
+        if (hitDistance < minDistance || hitDistance > maxDistance)
+        {
             hitDistance = (-b + sqrtDiscriminant) / (2.0f * a);
 
             if (hitDistance < minDistance || hitDistance > maxDistance)
@@ -59,5 +64,5 @@ struct Sphere {
         record.v = theta / PI;
 
         return true;
-    }  
+    }
 };

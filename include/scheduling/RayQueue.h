@@ -6,7 +6,8 @@
 
 using std::vector;
 
-struct RayState {
+struct RayState
+{
     Ray ray;
     Color throughtput;
     Color accumLight;
@@ -14,34 +15,38 @@ struct RayState {
     int rayDepth;
     bool isRayAlive;
 
-    RayState() {}
+    RayState()
+    {
+    }
 
     RayState(const Ray& ray, int rayPixelIndex)
-        : ray(ray),
-        throughtput(1.0f, 1.0f, 1.0f),
-        accumLight(0.0f, 0.0f, 0.0f),
-        rayPixelIndex(rayPixelIndex),
-        rayDepth(0),
-        isRayAlive(true)
-    {}
+        : ray(ray), throughtput(1.0f, 1.0f, 1.0f), accumLight(0.0f, 0.0f, 0.0f),
+          rayPixelIndex(rayPixelIndex), rayDepth(0), isRayAlive(true)
+    {
+    }
 };
 
-struct RayQueue {
+struct RayQueue
+{
     vector<RayState> rays;
 
-    void add(const RayState& rayState) {
+    void add(const RayState& rayState)
+    {
         rays.push_back(rayState);
     }
 
-    void clear() {
+    void clear()
+    {
         rays.clear();
     }
 
-    int size() const {
+    int size() const
+    {
         return static_cast<int>(rays.size());
     }
 
-    bool empty() const {
+    bool empty() const
+    {
         return rays.empty();
     }
 };

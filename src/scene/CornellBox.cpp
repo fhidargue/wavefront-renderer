@@ -7,7 +7,8 @@ using std::sin;
 
 const float PI = 3.14159265f;
 
-static Point3 rotateY(const Point3& point, const Point3& pivot, float angleDegrees) {
+static Point3 rotateY(const Point3& point, const Point3& pivot, float angleDegrees)
+{
     float angleRadians = angleDegrees * PI / 180.0f;
     float cosAngle = cos(angleRadians);
     float sinAngle = sin(angleRadians);
@@ -24,8 +25,9 @@ static Point3 rotateY(const Point3& point, const Point3& pivot, float angleDegre
     return Point3(rotatedX + pivot.x, point.y, rotatedZ + pivot.z);
 }
 
-void CornellBox::addQuad(Mesh& mesh, const Point3& bottomLeft, const Point3& bottomRight, 
-    const Point3& topRight, const Point3& topLeft) {
+void CornellBox::addQuad(Mesh& mesh, const Point3& bottomLeft, const Point3& bottomRight,
+                         const Point3& topRight, const Point3& topLeft)
+{
     int firstVertexIndex = static_cast<int>(mesh.vertexPositions.size());
 
     mesh.vertexPositions.push_back(bottomLeft);
@@ -42,8 +44,9 @@ void CornellBox::addQuad(Mesh& mesh, const Point3& bottomLeft, const Point3& bot
     mesh.triangleIndices.push_back(firstVertexIndex + 3);
 }
 
-void CornellBox::addRotatedBox(Scene& scene, int materialID, const Point3& minCorner, const Point3& maxCorner,
-    float rotationDegrees) {
+void CornellBox::addRotatedBox(Scene& scene, int materialID, const Point3& minCorner,
+                               const Point3& maxCorner, float rotationDegrees)
+{
     float x0 = minCorner.x, y0 = minCorner.y, z0 = minCorner.z;
     float x1 = maxCorner.x, y1 = maxCorner.y, z1 = maxCorner.z;
 
@@ -51,49 +54,47 @@ void CornellBox::addRotatedBox(Scene& scene, int materialID, const Point3& minCo
     Point3 pivot((x0 + x1) * 0.5f, y0, (z0 + z1) * 0.5f);
 
     // The 8 corners of the box
-    Point3 corners[8] = {
-        Point3(x0, y0, z0), Point3(x1, y0, z0),
-        Point3(x1, y0, z1), Point3(x0, y0, z1),
-        Point3(x0, y1, z0), Point3(x1, y1, z0),
-        Point3(x1, y1, z1), Point3(x0, y1, z1)
-    };
+    Point3 corners[8] = {Point3(x0, y0, z0), Point3(x1, y0, z0), Point3(x1, y0, z1),
+                         Point3(x0, y0, z1), Point3(x0, y1, z0), Point3(x1, y1, z0),
+                         Point3(x1, y1, z1), Point3(x0, y1, z1)};
 
     // Rotate every corner
     for (int i = 0; i < 8; ++i)
         corners[i] = rotateY(corners[i], pivot, rotationDegrees);
 
-    Mesh bottom; 
+    Mesh bottom;
     bottom.materialID = materialID;
     addQuad(bottom, corners[0], corners[1], corners[2], corners[3]);
     scene.addMesh(bottom);
 
-    Mesh top; 
+    Mesh top;
     top.materialID = materialID;
     addQuad(top, corners[7], corners[6], corners[5], corners[4]);
     scene.addMesh(top);
 
-    Mesh front; 
+    Mesh front;
     front.materialID = materialID;
     addQuad(front, corners[3], corners[2], corners[6], corners[7]);
     scene.addMesh(front);
 
-    Mesh back; 
+    Mesh back;
     back.materialID = materialID;
     addQuad(back, corners[1], corners[0], corners[4], corners[5]);
     scene.addMesh(back);
 
-    Mesh left; 
+    Mesh left;
     left.materialID = materialID;
     addQuad(left, corners[0], corners[3], corners[7], corners[4]);
     scene.addMesh(left);
 
-    Mesh right; 
+    Mesh right;
     right.materialID = materialID;
     addQuad(right, corners[2], corners[1], corners[5], corners[6]);
     scene.addMesh(right);
 }
 
-Scene CornellBox::build() {
+Scene CornellBox::build()
+{
     Scene scene;
 
     int whiteMaterial = scene.addMaterial(Material::makeDiffuse(Color(0.73f, 0.73f, 0.73f)));
@@ -107,67 +108,59 @@ Scene CornellBox::build() {
 
     Mesh floorMesh;
     floorMesh.materialID = whiteMaterial;
-    addQuad(floorMesh,
-        Point3(-roomHalfWidth, 0.0f, -roomDepth),
-        Point3(roomHalfWidth, 0.0f, -roomDepth),
-        Point3(roomHalfWidth, 0.0f, roomHalfWidth),
-        Point3(-roomHalfWidth, 0.0f, roomHalfWidth));
+    addQuad(floorMesh, Point3(-roomHalfWidth, 0.0f, -roomDepth),
+            Point3(roomHalfWidth, 0.0f, -roomDepth), Point3(roomHalfWidth, 0.0f, roomHalfWidth),
+            Point3(-roomHalfWidth, 0.0f, roomHalfWidth));
     scene.addMesh(floorMesh);
 
     Mesh ceilingMesh;
     ceilingMesh.materialID = whiteMaterial;
-    addQuad(ceilingMesh,
-        Point3(-roomHalfWidth, roomHeight, roomHalfWidth),
-        Point3(roomHalfWidth, roomHeight, roomHalfWidth),
-        Point3(roomHalfWidth, roomHeight, -roomDepth),
-        Point3(-roomHalfWidth, roomHeight, -roomDepth));
+    addQuad(ceilingMesh, Point3(-roomHalfWidth, roomHeight, roomHalfWidth),
+            Point3(roomHalfWidth, roomHeight, roomHalfWidth),
+            Point3(roomHalfWidth, roomHeight, -roomDepth),
+            Point3(-roomHalfWidth, roomHeight, -roomDepth));
     scene.addMesh(ceilingMesh);
 
     Mesh backWallMesh;
     backWallMesh.materialID = whiteMaterial;
-    addQuad(backWallMesh,
-        Point3(-roomHalfWidth, 0.0f, -roomDepth),
-        Point3(-roomHalfWidth, roomHeight, -roomDepth),
-        Point3(roomHalfWidth, roomHeight, -roomDepth),
-        Point3(roomHalfWidth, 0.0f, -roomDepth));
+    addQuad(backWallMesh, Point3(-roomHalfWidth, 0.0f, -roomDepth),
+            Point3(-roomHalfWidth, roomHeight, -roomDepth),
+            Point3(roomHalfWidth, roomHeight, -roomDepth), Point3(roomHalfWidth, 0.0f, -roomDepth));
     scene.addMesh(backWallMesh);
 
     Mesh leftWallMesh;
     leftWallMesh.materialID = redMaterial;
-    addQuad(leftWallMesh,
-        Point3(-roomHalfWidth, 0.0f, roomHalfWidth),
-        Point3(-roomHalfWidth, roomHeight, roomHalfWidth),
-        Point3(-roomHalfWidth, roomHeight, -roomDepth),
-        Point3(-roomHalfWidth, 0.0f, -roomDepth));
+    addQuad(leftWallMesh, Point3(-roomHalfWidth, 0.0f, roomHalfWidth),
+            Point3(-roomHalfWidth, roomHeight, roomHalfWidth),
+            Point3(-roomHalfWidth, roomHeight, -roomDepth),
+            Point3(-roomHalfWidth, 0.0f, -roomDepth));
     scene.addMesh(leftWallMesh);
 
     Mesh rightWallMesh;
     rightWallMesh.materialID = greenMaterial;
-    addQuad(rightWallMesh,
-        Point3(roomHalfWidth, 0.0f, -roomDepth),
-        Point3(roomHalfWidth, roomHeight, -roomDepth),
-        Point3(roomHalfWidth, roomHeight, roomHalfWidth),
-        Point3(roomHalfWidth, 0.0f, roomHalfWidth));
+    addQuad(rightWallMesh, Point3(roomHalfWidth, 0.0f, -roomDepth),
+            Point3(roomHalfWidth, roomHeight, -roomDepth),
+            Point3(roomHalfWidth, roomHeight, roomHalfWidth),
+            Point3(roomHalfWidth, 0.0f, roomHalfWidth));
     scene.addMesh(rightWallMesh);
 
     Mesh lightMesh;
     lightMesh.materialID = lightMaterial;
     float lightHalfWidth = roomHalfWidth * 0.3f;
     float lightHeight = roomHeight - 0.01f;
-    addQuad(lightMesh,
-        Point3(-lightHalfWidth, lightHeight, lightHalfWidth),
-        Point3(lightHalfWidth, lightHeight, lightHalfWidth),
-        Point3(lightHalfWidth, lightHeight, -lightHalfWidth),
-        Point3(-lightHalfWidth, lightHeight, -lightHalfWidth));
+    addQuad(lightMesh, Point3(-lightHalfWidth, lightHeight, lightHalfWidth),
+            Point3(lightHalfWidth, lightHeight, lightHalfWidth),
+            Point3(lightHalfWidth, lightHeight, -lightHalfWidth),
+            Point3(-lightHalfWidth, lightHeight, -lightHalfWidth));
     scene.addMesh(lightMesh);
 
     int tallerBoxMaterial = scene.addMaterial(Material::makeDiffuse(Color(0.73f, 0.73f, 0.73f)));
-    addRotatedBox(scene, tallerBoxMaterial, Point3(-3.5f, 0.0f, -5.5f), 
-        Point3(-0.5f, 6.0f, -2.5f), -15.0f);
+    addRotatedBox(scene, tallerBoxMaterial, Point3(-3.5f, 0.0f, -5.5f), Point3(-0.5f, 6.0f, -2.5f),
+                  -15.0f);
 
     int shorterBoxMaterial = scene.addMaterial(Material::makeDiffuse(Color(0.73f, 0.73f, 0.73f)));
-    addRotatedBox(scene, shorterBoxMaterial, Point3(0.1f, 0.0f, -2.0f),
-        Point3(3.1f, 3.0f, 1.0f), 18.0f);
+    addRotatedBox(scene, shorterBoxMaterial, Point3(0.1f, 0.0f, -2.0f), Point3(3.1f, 3.0f, 1.0f),
+                  18.0f);
 
     return scene;
 }

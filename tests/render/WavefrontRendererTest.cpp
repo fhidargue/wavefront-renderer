@@ -7,36 +7,27 @@
 #include <geometry/Mesh.h>
 
 // Builds a test scene
-static Scene buildTestScene() {
+static Scene buildTestScene()
+{
     Scene scene;
 
-    int whiteMaterial = scene.addMaterial(
-        Material::makeDiffuse(Color(0.8f, 0.8f, 0.8f)));
-    int lightMaterial = scene.addMaterial(
-        Material::makeEmissive(Color(1.0f, 1.0f, 1.0f), 10.0f));
+    int whiteMaterial = scene.addMaterial(Material::makeDiffuse(Color(0.8f, 0.8f, 0.8f)));
+    int lightMaterial = scene.addMaterial(Material::makeEmissive(Color(1.0f, 1.0f, 1.0f), 10.0f));
 
     // Floor quad
     Mesh floor;
     floor.materialID = whiteMaterial;
-    floor.vertexPositions = {
-        Point3(-2.0f, -1.0f, -3.0f),
-        Point3( 2.0f, -1.0f, -3.0f),
-        Point3( 2.0f, -1.0f,  1.0f),
-        Point3(-2.0f, -1.0f,  1.0f)
-    };
-    floor.triangleIndices = { 0, 1, 2,  0, 2, 3 };
+    floor.vertexPositions = {Point3(-2.0f, -1.0f, -3.0f), Point3(2.0f, -1.0f, -3.0f),
+                             Point3(2.0f, -1.0f, 1.0f), Point3(-2.0f, -1.0f, 1.0f)};
+    floor.triangleIndices = {0, 1, 2, 0, 2, 3};
     scene.addMesh(floor);
 
     // Light quad
     Mesh light;
     light.materialID = lightMaterial;
-    light.vertexPositions = {
-        Point3(-0.5f, 2.0f, -2.0f),
-        Point3( 0.5f, 2.0f, -2.0f),
-        Point3( 0.5f, 2.0f, -1.0f),
-        Point3(-0.5f, 2.0f, -1.0f)
-    };
-    light.triangleIndices = { 0, 1, 2,  0, 2, 3 };
+    light.vertexPositions = {Point3(-0.5f, 2.0f, -2.0f), Point3(0.5f, 2.0f, -2.0f),
+                             Point3(0.5f, 2.0f, -1.0f), Point3(-0.5f, 2.0f, -1.0f)};
+    light.triangleIndices = {0, 1, 2, 0, 2, 3};
     scene.addMesh(light);
 
     scene.buildAccelerator();
@@ -44,39 +35,39 @@ static Scene buildTestScene() {
     return scene;
 }
 
-static Camera buildTestCamera(int width, int height) {
-    return Camera(
-        Point3(0.0f, 0.5f, 2.0f),
-        Point3(0.0f, 0.0f, -1.0f),
-        Vec3(0.0f, 1.0f, 0.0f),
-        45.0f,
-        width, height
-    );
+static Camera buildTestCamera(int width, int height)
+{
+    return Camera(Point3(0.0f, 0.5f, 2.0f), Point3(0.0f, 0.0f, -1.0f), Vec3(0.0f, 1.0f, 0.0f),
+                  45.0f, width, height);
 }
 
 // Constructors
 
-TEST(WavefrontRendererTest, ConstructorStoresSamples) {
+TEST(WavefrontRendererTest, ConstructorStoresSamples)
+{
     WavefrontRenderer renderer(16, 4, SchedulingPolicy::None);
 
     EXPECT_EQ(renderer.samplesPerPixel, 16);
 }
 
-TEST(WavefrontRendererTest, ConstructorStoresDepth) {
+TEST(WavefrontRendererTest, ConstructorStoresDepth)
+{
     WavefrontRenderer renderer(16, 4, SchedulingPolicy::None);
 
     EXPECT_EQ(renderer.maxDepth, 4);
 }
 
-TEST(WavefrontRendererTest, ConstructorStoresPolicy) {
+TEST(WavefrontRendererTest, ConstructorStoresPolicy)
+{
     WavefrontRenderer renderer(16, 4, SchedulingPolicy::MaterialAware);
 
     EXPECT_EQ(renderer.policy, SchedulingPolicy::MaterialAware);
 }
 
 // Render outputs
-TEST(WavefrontRendererTest, RenderSceneWritesAllPixels) {
-    const int width  = 16;
+TEST(WavefrontRendererTest, RenderSceneWritesAllPixels)
+{
+    const int width = 16;
     const int height = 16;
 
     Scene scene = buildTestScene();
@@ -88,8 +79,10 @@ TEST(WavefrontRendererTest, RenderSceneWritesAllPixels) {
     renderer.renderScene(scene, camera, image);
 
     int blackPixelCount = 0;
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
+    for (int y = 0; y < height; ++y)
+    {
+        for (int x = 0; x < width; ++x)
+        {
             Color pixel = image.pixels[y * width + x];
 
             if (pixel.x == 0.0f && pixel.y == 0.0f && pixel.z == 0.0f)
@@ -101,7 +94,8 @@ TEST(WavefrontRendererTest, RenderSceneWritesAllPixels) {
     EXPECT_LT(blackPixelCount, (width * height) / 2);
 }
 
-TEST(WavefrontRendererTest, RenderReturnsNonNegativeShadingTime) {
+TEST(WavefrontRendererTest, RenderReturnsNonNegativeShadingTime)
+{
     Scene scene = buildTestScene();
     Camera camera = buildTestCamera(8, 8);
     Image image(8, 8);
@@ -113,7 +107,8 @@ TEST(WavefrontRendererTest, RenderReturnsNonNegativeShadingTime) {
     EXPECT_GE(shadingMs, 0.0);
 }
 
-TEST(WavefrontRendererTest, PixelValuesAreInValidRange) {
+TEST(WavefrontRendererTest, PixelValuesAreInValidRange)
+{
     const int width = 16;
     const int height = 16;
 
@@ -126,7 +121,8 @@ TEST(WavefrontRendererTest, PixelValuesAreInValidRange) {
     renderer.renderScene(scene, camera, image);
 
     // After gamma correction all values should be in [0, 1]
-    for (int i = 0; i < width * height; ++i) {
+    for (int i = 0; i < width * height; ++i)
+    {
         EXPECT_GE(image.pixels[i].x, 0.0f);
         EXPECT_GE(image.pixels[i].y, 0.0f);
         EXPECT_GE(image.pixels[i].z, 0.0f);
@@ -138,7 +134,8 @@ TEST(WavefrontRendererTest, PixelValuesAreInValidRange) {
 
 // Scheduling policies
 
-TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange) {
+TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange)
+{
     const int width = 16;
     const int height = 16;
 
@@ -158,16 +155,16 @@ TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange) {
     float baselineBrightness = 0.0f;
     float materialAwareBrightness = 0.0f;
 
-    for (int i = 0; i < width * height; ++i) {
+    for (int i = 0; i < width * height; ++i)
+    {
         baselineBrightness +=
-            (imageBaseline.pixels[i].x +
-             imageBaseline.pixels[i].y +
-             imageBaseline.pixels[i].z) / 3.0f;
+            (imageBaseline.pixels[i].x + imageBaseline.pixels[i].y + imageBaseline.pixels[i].z) /
+            3.0f;
 
         materialAwareBrightness +=
-            (imageMaterialAware.pixels[i].x +
-             imageMaterialAware.pixels[i].y +
-             imageMaterialAware.pixels[i].z) / 3.0f;
+            (imageMaterialAware.pixels[i].x + imageMaterialAware.pixels[i].y +
+             imageMaterialAware.pixels[i].z) /
+            3.0f;
     }
 
     baselineBrightness /= static_cast<float>(width * height);
@@ -178,19 +175,16 @@ TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange) {
 
 // Scene hit routing
 
-TEST(SceneHitTest, WithoutAcceleratorUsesBruteForceFallback) {
+TEST(SceneHitTest, WithoutAcceleratorUsesBruteForceFallback)
+{
     Scene scene;
     scene.addMaterial(Material::makeDiffuse(Color(0.8f, 0.8f, 0.8f)));
 
     Mesh quad;
     quad.materialID = 0;
-    quad.vertexPositions = {
-        Point3(-1.0f, -1.0f, -1.0f),
-        Point3( 1.0f, -1.0f, -1.0f),
-        Point3( 1.0f,  1.0f, -1.0f),
-        Point3(-1.0f,  1.0f, -1.0f)
-    };
-    quad.triangleIndices = { 0, 1, 2,  0, 2, 3 };
+    quad.vertexPositions = {Point3(-1.0f, -1.0f, -1.0f), Point3(1.0f, -1.0f, -1.0f),
+                            Point3(1.0f, 1.0f, -1.0f), Point3(-1.0f, 1.0f, -1.0f)};
+    quad.triangleIndices = {0, 1, 2, 0, 2, 3};
     scene.addMesh(quad);
 
     // Don't call buildAccelerator()
@@ -203,20 +197,18 @@ TEST(SceneHitTest, WithoutAcceleratorUsesBruteForceFallback) {
     EXPECT_TRUE(hit);
 }
 
-TEST(SceneHitTest, WithAcceleratorHitsSameMeshAsWithout) {
-    auto buildScene = [](bool withAccelerator) {
+TEST(SceneHitTest, WithAcceleratorHitsSameMeshAsWithout)
+{
+    auto buildScene = [](bool withAccelerator)
+    {
         Scene scene;
         scene.addMaterial(Material::makeDiffuse(Color(0.8f, 0.8f, 0.8f)));
 
         Mesh quad;
         quad.materialID = 0;
-        quad.vertexPositions = {
-            Point3(-1.0f, -1.0f, -1.0f),
-            Point3( 1.0f, -1.0f, -1.0f),
-            Point3( 1.0f,  1.0f, -1.0f),
-            Point3(-1.0f,  1.0f, -1.0f)
-        };
-        quad.triangleIndices = { 0, 1, 2,  0, 2, 3 };
+        quad.vertexPositions = {Point3(-1.0f, -1.0f, -1.0f), Point3(1.0f, -1.0f, -1.0f),
+                                Point3(1.0f, 1.0f, -1.0f), Point3(-1.0f, 1.0f, -1.0f)};
+        quad.triangleIndices = {0, 1, 2, 0, 2, 3};
         scene.addMesh(quad);
 
         if (withAccelerator)

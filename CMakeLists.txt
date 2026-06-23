@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_OSX_ARCHITECTURES "arm64")
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+endif()
+
 project(WavefrontRenderer VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
