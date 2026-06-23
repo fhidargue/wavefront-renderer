@@ -148,11 +148,9 @@ TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange) {
     Image imageBaseline(width, height);
     Image imageMaterialAware(width, height);
 
-    std::srand(42);
     WavefrontRenderer baselineRenderer(4, 4, SchedulingPolicy::None);
     baselineRenderer.renderScene(scene, camera, imageBaseline);
 
-    std::srand(42);
     WavefrontRenderer materialRenderer(4, 4, SchedulingPolicy::MaterialAware);
     materialRenderer.renderScene(scene, camera, imageMaterialAware);
 
@@ -175,7 +173,7 @@ TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange) {
     baselineBrightness /= static_cast<float>(width * height);
     materialAwareBrightness /= static_cast<float>(width * height);
 
-    EXPECT_NEAR(baselineBrightness, materialAwareBrightness, baselineBrightness * 0.10f);
+    EXPECT_NEAR(baselineBrightness, materialAwareBrightness, baselineBrightness * 0.05f);
 }
 
 // Scene hit routing

@@ -11,7 +11,6 @@
 
 using std::cout;
 using std::endl;
-using std::srand;
 using std::string;
 
 int main(int argc, char* argv[]) {
@@ -19,8 +18,6 @@ int main(int argc, char* argv[]) {
     const int imageHeight = 600;
     const int samplesPerPixel = 64;
     const int maxBounceDepth = 8;
-
-    srand(42);
 
     Scene scene;
 

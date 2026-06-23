@@ -78,3 +78,13 @@ __pycache__/
 output/*.ppm
 output/*.png
 output/*.exr
+build/
+
+# debug symbols
+*.dSYM/
+
+# generated scene files
+scenes/*.json
+
+# macOS
+.DS_Store
