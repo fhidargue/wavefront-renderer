@@ -12,15 +12,25 @@ class EmbreeAccelerator {
         EmbreeAccelerator();
         ~EmbreeAccelerator();
 
+        // Handles cannot be copied
+        EmbreeAccelerator(const EmbreeAccelerator&) = delete;
+        EmbreeAccelerator& operator=(const EmbreeAccelerator&) = delete;
+
+        // Moving ownership of the handles
+        EmbreeAccelerator(EmbreeAccelerator&& other) noexcept;
+        EmbreeAccelerator& operator=(EmbreeAccelerator&& other) noexcept;
+
         void build(const Scene& scene);
         void printStats() const;
 
         bool intersect(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const;
+
+        const Scene* m_sourceScene = nullptr;
+        bool m_built = false;
     
     private:
         RTCDevice m_device;
         RTCScene m_scene;
-        const Scene* m_sourceScene;
 
         // Stats recorded during build
         int m_meshCount;

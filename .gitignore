@@ -67,3 +67,14 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# python 
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+
+# render output
+output/*.ppm
+output/*.png
+output/*.exr

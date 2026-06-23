@@ -1,0 +1,714 @@
+{
+  "materials": [
+    {
+      "path": "/CornellBox/Materials/WhiteMaterial",
+      "type": "diffuse",
+      "albedo": [
+        0.7300000190734863,
+        0.7300000190734863,
+        0.7300000190734863
+      ],
+      "roughness": 1.0,
+      "emission": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "emissionStrength": 0.0
+    },
+    {
+      "path": "/CornellBox/Materials/RedMaterial",
+      "type": "diffuse",
+      "albedo": [
+        0.6499999761581421,
+        0.05000000074505806,
+        0.05000000074505806
+      ],
+      "roughness": 1.0,
+      "emission": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "emissionStrength": 0.0
+    },
+    {
+      "path": "/CornellBox/Materials/GreenMaterial",
+      "type": "diffuse",
+      "albedo": [
+        0.11999999731779099,
+        0.44999998807907104,
+        0.15000000596046448
+      ],
+      "roughness": 1.0,
+      "emission": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "emissionStrength": 0.0
+    },
+    {
+      "path": "/CornellBox/Materials/LightMaterial",
+      "type": "emissive",
+      "albedo": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "roughness": 1.0,
+      "emission": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "emissionStrength": 15.0
+    },
+    {
+      "path": "/CornellBox/Materials/TallBoxMaterial",
+      "type": "diffuse",
+      "albedo": [
+        0.20000000298023224,
+        0.30000001192092896,
+        0.800000011920929
+      ],
+      "roughness": 0.05000000074505806,
+      "emission": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "emissionStrength": 0.0
+    },
+    {
+      "path": "/CornellBox/Materials/ShortBoxMaterial",
+      "type": "diffuse",
+      "albedo": [
+        0.8999999761581421,
+        0.6000000238418579,
+        0.10000000149011612
+      ],
+      "roughness": 0.800000011920929,
+      "emission": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "emissionStrength": 0.0
+    }
+  ],
+  "meshes": [
+    {
+      "prim_path": "/CornellBox/Floor",
+      "material_id": 0,
+      "vertices": [
+        [
+          -5.0,
+          0.0,
+          -10.0
+        ],
+        [
+          5.0,
+          0.0,
+          -10.0
+        ],
+        [
+          5.0,
+          0.0,
+          5.0
+        ],
+        [
+          -5.0,
+          0.0,
+          5.0
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/Ceiling",
+      "material_id": 0,
+      "vertices": [
+        [
+          -5.0,
+          10.0,
+          5.0
+        ],
+        [
+          5.0,
+          10.0,
+          5.0
+        ],
+        [
+          5.0,
+          10.0,
+          -10.0
+        ],
+        [
+          -5.0,
+          10.0,
+          -10.0
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/BackWall",
+      "material_id": 0,
+      "vertices": [
+        [
+          -5.0,
+          0.0,
+          -10.0
+        ],
+        [
+          -5.0,
+          10.0,
+          -10.0
+        ],
+        [
+          5.0,
+          10.0,
+          -10.0
+        ],
+        [
+          5.0,
+          0.0,
+          -10.0
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/LeftWall",
+      "material_id": 1,
+      "vertices": [
+        [
+          -5.0,
+          0.0,
+          5.0
+        ],
+        [
+          -5.0,
+          10.0,
+          5.0
+        ],
+        [
+          -5.0,
+          10.0,
+          -10.0
+        ],
+        [
+          -5.0,
+          0.0,
+          -10.0
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/RightWall",
+      "material_id": 2,
+      "vertices": [
+        [
+          5.0,
+          0.0,
+          -10.0
+        ],
+        [
+          5.0,
+          10.0,
+          -10.0
+        ],
+        [
+          5.0,
+          10.0,
+          5.0
+        ],
+        [
+          5.0,
+          0.0,
+          5.0
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/CeilingLight",
+      "material_id": 3,
+      "vertices": [
+        [
+          -1.5,
+          9.99,
+          1.5
+        ],
+        [
+          1.5,
+          9.99,
+          1.5
+        ],
+        [
+          1.5,
+          9.99,
+          -1.5
+        ],
+        [
+          -1.5,
+          9.99,
+          -1.5
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/TallBox_Bottom",
+      "material_id": 4,
+      "vertices": [
+        [
+          -3.69,
+          0.0,
+          -4.73
+        ],
+        [
+          -0.97,
+          0.0,
+          -5.99
+        ],
+        [
+          0.29,
+          0.0,
+          -3.27
+        ],
+        [
+          -2.43,
+          0.0,
+          -2.01
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/TallBox_Top",
+      "material_id": 4,
+      "vertices": [
+        [
+          -2.43,
+          6.0,
+          -2.01
+        ],
+        [
+          0.29,
+          6.0,
+          -3.27
+        ],
+        [
+          -0.97,
+          6.0,
+          -5.99
+        ],
+        [
+          -3.69,
+          6.0,
+          -4.73
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/TallBox_Front",
+      "material_id": 4,
+      "vertices": [
+        [
+          -2.43,
+          0.0,
+          -2.01
+        ],
+        [
+          0.29,
+          0.0,
+          -3.27
+        ],
+        [
+          0.29,
+          6.0,
+          -3.27
+        ],
+        [
+          -2.43,
+          6.0,
+          -2.01
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/TallBox_Back",
+      "material_id": 4,
+      "vertices": [
+        [
+          -0.97,
+          0.0,
+          -5.99
+        ],
+        [
+          -3.69,
+          0.0,
+          -4.73
+        ],
+        [
+          -3.69,
+          6.0,
+          -4.73
+        ],
+        [
+          -0.97,
+          6.0,
+          -5.99
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/TallBox_Left",
+      "material_id": 4,
+      "vertices": [
+        [
+          -3.69,
+          0.0,
+          -4.73
+        ],
+        [
+          -2.43,
+          0.0,
+          -2.01
+        ],
+        [
+          -2.43,
+          6.0,
+          -2.01
+        ],
+        [
+          -3.69,
+          6.0,
+          -4.73
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/TallBox_Right",
+      "material_id": 4,
+      "vertices": [
+        [
+          0.29,
+          0.0,
+          -3.27
+        ],
+        [
+          -0.97,
+          0.0,
+          -5.99
+        ],
+        [
+          -0.97,
+          6.0,
+          -5.99
+        ],
+        [
+          0.29,
+          6.0,
+          -3.27
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/ShortBox_Bottom",
+      "material_id": 5,
+      "vertices": [
+        [
+          0.42,
+          0.0,
+          -2.93
+        ],
+        [
+          3.3,
+          0.0,
+          -1.95
+        ],
+        [
+          2.38,
+          0.0,
+          0.78
+        ],
+        [
+          -0.5,
+          0.0,
+          -0.2
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/ShortBox_Top",
+      "material_id": 5,
+      "vertices": [
+        [
+          -0.5,
+          3.0,
+          -0.2
+        ],
+        [
+          2.38,
+          3.0,
+          0.78
+        ],
+        [
+          3.3,
+          3.0,
+          -1.95
+        ],
+        [
+          0.42,
+          3.0,
+          -2.93
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/ShortBox_Front",
+      "material_id": 5,
+      "vertices": [
+        [
+          -0.5,
+          0.0,
+          -0.2
+        ],
+        [
+          2.38,
+          0.0,
+          0.78
+        ],
+        [
+          2.38,
+          3.0,
+          0.78
+        ],
+        [
+          -0.5,
+          3.0,
+          -0.2
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/ShortBox_Back",
+      "material_id": 5,
+      "vertices": [
+        [
+          3.3,
+          0.0,
+          -1.95
+        ],
+        [
+          0.42,
+          0.0,
+          -2.93
+        ],
+        [
+          0.42,
+          3.0,
+          -2.93
+        ],
+        [
+          3.3,
+          3.0,
+          -1.95
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/ShortBox_Left",
+      "material_id": 5,
+      "vertices": [
+        [
+          0.42,
+          0.0,
+          -2.93
+        ],
+        [
+          -0.5,
+          0.0,
+          -0.2
+        ],
+        [
+          -0.5,
+          3.0,
+          -0.2
+        ],
+        [
+          0.42,
+          3.0,
+          -2.93
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "prim_path": "/CornellBox/ShortBox_Right",
+      "material_id": 5,
+      "vertices": [
+        [
+          2.38,
+          0.0,
+          0.78
+        ],
+        [
+          3.3,
+          0.0,
+          -1.95
+        ],
+        [
+          3.3,
+          3.0,
+          -1.95
+        ],
+        [
+          2.38,
+          3.0,
+          0.78
+        ]
+      ],
+      "indices": [
+        0,
+        1,
+        2,
+        0,
+        2,
+        3
+      ]
+    }
+  ]
+}

@@ -10,6 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
 
 include_directories(include)
+include_directories(external)
 
 find_package(TBB REQUIRED)
 find_package(embree 4 REQUIRED)
