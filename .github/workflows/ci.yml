@@ -67,6 +67,8 @@ jobs:
           tar -xzf embree-4.4.1.x86_64.linux.tar.gz
           sudo cp -r include/embree4 /usr/local/include/
           sudo cp -r lib64/* /usr/local/lib/
+          sudo mkdir -p /usr/local/lib64
+          sudo cp -r lib64/* /usr/local/lib64/
           sudo ldconfig
 
       - name: Configure
