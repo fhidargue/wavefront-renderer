@@ -22,6 +22,46 @@ EmbreeAccelerator::~EmbreeAccelerator() {
     if (m_device) rtcReleaseDevice(m_device);
 }
 
+EmbreeAccelerator::EmbreeAccelerator(EmbreeAccelerator&& other) noexcept
+    : m_device(other.m_device), 
+    m_scene(other.m_scene),
+    m_sourceScene(other.m_sourceScene),
+    m_built(other.m_built),
+    m_meshCount(other.m_meshCount),
+    m_totalTriangles(other.m_totalTriangles),
+    m_totalVertices(other.m_totalVertices),
+    m_buildTimeMs(other.m_buildTimeMs) {
+    // Null the source so its destructor does not release our handles
+    other.m_device = nullptr;
+    other.m_scene = nullptr;
+    other.m_sourceScene = nullptr;
+    other.m_built = false;
+}
+
+EmbreeAccelerator& EmbreeAccelerator::operator=(EmbreeAccelerator&& other) noexcept {
+    if (this != &other) {
+        // Release what we currently own before taking the new handles
+        if (m_scene) rtcReleaseScene(m_scene);
+        if (m_device) rtcReleaseDevice(m_device);
+
+        m_device = other.m_device;
+        m_scene = other.m_scene;
+        m_sourceScene = other.m_sourceScene;
+        m_built = other.m_built;
+        m_meshCount = other.m_meshCount;
+        m_totalTriangles = other.m_totalTriangles;
+        m_totalVertices = other.m_totalVertices;
+        m_buildTimeMs = other.m_buildTimeMs;
+
+        other.m_device = nullptr;
+        other.m_scene = nullptr;
+        other.m_sourceScene = nullptr;
+        other.m_built = false;
+    }
+    
+    return *this;
+}
+
 // Build the BVH from all meshes
 void EmbreeAccelerator::build(const Scene& scene) {
     m_sourceScene = &scene;
