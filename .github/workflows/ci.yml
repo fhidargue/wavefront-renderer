@@ -57,7 +57,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             cmake \
-            libtbb-dev \
             libgtest-dev \
             wget
 
@@ -65,11 +64,17 @@ jobs:
         run: |
           wget -q https://github.com/RenderKit/embree/releases/download/v4.4.1/embree-4.4.1.x86_64.linux.tar.gz
           tar -xzf embree-4.4.1.x86_64.linux.tar.gz
-          sudo cp -r include/embree4 /usr/local/include/
-          sudo cp -r lib64/* /usr/local/lib/
-          sudo mkdir -p /usr/local/lib64
-          sudo cp -r lib64/* /usr/local/lib64/
+          sudo cp -r include /usr/local/
+          sudo cp -r lib64 /usr/local/
+          sudo cp -r share /usr/local/
+          echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/embree.conf
           sudo ldconfig
+
+      - name: Debug Embree install
+        run: |
+          find /usr/local -name "*embree*"
+          find /usr/local -name "*TBB*"
+          find /usr/local -name "*tbb*"
 
       - name: Configure
         run: |
