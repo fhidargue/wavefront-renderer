@@ -9,7 +9,8 @@
 #include <core/Ray.h>
 #include <accelerator/Embree.h>
 
-struct Scene {
+struct Scene
+{
     Scene() = default;
     Scene(const Scene&) = delete;
     Scene& operator=(const Scene&) = delete;
@@ -30,7 +31,7 @@ struct Scene {
     void addMesh(const Mesh& mesh);
 
     void buildAccelerator();
-    
+
     const Material& getMaterial(const HitRecord& record) const;
 
     bool hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const;

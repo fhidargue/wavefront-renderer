@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 #include <geometry/Sphere.h>
 
-TEST(SphereTest, RayHitsSphereHeadOn) {
+TEST(SphereTest, RayHitsSphereHeadOn)
+{
     Sphere sphere(Point3(0.0f, 0.0f, -1.0f), 0.5f, 0);
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -10,7 +11,8 @@ TEST(SphereTest, RayHitsSphereHeadOn) {
     EXPECT_NEAR(record.distance, 0.5f, 0.0001f);
 }
 
-TEST(SphereTest, RayMissesSphere) {
+TEST(SphereTest, RayMissesSphere)
+{
     Sphere sphere(Point3(0.0f, 0.0f, -1.0f), 0.5f, 0);
     Ray ray(Point3(5.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -18,7 +20,8 @@ TEST(SphereTest, RayMissesSphere) {
     EXPECT_FALSE(sphere.hit(ray, 0.001f, 1e9f, record));
 }
 
-TEST(SphereTest, HitRecordStoresMaterialID) {
+TEST(SphereTest, HitRecordStoresMaterialID)
+{
     Sphere sphere(Point3(0.0f, 0.0f, -1.0f), 0.5f, 3);
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -28,7 +31,8 @@ TEST(SphereTest, HitRecordStoresMaterialID) {
     EXPECT_EQ(record.materialID, 3);
 }
 
-TEST(SphereTest, FrontFaceNormalPointsTowardRay) {
+TEST(SphereTest, FrontFaceNormalPointsTowardRay)
+{
     Sphere sphere(Point3(0.0f, 0.0f, -1.0f), 0.5f, 0);
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -39,7 +43,8 @@ TEST(SphereTest, FrontFaceNormalPointsTowardRay) {
     EXPECT_GT(record.normal.z, 0.0f);
 }
 
-TEST(SphereTest, RayInsideSphereHitsBackFace) {
+TEST(SphereTest, RayInsideSphereHitsBackFace)
+{
     Sphere sphere(Point3(0.0f, 0.0f, 0.0f), 1.0f, 0);
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;

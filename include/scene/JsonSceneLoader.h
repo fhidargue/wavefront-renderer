@@ -14,11 +14,14 @@ using nlohmann::json;
 
 // Loads a Scene from a JSON file produced by the Python script
 
-struct JsonSceneLoader {
-    static Scene load(const std::string& filePath) {
+struct JsonSceneLoader
+{
+    static Scene load(const std::string& filePath)
+    {
         std::ifstream file(filePath);
 
-        if (!file.is_open()) {
+        if (!file.is_open())
+        {
             std::cerr << "ERROR: Could not open the scene file: " << filePath << std::endl;
 
             return Scene();
@@ -31,38 +34,40 @@ struct JsonSceneLoader {
         Scene scene;
 
         // Load the materials form JSON
-        for (const auto& matJson : sceneJson["materials"]) {
+        for (const auto& matJson : sceneJson["materials"])
+        {
             std::string type = matJson["type"].get<std::string>();
 
-            Color albedo(
-                matJson["albedo"][0].get<float>(),
-                matJson["albedo"][1].get<float>(),
-                matJson["albedo"][2].get<float>()
-            );
+            Color albedo(matJson["albedo"][0].get<float>(), matJson["albedo"][1].get<float>(),
+                         matJson["albedo"][2].get<float>());
 
-            if (type == "emissive") {
+            if (type == "emissive")
+            {
                 float strength = matJson["emissionStrength"].get<float>();
                 scene.addMaterial(Material::makeEmissive(albedo, strength));
-            } else if (type == "metal") {
+            }
+            else if (type == "metal")
+            {
                 float roughness = matJson["roughness"].get<float>();
                 scene.addMaterial(Material::makeMetal(albedo, roughness));
-            } else {
+            }
+            else
+            {
                 scene.addMaterial(Material::makeDiffuse(albedo));
             }
         }
 
         // Load the meshes from JSON
-        for (const auto& meshJson : sceneJson["meshes"]) {
+        for (const auto& meshJson : sceneJson["meshes"])
+        {
             Mesh mesh;
             mesh.materialID = meshJson["material_id"].get<int>();
 
             // Read vertex positions
-            for (const auto& vertex : meshJson["vertices"]) {
-                mesh.vertexPositions.push_back(Point3(
-                    vertex[0].get<float>(),
-                    vertex[1].get<float>(),
-                    vertex[2].get<float>()
-                ));
+            for (const auto& vertex : meshJson["vertices"])
+            {
+                mesh.vertexPositions.push_back(
+                    Point3(vertex[0].get<float>(), vertex[1].get<float>(), vertex[2].get<float>()));
             }
 
             // Read triangle indices
@@ -74,7 +79,7 @@ struct JsonSceneLoader {
 
         // Print loaded JSON content
         int totalTriangles = 0;
-        for (const auto& mesh : scene.meshes) 
+        for (const auto& mesh : scene.meshes)
             totalTriangles += mesh.triangleCount();
 
         std::cout << "Scene loaded from: " << filePath << std::endl;

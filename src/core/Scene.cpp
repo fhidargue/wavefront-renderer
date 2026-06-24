@@ -1,58 +1,73 @@
 #include <core/Scene.h>
 
-int Scene::addMaterial(const Material& material) {
+int Scene::addMaterial(const Material& material)
+{
     materials.push_back(material);
 
     return static_cast<int>(materials.size() - 1);
 }
 
-int Scene::addTexture(const Texture& texture) {
+int Scene::addTexture(const Texture& texture)
+{
     textures.push_back(texture);
 
     return static_cast<int>(textures.size() - 1);
 }
 
-void Scene::addSphere(const Sphere& sphere) {
+void Scene::addSphere(const Sphere& sphere)
+{
     spheres.push_back(sphere);
 }
 
-void Scene::addMesh(const Mesh& mesh) {
+void Scene::addMesh(const Mesh& mesh)
+{
     meshes.push_back(mesh);
 }
 
-void Scene::buildAccelerator() {
+void Scene::buildAccelerator()
+{
     accelerator.build(*this);
     accelerator.printStats();
     acceleratorBuilt = true;
 }
 
-const Material& Scene::getMaterial(const HitRecord& record) const {
+const Material& Scene::getMaterial(const HitRecord& record) const
+{
     return materials[record.materialID];
 }
 
-bool Scene::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const {
+bool Scene::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const
+{
     HitRecord tempRecord;
     bool hitAnything = false;
     float closestHit = maxDistance;
 
-    for (const Sphere& sphere : spheres) {
-        if (sphere.hit(ray, minDistance, closestHit, tempRecord)) {
+    for (const Sphere& sphere : spheres)
+    {
+        if (sphere.hit(ray, minDistance, closestHit, tempRecord))
+        {
             hitAnything = true;
             closestHit = tempRecord.distance;
             record = tempRecord;
         }
     }
 
-    if (acceleratorBuilt) {
-        if (accelerator.intersect(ray, minDistance, closestHit, tempRecord)) {
+    if (acceleratorBuilt)
+    {
+        if (accelerator.intersect(ray, minDistance, closestHit, tempRecord))
+        {
             hitAnything = true;
             closestHit = tempRecord.distance;
             record = tempRecord;
         }
-    } else {
+    }
+    else
+    {
         // Fallback if the accelerator is not built
-        for (const Mesh& mesh : meshes) {
-            if (mesh.hit(ray, minDistance, closestHit, tempRecord)) {
+        for (const Mesh& mesh : meshes)
+        {
+            if (mesh.hit(ray, minDistance, closestHit, tempRecord))
+            {
                 hitAnything = true;
                 closestHit = tempRecord.distance;
                 record = tempRecord;

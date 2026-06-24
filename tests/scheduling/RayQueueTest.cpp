@@ -1,18 +1,21 @@
 #include <gtest/gtest.h>
 #include <scheduling/RayQueue.h>
 
-static Ray makeRay() {
+static Ray makeRay()
+{
     return Ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
 }
 
-TEST(RayQueueTest, StartsEmpty) {
+TEST(RayQueueTest, StartsEmpty)
+{
     RayQueue queue;
 
     EXPECT_TRUE(queue.empty());
     EXPECT_EQ(queue.size(), 0);
 }
 
-TEST(RayQueueTest, AddIncreasesSize) {
+TEST(RayQueueTest, AddIncreasesSize)
+{
     RayQueue queue;
 
     queue.add(RayState(makeRay(), 0));
@@ -21,7 +24,8 @@ TEST(RayQueueTest, AddIncreasesSize) {
     EXPECT_FALSE(queue.empty());
 }
 
-TEST(RayQueueTest, ClearResetsToEmpty) {
+TEST(RayQueueTest, ClearResetsToEmpty)
+{
     RayQueue queue;
 
     queue.add(RayState(makeRay(), 0));
@@ -32,7 +36,8 @@ TEST(RayQueueTest, ClearResetsToEmpty) {
     EXPECT_EQ(queue.size(), 0);
 }
 
-TEST(RayStateTest, ThroughputInitialisedToWhite) {
+TEST(RayStateTest, ThroughputInitialisedToWhite)
+{
     RayState state(makeRay(), 0);
 
     EXPECT_EQ(state.throughtput.x, 1.0f);
@@ -40,7 +45,8 @@ TEST(RayStateTest, ThroughputInitialisedToWhite) {
     EXPECT_EQ(state.throughtput.z, 1.0f);
 }
 
-TEST(RayStateTest, AccumLightInitialisedToBlack) {
+TEST(RayStateTest, AccumLightInitialisedToBlack)
+{
     RayState state(makeRay(), 0);
 
     EXPECT_EQ(state.accumLight.x, 0.0f);
@@ -48,16 +54,18 @@ TEST(RayStateTest, AccumLightInitialisedToBlack) {
     EXPECT_EQ(state.accumLight.z, 0.0f);
 }
 
-TEST(RayStateTest, PixelIndexStoredCorrectly) {
+TEST(RayStateTest, PixelIndexStoredCorrectly)
+{
     int pixelIndex = 137;
     RayState state(makeRay(), pixelIndex);
 
     EXPECT_EQ(state.rayPixelIndex, pixelIndex);
 }
 
-TEST(RayStateTest, StartsAtDepthZeroAndAlive) {
+TEST(RayStateTest, StartsAtDepthZeroAndAlive)
+{
     RayState state(makeRay(), 0);
-    
+
     EXPECT_EQ(state.rayDepth, 0);
     EXPECT_TRUE(state.isRayAlive);
 }

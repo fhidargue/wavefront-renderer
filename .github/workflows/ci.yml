@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  python-lint:
+    name: Python Lint & Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Ruff format check
+        run: uv run ruff format --check tools/
+
+      - name: Ruff lint
+        run: uv run ruff check tools/
+
+  cpp-format:
+    name: C++ Lint & Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        run: |
+          find src include tests \
+            -name "*.cpp" -o -name "*.h" \
+          | xargs clang-format --dry-run --Werror
+
+  cpp-build:
+    name: C++ Build Pipeline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            libgtest-dev \
+            libtbb-dev \
+            wget
+
+      - name: Check packages
+        run: |
+          apt-cache search embree
+          apt-cache search libembree
+
+      - name: Install Embree
+        run: |
+          wget -q https://github.com/RenderKit/embree/releases/download/v4.4.1/embree-4.4.1.x86_64.linux.tar.gz
+          tar -xzf embree-4.4.1.x86_64.linux.tar.gz
+          sudo cp -r include/embree4 /usr/local/include/
+          sudo cp -r lib64 /usr/local/
+          sudo cp -r share /usr/local/
+          echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/embree.conf
+          sudo ldconfig || true
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="/usr/local/lib64/cmake/embree-4.4.1;/usr/local"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run tests
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+          cd build && ./tests

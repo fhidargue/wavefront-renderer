@@ -1,25 +1,44 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_OSX_ARCHITECTURES "arm64")
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+endif()
+
 project(WavefrontRenderer VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
-
 include_directories(include)
 include_directories(external)
 
-find_package(TBB REQUIRED)
+# TBB, solution for mac and linux / github cicd
+if(APPLE)
+    list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
+    find_package(TBB REQUIRED)
+    set(TBB_LINK TBB::tbb)
+else()
+    find_library(TBB_LIB
+        NAMES tbb
+        HINTS /usr/local/lib64
+        REQUIRED
+    )
+    message(STATUS "Found TBB: ${TBB_LIB}")
+    add_library(tbb_imported SHARED IMPORTED)
+    set_target_properties(tbb_imported PROPERTIES
+        IMPORTED_LOCATION ${TBB_LIB}
+        INTERFACE_INCLUDE_DIRECTORIES /usr/local/include
+    )
+    set(TBB_LINK tbb_imported)
+endif()
+
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
 
 include_directories(${EMBREE_INCLUDE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 
-# Shared sources used by both renderer and tests
 set(RENDERER_SOURCES
     src/core/Scene.cpp
     src/geometry/Mesh.cpp
@@ -29,18 +48,16 @@ set(RENDERER_SOURCES
     src/accelerator/Embree.cpp
 )
 
-# Main renderer executable
 add_executable(renderer
     src/main.cpp
     ${RENDERER_SOURCES}
 )
 
 target_link_libraries(renderer PRIVATE
-    TBB::tbb
+    ${TBB_LINK}
     embree
 )
 
-# Test executable
 add_executable(tests
     tests/main.cpp
     tests/math/Vec3Test.cpp
@@ -56,7 +73,7 @@ add_executable(tests
 )
 
 target_link_libraries(tests PRIVATE
-    TBB::tbb
+    ${TBB_LINK}
     embree
     GTest::GTest
     GTest::Main

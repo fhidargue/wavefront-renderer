@@ -5,22 +5,19 @@
 #include <shading/Material.h>
 
 // Build a minimal scene
-static Scene buildSingleQuadScene() {
+static Scene buildSingleQuadScene()
+{
     Scene scene;
     int materialID = scene.addMaterial(Material::makeDiffuse(Color(0.8f, 0.8f, 0.8f)));
 
     Mesh quad;
     quad.materialID = materialID;
 
-    quad.vertexPositions = {
-        Point3(-1.0f, -1.0f, -1.0f),
-        Point3( 1.0f, -1.0f, -1.0f),
-        Point3( 1.0f,  1.0f, -1.0f),
-        Point3(-1.0f,  1.0f, -1.0f)
-    };
+    quad.vertexPositions = {Point3(-1.0f, -1.0f, -1.0f), Point3(1.0f, -1.0f, -1.0f),
+                            Point3(1.0f, 1.0f, -1.0f), Point3(-1.0f, 1.0f, -1.0f)};
 
     // Two triangles forming a quad
-    quad.triangleIndices = { 0, 1, 2,  0, 2, 3 };
+    quad.triangleIndices = {0, 1, 2, 0, 2, 3};
 
     scene.addMesh(quad);
     scene.buildAccelerator();
@@ -28,13 +25,15 @@ static Scene buildSingleQuadScene() {
     return scene;
 }
 
-TEST(EmbreeTest, AcceleratorBuildsWithoutCrash) {
+TEST(EmbreeTest, AcceleratorBuildsWithoutCrash)
+{
     Scene scene = buildSingleQuadScene();
 
     EXPECT_TRUE(scene.acceleratorBuilt);
 }
 
-TEST(EmbreeTest, RayHitsQuadReturnsTrue) {
+TEST(EmbreeTest, RayHitsQuadReturnsTrue)
+{
     Scene scene = buildSingleQuadScene();
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -44,7 +43,8 @@ TEST(EmbreeTest, RayHitsQuadReturnsTrue) {
     EXPECT_TRUE(hit);
 }
 
-TEST(EmbreeTest, RayHitDistanceIsCorrect) {
+TEST(EmbreeTest, RayHitDistanceIsCorrect)
+{
     Scene scene = buildSingleQuadScene();
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -54,7 +54,8 @@ TEST(EmbreeTest, RayHitDistanceIsCorrect) {
     EXPECT_NEAR(record.distance, 1.0f, 0.001f);
 }
 
-TEST(EmbreeTest, RayMissReturnsNoHit) {
+TEST(EmbreeTest, RayMissReturnsNoHit)
+{
     Scene scene = buildSingleQuadScene();
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
     HitRecord record;
@@ -64,7 +65,8 @@ TEST(EmbreeTest, RayMissReturnsNoHit) {
     EXPECT_FALSE(hit);
 }
 
-TEST(EmbreeTest, RayMissesOutsideQuadBoundary) {
+TEST(EmbreeTest, RayMissesOutsideQuadBoundary)
+{
     Scene scene = buildSingleQuadScene();
     Ray ray(Point3(5.0f, 5.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -74,7 +76,8 @@ TEST(EmbreeTest, RayMissesOutsideQuadBoundary) {
     EXPECT_FALSE(hit);
 }
 
-TEST(EmbreeTest, HitRecordMaterialIDMatchesMesh) {
+TEST(EmbreeTest, HitRecordMaterialIDMatchesMesh)
+{
     Scene scene = buildSingleQuadScene();
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -84,7 +87,8 @@ TEST(EmbreeTest, HitRecordMaterialIDMatchesMesh) {
     EXPECT_EQ(record.materialID, 0);
 }
 
-TEST(EmbreeTest, HitRecordNormalPointsTowardRay) {
+TEST(EmbreeTest, HitRecordNormalPointsTowardRay)
+{
     Scene scene = buildSingleQuadScene();
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -95,7 +99,8 @@ TEST(EmbreeTest, HitRecordNormalPointsTowardRay) {
     EXPECT_TRUE(record.frontFace);
 }
 
-TEST(EmbreeTest, HitBeyondMaxDistanceReturnsFalse) {
+TEST(EmbreeTest, HitBeyondMaxDistanceReturnsFalse)
+{
     Scene scene = buildSingleQuadScene();
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
     HitRecord record;
@@ -105,7 +110,8 @@ TEST(EmbreeTest, HitBeyondMaxDistanceReturnsFalse) {
     EXPECT_FALSE(hit);
 }
 
-TEST(EmbreeTest, EmptySceneReturnsNoHit) {
+TEST(EmbreeTest, EmptySceneReturnsNoHit)
+{
     Scene scene;
     scene.buildAccelerator();
 
@@ -117,7 +123,8 @@ TEST(EmbreeTest, EmptySceneReturnsNoHit) {
     EXPECT_FALSE(hit);
 }
 
-TEST(EmbreeTest, MultiMeshSceneHitsCorrectMaterial) {
+TEST(EmbreeTest, MultiMeshSceneHitsCorrectMaterial)
+{
     Scene scene;
 
     int materialA = scene.addMaterial(Material::makeDiffuse(Color(1.0f, 0.0f, 0.0f)));
@@ -125,22 +132,16 @@ TEST(EmbreeTest, MultiMeshSceneHitsCorrectMaterial) {
 
     Mesh meshA;
     meshA.materialID = materialA;
-    meshA.vertexPositions = {
-        Point3(-1.0f, -1.0f, -2.0f),
-        Point3( 1.0f, -1.0f, -2.0f),
-        Point3( 0.0f,  1.0f, -2.0f)
-    };
-    meshA.triangleIndices = { 0, 1, 2 };
+    meshA.vertexPositions = {Point3(-1.0f, -1.0f, -2.0f), Point3(1.0f, -1.0f, -2.0f),
+                             Point3(0.0f, 1.0f, -2.0f)};
+    meshA.triangleIndices = {0, 1, 2};
     scene.addMesh(meshA);
 
     Mesh meshB;
     meshB.materialID = materialB;
-    meshB.vertexPositions = {
-        Point3(-1.0f, -1.0f, -1.0f),
-        Point3( 1.0f, -1.0f, -1.0f),
-        Point3( 0.0f,  1.0f, -1.0f)
-    };
-    meshB.triangleIndices = { 0, 1, 2 };
+    meshB.vertexPositions = {Point3(-1.0f, -1.0f, -1.0f), Point3(1.0f, -1.0f, -1.0f),
+                             Point3(0.0f, 1.0f, -1.0f)};
+    meshB.triangleIndices = {0, 1, 2};
     scene.addMesh(meshB);
 
     scene.buildAccelerator();

@@ -16,12 +16,13 @@ def find_shader(stage, material):
 
                 if not shader_prim:
                     continue
-                
+
                 shader = UsdShade.Shader(shader_prim)
 
                 if shader.GetIdAttr().Get() == "UsdPreviewSurface":
                     return shader
     return None
+
 
 def extract_materials(stage):
     """
@@ -51,7 +52,7 @@ def extract_materials(stage):
             if diffuse_input and diffuse_input.Get():
                 color = diffuse_input.Get()
                 diffuse_color = [float(color[0]), float(color[1]), float(color[2])]
-            
+
             # Read roughness
             roughness_input = shader.GetInput("roughness")
             if roughness_input and roughness_input.Get() is not None:
@@ -61,36 +62,43 @@ def extract_materials(stage):
             emissive_input = shader.GetInput("emissiveColor")
             if emissive_input and emissive_input.Get():
                 emission_color = emissive_input.Get()
-                emission = [float(emission_color[0]), float(emission_color[1]), 
-                            float(emission_color[2])]
+                emission = [
+                    float(emission_color[0]),
+                    float(emission_color[1]),
+                    float(emission_color[2]),
+                ]
                 is_emissive = sum(emission) > 0.0
-    
 
         # Record this material into the JSON
         index = len(materials)
         material_path_to_index[material_path] = index
 
-        materials.append({
-            "path": material_path,
-            "type": "emissive" if is_emissive else "diffuse",
-            "albedo": diffuse_color,
-            "roughness": roughness,
-            "emission": emission,
-            "emissionStrength": 15.0 if is_emissive else 0.0
-        })
+        materials.append(
+            {
+                "path": material_path,
+                "type": "emissive" if is_emissive else "diffuse",
+                "albedo": diffuse_color,
+                "roughness": roughness,
+                "emission": emission,
+                "emissionStrength": 15.0 if is_emissive else 0.0,
+            }
+        )
 
     if not materials:
         material_path_to_index["__default__"] = 0
-        materials.append({
-            "path": "__default__",
-            "type": "diffuse",
-            "albedo": [0.8, 0.8, 0.8],
-            "roughness": 1.0,
-            "emission": [0.0, 0.0, 0.0],
-            "emissionStrength": 0.0
-        })
+        materials.append(
+            {
+                "path": "__default__",
+                "type": "diffuse",
+                "albedo": [0.8, 0.8, 0.8],
+                "roughness": 1.0,
+                "emission": [0.0, 0.0, 0.0],
+                "emissionStrength": 0.0,
+            }
+        )
 
     return materials, material_path_to_index
+
 
 # Split each USD polygon into triangles using fan triangulation
 def triangulate(face_vertex_counts, face_vertex_indices):
@@ -109,6 +117,7 @@ def triangulate(face_vertex_counts, face_vertex_indices):
         index_pos += vertex_count
 
     return triangles
+
 
 # Extract all valid USD meshes
 def extract_meshes(stage, material_path_to_index):
@@ -149,12 +158,15 @@ def extract_meshes(stage, material_path_to_index):
         for point in raw_points:
             # USD uses Vec4 for matrix multiplication
             from pxr import Gf
+
             world_point = Gf.Vec4d(point[0], point[1], point[2], 1.0) * transform
-            vertices.append([
-                round(float(world_point[0]), 6),
-                round(float(world_point[1]), 6),
-                round(float(world_point[2]), 6)
-            ])
+            vertices.append(
+                [
+                    round(float(world_point[0]), 6),
+                    round(float(world_point[1]), 6),
+                    round(float(world_point[2]), 6),
+                ]
+            )
 
         # Triangulate
         triangle_indices = triangulate(raw_counts, raw_indices)
@@ -168,14 +180,17 @@ def extract_meshes(stage, material_path_to_index):
             mat_path = str(bound_material.GetPath())
             material_id = material_path_to_index.get(mat_path, 0)
 
-        meshes.append({
-            "prim_path": str(prim.GetPath()),
-            "material_id": material_id,
-            "vertices": vertices,
-            "indices": triangle_indices
-        })
+        meshes.append(
+            {
+                "prim_path": str(prim.GetPath()),
+                "material_id": material_id,
+                "vertices": vertices,
+                "indices": triangle_indices,
+            }
+        )
 
     return meshes
+
 
 def main():
     if len(sys.argv) != 3:
@@ -211,10 +226,7 @@ def main():
     print(f"Total vertices  : {total_vertices}")
 
     # Write JSON
-    scene_data = {
-        "materials": materials,
-        "meshes": meshes
-    }
+    scene_data = {"materials": materials, "meshes": meshes}
 
     with open(json_path, "w") as f:
         json.dump(scene_data, f, indent=2)

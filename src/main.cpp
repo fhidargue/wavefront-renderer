@@ -13,7 +13,8 @@ using std::cout;
 using std::endl;
 using std::string;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
     const int imageWidth = 600;
     const int imageHeight = 600;
     const int samplesPerPixel = 64;
@@ -21,10 +22,13 @@ int main(int argc, char* argv[]) {
 
     Scene scene;
 
-    if (argc >= 2) {
+    if (argc >= 2)
+    {
         string jsonPath = argv[1];
         scene = JsonSceneLoader::load(jsonPath);
-    } else {
+    }
+    else
+    {
         cout << "No scene file provided. Rendering Cornell Box" << endl;
         scene = CornellBox::build();
     }
@@ -33,29 +37,21 @@ int main(int argc, char* argv[]) {
     scene.buildAccelerator();
     cout << "BVH built successfully\n" << endl;
 
-    Camera camera(
-        Point3(0.0f, 5.0f, 15.0f),
-        Point3(0.0f, 5.0f, -2.0f),
-        Vec3(0.0f, 1.0f, 0.0f),
-        53.0f,
-        imageWidth,
-        imageHeight
-    );
+    Camera camera(Point3(0.0f, 5.0f, 15.0f), Point3(0.0f, 5.0f, -2.0f), Vec3(0.0f, 1.0f, 0.0f),
+                  53.0f, imageWidth, imageHeight);
 
-    Image image(imageWidth,imageHeight);
+    Image image(imageWidth, imageHeight);
 
-    cout << "Rendering: " << imageWidth << "x" << imageHeight
-         << " | " << samplesPerPixel << " samples | depth "
-         << maxBounceDepth << endl;
+    cout << "Rendering: " << imageWidth << "x" << imageHeight << " | " << samplesPerPixel
+         << " samples | depth " << maxBounceDepth << endl;
 
-    WavefrontRenderer renderer(samplesPerPixel,maxBounceDepth, 
-        SchedulingPolicy::MaterialAware);
+    WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::MaterialAware);
 
-    double shadingTimeMs = renderer.renderScene(scene,camera,image);
+    double shadingTimeMs = renderer.renderScene(scene, camera, image);
 
     cout << "Shading time: " << shadingTimeMs << "ms" << endl;
 
-    string outputPath=(argc>=3) ? argv[2] : "../output/render.ppm";
+    string outputPath = (argc >= 3) ? argv[2] : "../output/render.ppm";
     image.writePPMFile(outputPath);
 
     return 0;

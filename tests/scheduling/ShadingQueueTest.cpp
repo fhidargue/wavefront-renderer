@@ -1,13 +1,15 @@
 #include <gtest/gtest.h>
 #include <scheduling/ShadingQueue.h>
 
-static RayState makeRayState(int pixelIndex) {
+static RayState makeRayState(int pixelIndex)
+{
     Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
 
     return RayState(ray, pixelIndex);
 }
 
-static HitRecord makeHitRecord(int materialID, int textureID = 0) {
+static HitRecord makeHitRecord(int materialID, int textureID = 0)
+{
     HitRecord record;
     record.materialID = materialID;
     record.textureID = textureID;
@@ -17,13 +19,15 @@ static HitRecord makeHitRecord(int materialID, int textureID = 0) {
     return record;
 }
 
-TEST(ShadingQueueTest, StartsEmpty) {
+TEST(ShadingQueueTest, StartsEmpty)
+{
     ShadingQueue queue(SchedulingPolicy::None);
 
     EXPECT_EQ(queue.size(), 0);
 }
 
-TEST(ShadingQueueTest, AddIncreasesSize) {
+TEST(ShadingQueueTest, AddIncreasesSize)
+{
     ShadingQueue queue(SchedulingPolicy::None);
 
     queue.add(makeRayState(0), makeHitRecord(0));
@@ -32,7 +36,8 @@ TEST(ShadingQueueTest, AddIncreasesSize) {
     EXPECT_EQ(queue.size(), 2);
 }
 
-TEST(ShadingQueueTest, ClearResetsSize) {
+TEST(ShadingQueueTest, ClearResetsSize)
+{
     ShadingQueue queue(SchedulingPolicy::None);
 
     queue.add(makeRayState(0), makeHitRecord(0));
@@ -41,7 +46,8 @@ TEST(ShadingQueueTest, ClearResetsSize) {
     EXPECT_EQ(queue.size(), 0);
 }
 
-TEST(ShadingQueueTest, NonePolicyPreservesArrivalOrder) {
+TEST(ShadingQueueTest, NonePolicyPreservesArrivalOrder)
+{
     ShadingQueue queue(SchedulingPolicy::None);
 
     queue.add(makeRayState(0), makeHitRecord(2));
@@ -54,7 +60,8 @@ TEST(ShadingQueueTest, NonePolicyPreservesArrivalOrder) {
     EXPECT_EQ(queue.getSorted(2).hitRecord.materialID, 1);
 }
 
-TEST(ShadingQueueTest, MaterialAwareSortsByMaterialIDascending) {
+TEST(ShadingQueueTest, MaterialAwareSortsByMaterialIDascending)
+{
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
 
     queue.add(makeRayState(0), makeHitRecord(2));
@@ -67,7 +74,8 @@ TEST(ShadingQueueTest, MaterialAwareSortsByMaterialIDascending) {
     EXPECT_EQ(queue.getSorted(2).hitRecord.materialID, 2);
 }
 
-TEST(ShadingQueueTest, MaterialAwareGroupsSameMaterialTogether) {
+TEST(ShadingQueueTest, MaterialAwareGroupsSameMaterialTogether)
+{
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
 
     queue.add(makeRayState(0), makeHitRecord(1));
@@ -84,7 +92,8 @@ TEST(ShadingQueueTest, MaterialAwareGroupsSameMaterialTogether) {
     EXPECT_EQ(queue.getSorted(4).hitRecord.materialID, 1);
 }
 
-TEST(ShadingQueueTest, TextureAwareSortsByMaterialThenTexture) {
+TEST(ShadingQueueTest, TextureAwareSortsByMaterialThenTexture)
+{
     ShadingQueue queue(SchedulingPolicy::TextureAware);
 
     queue.add(makeRayState(0), makeHitRecord(1, 2));
@@ -103,7 +112,8 @@ TEST(ShadingQueueTest, TextureAwareSortsByMaterialThenTexture) {
     EXPECT_EQ(queue.getSorted(3).hitRecord.textureID, 2);
 }
 
-TEST(ShadingQueueTest, SingleEntryScheduleIsStable) {
+TEST(ShadingQueueTest, SingleEntryScheduleIsStable)
+{
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
 
     queue.add(makeRayState(0), makeHitRecord(5));
@@ -113,9 +123,10 @@ TEST(ShadingQueueTest, SingleEntryScheduleIsStable) {
     EXPECT_EQ(queue.getSorted(0).hitRecord.materialID, 5);
 }
 
-TEST(ShadingQueueTest, AlreadySortedInputIsStable) {
+TEST(ShadingQueueTest, AlreadySortedInputIsStable)
+{
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
-    
+
     queue.add(makeRayState(0), makeHitRecord(0));
     queue.add(makeRayState(1), makeHitRecord(1));
     queue.add(makeRayState(2), makeHitRecord(2));

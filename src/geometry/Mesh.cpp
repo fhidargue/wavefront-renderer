@@ -1,22 +1,26 @@
 #include <geometry/Mesh.h>
 #include <geometry/Triangle.h>
 
-int Mesh::triangleCount() const {
+int Mesh::triangleCount() const
+{
     return static_cast<int>(triangleIndices.size() / 3);
 }
 
-bool Mesh::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const {
+bool Mesh::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const
+{
     bool hitAnything = false;
     float closestSoFar = maxDistance;
 
-    for (int triangleIndex = 0; triangleIndex < triangleCount(); ++triangleIndex) {
+    for (int triangleIndex = 0; triangleIndex < triangleCount(); ++triangleIndex)
+    {
         const Point3& vertex0 = vertexPositions[triangleIndices[triangleIndex * 3 + 0]];
         const Point3& vertex1 = vertexPositions[triangleIndices[triangleIndex * 3 + 1]];
         const Point3& vertex2 = vertexPositions[triangleIndices[triangleIndex * 3 + 2]];
 
         float hitDistance, barycentricU, barycentricV;
-        if (intersectTriangle(ray, vertex0, vertex1, vertex2, minDistance, closestSoFar, 
-            hitDistance, barycentricU, barycentricV)) {
+        if (intersectTriangle(ray, vertex0, vertex1, vertex2, minDistance, closestSoFar,
+                              hitDistance, barycentricU, barycentricV))
+        {
             hitAnything = true;
             closestSoFar = hitDistance;
 

@@ -6,13 +6,15 @@
 #include <core/HitRecord.h>
 #include <shading/Texture.h>
 
-enum class MaterialType {
+enum class MaterialType
+{
     Diffuse,
     Metal,
     Emissive
 };
 
-struct Material {
+struct Material
+{
     MaterialType type;
     Color albedo;
     float roughness;
@@ -26,7 +28,7 @@ struct Material {
     Color getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const;
 
     bool scatter(const Ray& incoming, const HitRecord& record, const std::vector<Texture>& textures,
-        Color& attenuation, Ray& scattered) const;
+                 Color& attenuation, Ray& scattered) const;
 
     Color emitted() const;
 };

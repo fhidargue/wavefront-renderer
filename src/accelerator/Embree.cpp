@@ -7,30 +7,26 @@ using std::cout;
 using std::endl;
 
 EmbreeAccelerator::EmbreeAccelerator()
-    :   m_device(nullptr), 
-        m_scene(nullptr), 
-        m_sourceScene(nullptr),
-        m_meshCount(0),
-        m_totalTriangles(0),
-        m_totalVertices(0),
-        m_buildTimeMs(0.0) {
-        m_device = rtcNewDevice(nullptr);
-    }
+    : m_device(nullptr), m_scene(nullptr), m_sourceScene(nullptr), m_meshCount(0),
+      m_totalTriangles(0), m_totalVertices(0), m_buildTimeMs(0.0)
+{
+    m_device = rtcNewDevice(nullptr);
+}
 
-EmbreeAccelerator::~EmbreeAccelerator() {
-    if (m_scene) rtcReleaseScene(m_scene);
-    if (m_device) rtcReleaseDevice(m_device);
+EmbreeAccelerator::~EmbreeAccelerator()
+{
+    if (m_scene)
+        rtcReleaseScene(m_scene);
+    if (m_device)
+        rtcReleaseDevice(m_device);
 }
 
 EmbreeAccelerator::EmbreeAccelerator(EmbreeAccelerator&& other) noexcept
-    : m_device(other.m_device), 
-    m_scene(other.m_scene),
-    m_sourceScene(other.m_sourceScene),
-    m_built(other.m_built),
-    m_meshCount(other.m_meshCount),
-    m_totalTriangles(other.m_totalTriangles),
-    m_totalVertices(other.m_totalVertices),
-    m_buildTimeMs(other.m_buildTimeMs) {
+    : m_device(other.m_device), m_scene(other.m_scene), m_sourceScene(other.m_sourceScene),
+      m_built(other.m_built), m_meshCount(other.m_meshCount),
+      m_totalTriangles(other.m_totalTriangles), m_totalVertices(other.m_totalVertices),
+      m_buildTimeMs(other.m_buildTimeMs)
+{
     // Null the source so its destructor does not release our handles
     other.m_device = nullptr;
     other.m_scene = nullptr;
@@ -38,11 +34,15 @@ EmbreeAccelerator::EmbreeAccelerator(EmbreeAccelerator&& other) noexcept
     other.m_built = false;
 }
 
-EmbreeAccelerator& EmbreeAccelerator::operator=(EmbreeAccelerator&& other) noexcept {
-    if (this != &other) {
+EmbreeAccelerator& EmbreeAccelerator::operator=(EmbreeAccelerator&& other) noexcept
+{
+    if (this != &other)
+    {
         // Release what we currently own before taking the new handles
-        if (m_scene) rtcReleaseScene(m_scene);
-        if (m_device) rtcReleaseDevice(m_device);
+        if (m_scene)
+            rtcReleaseScene(m_scene);
+        if (m_device)
+            rtcReleaseDevice(m_device);
 
         m_device = other.m_device;
         m_scene = other.m_scene;
@@ -58,12 +58,13 @@ EmbreeAccelerator& EmbreeAccelerator::operator=(EmbreeAccelerator&& other) noexc
         other.m_sourceScene = nullptr;
         other.m_built = false;
     }
-    
+
     return *this;
 }
 
 // Build the BVH from all meshes
-void EmbreeAccelerator::build(const Scene& scene) {
+void EmbreeAccelerator::build(const Scene& scene)
+{
     m_sourceScene = &scene;
     m_scene = rtcNewScene(m_device);
 
@@ -73,27 +74,32 @@ void EmbreeAccelerator::build(const Scene& scene) {
     m_totalTriangles = 0;
     m_totalVertices = 0;
 
-    for (const Mesh& mesh : scene.meshes) {
+    for (const Mesh& mesh : scene.meshes)
+    {
         RTCGeometry geometry = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
         int vertexCount = static_cast<int>(mesh.vertexPositions.size());
         int triangleCount = mesh.triangleCount();
-        
-        // Vertex buffer
-        float* vertices = static_cast<float*>(rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, 
-            RTC_FORMAT_FLOAT3, 3 * sizeof(float), vertexCount));
 
-        for (int i = 0; i < vertexCount; ++i) {
+        // Vertex buffer
+        float* vertices = static_cast<float*>(
+            rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
+                                    3 * sizeof(float), vertexCount));
+
+        for (int i = 0; i < vertexCount; ++i)
+        {
             vertices[i * 3 + 0] = mesh.vertexPositions[i].x;
             vertices[i * 3 + 1] = mesh.vertexPositions[i].y;
             vertices[i * 3 + 2] = mesh.vertexPositions[i].z;
         }
 
         // Index buffer
-        unsigned* indices = static_cast<unsigned*>(rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0,
-            RTC_FORMAT_UINT3, 3 * sizeof(unsigned), triangleCount));  
-        
-        for (int i = 0; i < triangleCount * 3; ++i) {
+        unsigned* indices = static_cast<unsigned*>(
+            rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
+                                    3 * sizeof(unsigned), triangleCount));
+
+        for (int i = 0; i < triangleCount * 3; ++i)
+        {
             indices[i] = static_cast<unsigned>(mesh.triangleIndices[i]);
         }
 
@@ -107,13 +113,13 @@ void EmbreeAccelerator::build(const Scene& scene) {
     }
 
     rtcCommitScene(m_scene);
-    
+
     auto buildEnd = std::chrono::high_resolution_clock::now();
-    m_buildTimeMs = std::chrono::duration<double, std::milli>(
-        buildEnd - buildStart).count();
+    m_buildTimeMs = std::chrono::duration<double, std::milli>(buildEnd - buildStart).count();
 }
 
-void EmbreeAccelerator::printStats() const {
+void EmbreeAccelerator::printStats() const
+{
     cout << "\n========================================" << endl;
     cout << "  Embree BVH Stats" << endl;
     cout << "========================================" << endl;
@@ -125,8 +131,9 @@ void EmbreeAccelerator::printStats() const {
 }
 
 // Trace one ray against the BVH
-bool EmbreeAccelerator::intersect(const Ray& ray, float minDistance, float maxDistance, 
-    HitRecord& record) const {
+bool EmbreeAccelerator::intersect(const Ray& ray, float minDistance, float maxDistance,
+                                  HitRecord& record) const
+{
     // Embree packs a ray and the hit result in one struct
     RTCRayHit rayHit;
 
@@ -152,7 +159,8 @@ bool EmbreeAccelerator::intersect(const Ray& ray, float minDistance, float maxDi
     rtcIntersect1(m_scene, &rayHit);
 
     // Return if there are no hits
-    if (rayHit.hit.geomID == RTC_INVALID_GEOMETRY_ID) return false;
+    if (rayHit.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+        return false;
 
     // Map the BVH result into the HitRecord
     const Mesh& mesh = m_sourceScene->meshes[rayHit.hit.geomID];
