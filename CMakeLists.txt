@@ -24,7 +24,7 @@ else()
         HINTS /usr/local/lib64
         REQUIRED
     )
-    message(STATUS "Found TBB at: ${TBB_LIB}")
+    message(STATUS "Found TBB: ${TBB_LIB}")
     add_library(tbb_imported SHARED IMPORTED)
     set_target_properties(tbb_imported PROPERTIES
         IMPORTED_LOCATION ${TBB_LIB}
