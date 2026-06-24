@@ -10,11 +10,29 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-
 include_directories(include)
 include_directories(external)
 
-find_package(TBB REQUIRED)
+# TBB, solution for mac and linux / github cicd
+if(APPLE)
+    list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
+    find_package(TBB REQUIRED)
+    set(TBB_LINK TBB::tbb)
+else()
+    find_library(TBB_LIB
+        NAMES tbb
+        HINTS /usr/local/lib64
+        REQUIRED
+    )
+    message(STATUS "Found TBB at: ${TBB_LIB}")
+    add_library(tbb_imported SHARED IMPORTED)
+    set_target_properties(tbb_imported PROPERTIES
+        IMPORTED_LOCATION ${TBB_LIB}
+        INTERFACE_INCLUDE_DIRECTORIES /usr/local/include
+    )
+    set(TBB_LINK tbb_imported)
+endif()
+
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
 
