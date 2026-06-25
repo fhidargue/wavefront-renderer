@@ -51,6 +51,7 @@ jobs:
           wget -q https://github.com/RenderKit/embree/releases/download/v4.4.1/embree-4.4.1.x86_64.linux.tar.gz
           tar -xzf embree-4.4.1.x86_64.linux.tar.gz
           sudo cp -r include/embree4 /usr/local/include/
+          sudo cp -r include/tbb /usr/local/include/
           sudo cp -r lib64 /usr/local/
           sudo cp -r share /usr/local/
           echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/embree.conf
