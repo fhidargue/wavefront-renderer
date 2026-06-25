@@ -11,33 +11,33 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(include)
-include_directories(external)
 
-# TBB, solution for mac and linux / github cicd
-if(APPLE)
-    list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
+list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
+
+option(ENABLE_USD "Enable USD scene loading" OFF)
+
+if(ENABLE_USD)
+    set(USD_INSTALL_DIR "$ENV{HOME}/Documents/Projects/USDInstall")
+    find_package(pxr REQUIRED HINTS ${USD_INSTALL_DIR})
+    include_directories(${USD_INSTALL_DIR}/include)
+    link_directories(${USD_INSTALL_DIR}/lib)
+    add_compile_definitions(ENABLE_USD)
+    set(TBB_LINK "${USD_INSTALL_DIR}/lib/libtbb.dylib")
+    set(USD_LIBS usd_usd usd_usdGeom usd_usdShade usd_sdf usd_tf usd_ar usd_gf usd_vt usd_plug usd_work)
+    
+    # Suppress TBB warnings
+    add_compile_options(-Wno-\#pragma-messages)
+else()
     find_package(TBB REQUIRED)
     set(TBB_LINK TBB::tbb)
-else()
-    find_library(TBB_LIB
-        NAMES tbb
-        HINTS /usr/local/lib64
-        REQUIRED
-    )
-    message(STATUS "Found TBB: ${TBB_LIB}")
-    add_library(tbb_imported SHARED IMPORTED)
-    set_target_properties(tbb_imported PROPERTIES
-        IMPORTED_LOCATION ${TBB_LIB}
-        INTERFACE_INCLUDE_DIRECTORIES /usr/local/include
-    )
-    set(TBB_LINK tbb_imported)
+    set(USD_LIBS "")
 endif()
 
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 include_directories(${EMBREE_INCLUDE_DIRS})
-include_directories(${GTEST_INCLUDE_DIRS})
 
 set(RENDERER_SOURCES
     src/core/Scene.cpp
@@ -48,6 +48,10 @@ set(RENDERER_SOURCES
     src/accelerator/Embree.cpp
 )
 
+if(ENABLE_USD)
+    list(APPEND RENDERER_SOURCES src/scene/UsdSceneLoader.cpp)
+endif()
+
 add_executable(renderer
     src/main.cpp
     ${RENDERER_SOURCES}
@@ -56,6 +60,8 @@ add_executable(renderer
 target_link_libraries(renderer PRIVATE
     ${TBB_LINK}
     embree
+    nlohmann_json::nlohmann_json
+    ${USD_LIBS}
 )
 
 add_executable(tests
@@ -75,9 +81,23 @@ add_executable(tests
 target_link_libraries(tests PRIVATE
     ${TBB_LINK}
     embree
+    nlohmann_json::nlohmann_json
+    ${USD_LIBS}
     GTest::GTest
     GTest::Main
 )
+
+# rpath so renderer and tests find USD dylibs at runtime
+if(ENABLE_USD)
+    set_target_properties(renderer PROPERTIES
+        BUILD_RPATH "${USD_INSTALL_DIR}/lib"
+        INSTALL_RPATH "${USD_INSTALL_DIR}/lib"
+    )
+    set_target_properties(tests PROPERTIES
+        BUILD_RPATH "${USD_INSTALL_DIR}/lib"
+        INSTALL_RPATH "${USD_INSTALL_DIR}/lib"
+    )
+endif()
 
 enable_testing()
 add_test(NAME WavefrontTests COMMAND tests)

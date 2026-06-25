@@ -7,7 +7,10 @@
 #include <shading/Material.h>
 #include <render/WavefrontRenderer.h>
 #include <scene/CornellBox.h>
-#include <scene/JsonSceneLoader.h>
+
+#ifdef ENABLE_USD
+#include <scene/UsdSceneLoader.h>
+#endif
 
 using std::cout;
 using std::endl;
@@ -24,8 +27,14 @@ int main(int argc, char* argv[])
 
     if (argc >= 2)
     {
-        string jsonPath = argv[1];
-        scene = JsonSceneLoader::load(jsonPath);
+#ifdef ENABLE_USD
+        string path = argv[1];
+        cout << "Loading USD scene: " << path << endl;
+        scene = UsdSceneLoader::load(path);
+#else
+        cout << "USD support not compiled in. Rendering Cornell Box." << endl;
+        scene = CornellBox::build();
+#endif
     }
     else
     {
