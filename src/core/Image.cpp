@@ -24,7 +24,7 @@ void Image::write(const std::string& filePath, bool applyColorTransform) const
     }
 
     auto out = ImageOutput::create(filePath);
-    
+
     if (!out)
     {
         cerr << "ERROR: Could not create image output for: " << filePath << endl;
@@ -39,6 +39,5 @@ void Image::write(const std::string& filePath, bool applyColorTransform) const
     out->write_image(TypeDesc::FLOAT, buffer.data());
     out->close();
 
-    cout << "Image written: " << filePath
-         << " (" << width << "x" << height << ")" << endl;
+    cout << "Image written: " << filePath << " (" << width << "x" << height << ")" << endl;
 }
