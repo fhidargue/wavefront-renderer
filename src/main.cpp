@@ -7,7 +7,7 @@
 #include <shading/Material.h>
 #include <render/WavefrontRenderer.h>
 #include <scene/CornellBox.h>
-#include <scene/JsonSceneLoader.h>
+#include <scene/UsdSceneLoader.h>
 
 using std::cout;
 using std::endl;
@@ -24,8 +24,8 @@ int main(int argc, char* argv[])
 
     if (argc >= 2)
     {
-        string jsonPath = argv[1];
-        scene = JsonSceneLoader::load(jsonPath);
+        string path = argv[1];
+        scene = UsdSceneLoader::load(path);
     }
     else
     {

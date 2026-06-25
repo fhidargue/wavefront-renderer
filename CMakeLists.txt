@@ -10,34 +10,21 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include_directories(include)
-include_directories(external)
+# All Homebrew packages
+list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
 
-# TBB, solution for mac and linux / github cicd
-if(APPLE)
-    list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
-    find_package(TBB REQUIRED)
-    set(TBB_LINK TBB::tbb)
-else()
-    find_library(TBB_LIB
-        NAMES tbb
-        HINTS /usr/local/lib64
-        REQUIRED
-    )
-    message(STATUS "Found TBB: ${TBB_LIB}")
-    add_library(tbb_imported SHARED IMPORTED)
-    set_target_properties(tbb_imported PROPERTIES
-        IMPORTED_LOCATION ${TBB_LIB}
-        INTERFACE_INCLUDE_DIRECTORIES /usr/local/include
-    )
-    set(TBB_LINK tbb_imported)
-endif()
+include_directories(include)
+
+# USD from local build
+set(USD_INSTALL_DIR "$ENV{HOME}/Documents/Projects/USDInstall")
+find_package(pxr REQUIRED HINTS ${USD_INSTALL_DIR})
+include_directories(${USD_INSTALL_DIR}/include)
 
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 include_directories(${EMBREE_INCLUDE_DIRS})
-include_directories(${GTEST_INCLUDE_DIRS})
 
 set(RENDERER_SOURCES
     src/core/Scene.cpp
@@ -45,6 +32,7 @@ set(RENDERER_SOURCES
     src/shading/Material.cpp
     src/render/WavefrontRenderer.cpp
     src/scene/CornellBox.cpp
+    src/scene/UsdSceneLoader.cpp
     src/accelerator/Embree.cpp
 )
 
@@ -54,8 +42,19 @@ add_executable(renderer
 )
 
 target_link_libraries(renderer PRIVATE
-    ${TBB_LINK}
+    TBB::tbb
     embree
+    nlohmann_json::nlohmann_json
+    usd_usd
+    usd_usdGeom
+    usd_usdShade
+    usd_sdf
+    usd_tf
+    usd_ar
+    usd_gf
+    usd_vt
+    usd_plug
+    usd_work
 )
 
 add_executable(tests
@@ -73,8 +72,19 @@ add_executable(tests
 )
 
 target_link_libraries(tests PRIVATE
-    ${TBB_LINK}
+    TBB::tbb
     embree
+    nlohmann_json::nlohmann_json
+    usd_usd
+    usd_usdGeom
+    usd_usdShade
+    usd_sdf
+    usd_tf
+    usd_ar
+    usd_gf
+    usd_vt
+    usd_plug
+    usd_work
     GTest::GTest
     GTest::Main
 )
