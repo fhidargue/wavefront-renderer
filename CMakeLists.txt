@@ -36,11 +36,13 @@ endif()
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(OpenImageIO REQUIRED)
 
 include_directories(${EMBREE_INCLUDE_DIRS})
 
 set(RENDERER_SOURCES
     src/core/Scene.cpp
+    src/core/Image.cpp
     src/geometry/Mesh.cpp
     src/shading/Material.cpp
     src/render/WavefrontRenderer.cpp
@@ -62,6 +64,7 @@ target_link_libraries(renderer PRIVATE
     embree
     nlohmann_json::nlohmann_json
     ${USD_LIBS}
+    OpenImageIO::OpenImageIO
 )
 
 add_executable(tests
@@ -83,6 +86,7 @@ target_link_libraries(tests PRIVATE
     embree
     nlohmann_json::nlohmann_json
     ${USD_LIBS}
+    OpenImageIO::OpenImageIO
     GTest::GTest
     GTest::Main
 )

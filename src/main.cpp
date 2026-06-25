@@ -60,8 +60,8 @@ int main(int argc, char* argv[])
 
     cout << "Shading time: " << shadingTimeMs << "ms" << endl;
 
-    string outputPath = (argc >= 3) ? argv[2] : "../output/render.ppm";
-    image.writePPMFile(outputPath);
+    string outputPath = (argc >= 3) ? argv[2] : "../output/render.exr";
+    image.write(outputPath);
 
     return 0;
 }
