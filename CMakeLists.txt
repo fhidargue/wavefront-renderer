@@ -10,15 +10,28 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# All Homebrew packages
-list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
-
 include_directories(include)
 
-# USD from local build
-set(USD_INSTALL_DIR "$ENV{HOME}/Documents/Projects/USDInstall")
-find_package(pxr REQUIRED HINTS ${USD_INSTALL_DIR})
-include_directories(${USD_INSTALL_DIR}/include)
+list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
+
+option(ENABLE_USD "Enable USD scene loading" OFF)
+
+if(ENABLE_USD)
+    # Suppress deprecated TBB warnings from USD headers
+    add_compile_options(-Wno-\#pragma-messages)
+
+    set(USD_INSTALL_DIR "$ENV{HOME}/Documents/Projects/USDInstall")
+    find_package(pxr REQUIRED HINTS ${USD_INSTALL_DIR})
+    include_directories(${USD_INSTALL_DIR}/include)
+    link_directories(${USD_INSTALL_DIR}/lib)
+    add_compile_definitions(ENABLE_USD)
+    set(TBB_LINK "${USD_INSTALL_DIR}/lib/libtbb.dylib")
+    set(USD_LIBS usd_usd usd_usdGeom usd_usdShade usd_sdf usd_tf usd_ar usd_gf usd_vt usd_plug usd_work)
+else()
+    find_package(TBB REQUIRED)
+    set(TBB_LINK TBB::tbb)
+    set(USD_LIBS "")
+endif()
 
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
@@ -32,9 +45,12 @@ set(RENDERER_SOURCES
     src/shading/Material.cpp
     src/render/WavefrontRenderer.cpp
     src/scene/CornellBox.cpp
-    src/scene/UsdSceneLoader.cpp
     src/accelerator/Embree.cpp
 )
+
+if(ENABLE_USD)
+    list(APPEND RENDERER_SOURCES src/scene/UsdSceneLoader.cpp)
+endif()
 
 add_executable(renderer
     src/main.cpp
@@ -42,19 +58,10 @@ add_executable(renderer
 )
 
 target_link_libraries(renderer PRIVATE
-    TBB::tbb
+    ${TBB_LINK}
     embree
     nlohmann_json::nlohmann_json
-    usd_usd
-    usd_usdGeom
-    usd_usdShade
-    usd_sdf
-    usd_tf
-    usd_ar
-    usd_gf
-    usd_vt
-    usd_plug
-    usd_work
+    ${USD_LIBS}
 )
 
 add_executable(tests
@@ -72,22 +79,25 @@ add_executable(tests
 )
 
 target_link_libraries(tests PRIVATE
-    TBB::tbb
+    ${TBB_LINK}
     embree
     nlohmann_json::nlohmann_json
-    usd_usd
-    usd_usdGeom
-    usd_usdShade
-    usd_sdf
-    usd_tf
-    usd_ar
-    usd_gf
-    usd_vt
-    usd_plug
-    usd_work
+    ${USD_LIBS}
     GTest::GTest
     GTest::Main
 )
+
+# rpath so renderer and tests find USD dylibs at runtime
+if(ENABLE_USD)
+    set_target_properties(renderer PROPERTIES
+        BUILD_RPATH "${USD_INSTALL_DIR}/lib"
+        INSTALL_RPATH "${USD_INSTALL_DIR}/lib"
+    )
+    set_target_properties(tests PROPERTIES
+        BUILD_RPATH "${USD_INSTALL_DIR}/lib"
+        INSTALL_RPATH "${USD_INSTALL_DIR}/lib"
+    )
+endif()
 
 enable_testing()
 add_test(NAME WavefrontTests COMMAND tests)
