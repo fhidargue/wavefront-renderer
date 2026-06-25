@@ -38,7 +38,6 @@ jobs:
           sudo apt-get install -y \
             cmake \
             libgtest-dev \
-            libtbb-dev \
             nlohmann-json3-dev \
             wget
 

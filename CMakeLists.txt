@@ -17,9 +17,6 @@ list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
 option(ENABLE_USD "Enable USD scene loading" OFF)
 
 if(ENABLE_USD)
-    # Suppress deprecated TBB warnings from USD headers
-    add_compile_options(-Wno-\#pragma-messages)
-
     set(USD_INSTALL_DIR "$ENV{HOME}/Documents/Projects/USDInstall")
     find_package(pxr REQUIRED HINTS ${USD_INSTALL_DIR})
     include_directories(${USD_INSTALL_DIR}/include)
@@ -27,9 +24,22 @@ if(ENABLE_USD)
     add_compile_definitions(ENABLE_USD)
     set(TBB_LINK "${USD_INSTALL_DIR}/lib/libtbb.dylib")
     set(USD_LIBS usd_usd usd_usdGeom usd_usdShade usd_sdf usd_tf usd_ar usd_gf usd_vt usd_plug usd_work)
-else()
+    
+    # Suppress TBB warnings
+    add_compile_options(-Wno-\#pragma-messages)
+elseif(APPLE)
     find_package(TBB REQUIRED)
     set(TBB_LINK TBB::tbb)
+    set(USD_LIBS "")
+else()
+    # Linux CI: use Embree's bundled TBB
+    find_library(TBB_LIB tbb HINTS /usr/local/lib64 REQUIRED)
+    add_library(tbb_imported SHARED IMPORTED)
+    set_target_properties(tbb_imported PROPERTIES
+        IMPORTED_LOCATION ${TBB_LIB}
+        INTERFACE_INCLUDE_DIRECTORIES /usr/local/include
+    )
+    set(TBB_LINK tbb_imported)
     set(USD_LIBS "")
 endif()
 
