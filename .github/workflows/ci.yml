@@ -41,6 +41,7 @@ jobs:
             libtbb-dev \
             nlohmann-json3-dev \
             libopenimageio-dev \
+            openimageio-tools \
             wget
 
       - name: Check packages
