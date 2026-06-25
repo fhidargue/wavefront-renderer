@@ -27,19 +27,9 @@ if(ENABLE_USD)
     
     # Suppress TBB warnings
     add_compile_options(-Wno-\#pragma-messages)
-elseif(APPLE)
+else()
     find_package(TBB REQUIRED)
     set(TBB_LINK TBB::tbb)
-    set(USD_LIBS "")
-else()
-    # Linux CI: use Embree's bundled TBB
-    find_library(TBB_LIB tbb HINTS /usr/local/lib64 REQUIRED)
-    add_library(tbb_imported SHARED IMPORTED)
-    set_target_properties(tbb_imported PROPERTIES
-        IMPORTED_LOCATION ${TBB_LIB}
-        INTERFACE_INCLUDE_DIRECTORIES /usr/local/include
-    )
-    set(TBB_LINK tbb_imported)
     set(USD_LIBS "")
 endif()
 
