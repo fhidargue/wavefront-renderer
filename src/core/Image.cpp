@@ -14,7 +14,7 @@ using namespace OpenImageIO;
 
 void Image::write(const std::string& filePath, bool applyColorTransform) const
 {
-    std::vector<float> buffer(width * height * 3);
+    vector<float> buffer(width * height * 3);
 
     for (int i = 0; i < width * height; ++i)
     {
