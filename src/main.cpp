@@ -27,14 +27,14 @@ int main(int argc, char* argv[])
 
     if (argc >= 2)
     {
-        #ifdef ENABLE_USD
-            string path = argv[1];
-            cout << "Loading USD scene: " << path << endl;
-            scene = UsdSceneLoader::load(path);
-        #else
-            cout << "USD support not compiled in. Rendering Cornell Box." << endl;
-            scene = CornellBox::build();
-        #endif
+#ifdef ENABLE_USD
+        string path = argv[1];
+        cout << "Loading USD scene: " << path << endl;
+        scene = UsdSceneLoader::load(path);
+#else
+        cout << "USD support not compiled in. Rendering Cornell Box." << endl;
+        scene = CornellBox::build();
+#endif
     }
     else
     {
