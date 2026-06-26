@@ -190,6 +190,6 @@ TEST(UsdSceneLoaderTest, LightMeshHasEmissiveMaterial)
     ASSERT_EQ(scene.meshes.size(), 2u);
 
     int lightMatID = scene.meshes[1].materialID;
-    
+
     EXPECT_EQ(scene.materials[lightMatID].type, MaterialType::Emissive);
 }
