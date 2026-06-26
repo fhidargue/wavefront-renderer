@@ -40,6 +40,9 @@ jobs:
             libgtest-dev \
             libtbb-dev \
             nlohmann-json3-dev \
+            libopenimageio-dev \
+            openimageio-tools \
+            libopencv-dev \
             wget
 
       - name: Check packages

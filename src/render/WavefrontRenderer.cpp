@@ -56,15 +56,7 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     // Final image write with gamma correction
     for (int i = 0; i < pixelCount; ++i)
     {
-        Color averaged = accumulator[i] / static_cast<float>(samplesPerPixel);
-
-        averaged.x = std::sqrt(std::max(0.0f, averaged.x));
-        averaged.y = std::sqrt(std::max(0.0f, averaged.y));
-        averaged.z = std::sqrt(std::max(0.0f, averaged.z));
-
-        int x = i % image.width;
-        int y = i / image.width;
-        image.setPixel(x, y, averaged);
+        image.pixels[i] = accumulator[i] / static_cast<float>(samplesPerPixel);
     }
 
     return totalShadeOnlyMs;
