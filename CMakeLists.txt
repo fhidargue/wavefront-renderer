@@ -78,9 +78,12 @@ add_executable(tests
     tests/shading/MaterialTest.cpp
     tests/accelerator/EmbreeTest.cpp
     tests/render/WavefrontRendererTest.cpp
-    tests/scene/UsdSceneLoaderTest.cpp
     ${RENDERER_SOURCES}
 )
+
+if(ENABLE_USD)
+    target_sources(tests PRIVATE tests/scene/UsdSceneLoaderTest.cpp)
+endif()
 
 target_link_libraries(tests PRIVATE
     ${TBB_LINK}

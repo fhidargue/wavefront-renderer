@@ -1,3 +1,5 @@
+#ifdef ENABLE_USD
+
 #include <gtest/gtest.h>
 #include <scene/UsdSceneLoader.h>
 #include <core/Scene.h>
@@ -193,3 +195,5 @@ TEST(UsdSceneLoaderTest, LightMeshHasEmissiveMaterial)
 
     EXPECT_EQ(scene.materials[lightMatID].type, MaterialType::Emissive);
 }
+
+#endif
