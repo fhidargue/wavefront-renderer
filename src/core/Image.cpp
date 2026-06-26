@@ -11,7 +11,7 @@ using std::endl;
 using std::string;
 using std::vector;
 
-void Image::write(const std::string& filePath, bool applyColorTransform) const
+void Image::write(const string& filePath, bool applyColorTransform) const
 {
     vector<float> buffer(width * height * 3);
 
