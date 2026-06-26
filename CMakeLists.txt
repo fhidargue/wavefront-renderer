@@ -78,6 +78,7 @@ add_executable(tests
     tests/shading/MaterialTest.cpp
     tests/accelerator/EmbreeTest.cpp
     tests/render/WavefrontRendererTest.cpp
+    tests/scene/UsdSceneLoaderTest.cpp
     ${RENDERER_SOURCES}
 )
 
