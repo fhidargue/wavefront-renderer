@@ -76,8 +76,5 @@ build/
 # debug symbols
 *.dSYM/
 
-# generated scene files
-scenes/*.json
-
 # macOS
 .DS_Store
