@@ -10,7 +10,6 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
-using namespace OpenImageIO;
 
 void Image::write(const std::string& filePath, bool applyColorTransform) const
 {
@@ -23,7 +22,7 @@ void Image::write(const std::string& filePath, bool applyColorTransform) const
         buffer[i * 3 + 2] = pixels[i].z;
     }
 
-    auto out = ImageOutput::create(filePath);
+    auto out = OIIO::ImageOutput::create(filePath);
 
     if (!out)
     {
@@ -31,12 +30,12 @@ void Image::write(const std::string& filePath, bool applyColorTransform) const
         return;
     }
 
-    ImageSpec spec(width, height, 3, TypeDesc::FLOAT);
+    OIIO::ImageSpec spec(width, height, 3, OIIO::TypeDesc::FLOAT);
     spec.attribute("compression", "zip");
     spec.attribute("Software", "Wavefront Renderer - MSc Thesis");
 
     out->open(filePath, spec);
-    out->write_image(TypeDesc::FLOAT, buffer.data());
+    out->write_image(OIIO::TypeDesc::FLOAT, buffer.data());
     out->close();
 
     cout << "Image written: " << filePath << " (" << width << "x" << height << ")" << endl;
