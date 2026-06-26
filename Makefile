@@ -19,7 +19,7 @@ test: build
 	@./$(BUILD_DIR)/tests
 
 render: build
-	@./$(BUILD_DIR)/renderer scenes/cornell_box.usda output/cornell_box.exr
+	@./$(BUILD_DIR)/renderer scenes/cornellBox.usda output/cornellBox.exr
 
 cornell: build
-	@./$(BUILD_DIR)/renderer output/cornell_box_hardcoded.exr
+	@./$(BUILD_DIR)/renderer output/cornellBoxHardcoded.exr
