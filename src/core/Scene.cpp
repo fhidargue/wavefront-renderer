@@ -22,6 +22,30 @@ void Scene::addSphere(const Sphere& sphere)
 void Scene::addMesh(const Mesh& mesh)
 {
     meshes.push_back(mesh);
+
+    // Append to DOD flat arrays
+    int vertexOffset = static_cast<int>(geometry.allPositionsX.size());
+    int indexOffset = static_cast<int>(geometry.allIndices.size());
+
+    // Append vertex positions by component
+    for (const Point3& position : mesh.vertexPositions)
+    {
+        geometry.allPositionsX.push_back(position.x);
+        geometry.allPositionsY.push_back(position.y);
+        geometry.allPositionsZ.push_back(position.z);
+    }
+
+    // Append indices with global vertex offset applied
+    for (int index : mesh.triangleIndices)
+        geometry.allIndices.push_back(index + vertexOffset);
+
+    // Record metadata per mesh
+    geometry.meshVertexOffsets.push_back(vertexOffset);
+    geometry.meshVertexCounts.push_back(static_cast<int>(mesh.vertexPositions.size()));
+    geometry.meshIndexOffsets.push_back(indexOffset);
+    geometry.meshIndexCounts.push_back(static_cast<int>(mesh.triangleIndices.size()));
+    geometry.meshMaterialIDs.push_back(mesh.materialID);
+    geometry.meshUUIDs.push_back(mesh.uuid);
 }
 
 void Scene::buildAccelerator()

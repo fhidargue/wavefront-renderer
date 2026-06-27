@@ -5,6 +5,7 @@
 #include <core/Scene.h>
 #include <fstream>
 #include <string>
+#include <unordered_set>
 
 using std::string;
 
@@ -194,6 +195,76 @@ TEST(UsdSceneLoaderTest, LightMeshHasEmissiveMaterial)
     int lightMatID = scene.meshes[1].materialID;
 
     EXPECT_EQ(scene.materials[lightMatID].type, MaterialType::Emissive);
+}
+
+TEST(UsdSceneLoaderTest, MeshUUIDIsNotEmpty)
+{
+    string path = writeTempUsda("uuidMeshTest.usda", minimalScene());
+    Scene scene = UsdSceneLoader::load(path);
+
+    for (const auto& mesh : scene.meshes)
+        EXPECT_FALSE(mesh.uuid.empty())
+            << "Mesh has empty UUID";
+}
+
+TEST(UsdSceneLoaderTest, MaterialUUIDIsNotEmpty)
+{
+    string path = writeTempUsda("uuidMaterialTest.usda", minimalScene());
+    Scene scene = UsdSceneLoader::load(path);
+
+    for (const auto& material : scene.materials)
+        EXPECT_FALSE(material.uuid.empty())
+            << "Material has empty UUID";
+}
+
+TEST(UsdSceneLoaderTest, MeshUUIDMatchesPrimPath)
+{
+    string path = writeTempUsda("uuidPathTest.usda", minimalScene());
+    Scene scene = UsdSceneLoader::load(path);
+
+    ASSERT_EQ(scene.meshes.size(), 2u);
+
+    // UUIDs should be the full USD prim paths
+    EXPECT_EQ(scene.meshes[0].uuid, "/Root/Floor");
+    EXPECT_EQ(scene.meshes[1].uuid, "/Root/Light");
+}
+
+TEST(UsdSceneLoaderTest, MaterialUUIDMatchesPrimPath)
+{
+    string path = writeTempUsda("uuidMatpathTest.usda", minimalScene());
+    Scene scene = UsdSceneLoader::load(path);
+
+    ASSERT_EQ(scene.materials.size(), 2u);
+
+    EXPECT_EQ(scene.materials[0].uuid, "/Root/Materials/DiffuseMat");
+    EXPECT_EQ(scene.materials[1].uuid, "/Root/Materials/EmissiveMat");
+}
+
+TEST(UsdSceneLoaderTest, UUIDsAreUniqueAcrossMeshes)
+{
+    string path = writeTempUsda("uuidUniqueTest.usda", minimalScene());
+    Scene scene = UsdSceneLoader::load(path);
+
+    std::unordered_set<string> uuids;
+    
+    for (const auto& mesh : scene.meshes)
+    {
+        EXPECT_TRUE(uuids.find(mesh.uuid) == uuids.end())
+            << "Duplicate UUID found: " << mesh.uuid;
+        uuids.insert(mesh.uuid);
+    }
+}
+
+TEST(UsdSceneLoaderTest, DODGeometryUUIDMatchesMeshUUID)
+{
+    string path = writeTempUsda("dodUuidTest.usda", minimalScene());
+    Scene scene = UsdSceneLoader::load(path);
+
+    // DOD flat arrays should mirror mesh UUIDs exactly
+    ASSERT_EQ(scene.geometry.meshUUIDs.size(), scene.meshes.size());
+
+    for (size_t i = 0; i < scene.meshes.size(); ++i)
+        EXPECT_EQ(scene.geometry.meshUUIDs[i], scene.meshes[i].uuid);
 }
 
 #endif

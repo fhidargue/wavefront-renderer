@@ -20,6 +20,7 @@ struct Material
     float roughness;
     float emission;
     int textureID;
+    std::string uuid;
 
     static Material makeDiffuse(const Color& albedo, int textureID = -1);
     static Material makeMetal(const Color& albedo, float roughness, int textureID = -1);
