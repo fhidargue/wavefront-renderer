@@ -9,7 +9,7 @@ struct Mesh
 {
     std::vector<Point3> vertexPositions;
     std::vector<int> triangleIndices;
-    std::string uuid; 
+    std::string uuid;
     int materialID;
 
     int triangleCount() const;

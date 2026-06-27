@@ -1,11 +1,17 @@
 #include <gtest/gtest.h>
 #include <scheduling/ShadingQueue.h>
 
-static RayState makeRayState(int pixelIndex)
+static Ray makeRay()
 {
-    Ray ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
+    return Ray(Point3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
+}
 
-    return RayState(ray, pixelIndex);
+static RayQueue makeSingleRayQueue(int pixelIndex)
+{
+    RayQueue queue;
+    queue.addPrimary(makeRay(), pixelIndex);
+
+    return queue;
 }
 
 static HitRecord makeHitRecord(int materialID, int textureID = 0)
@@ -29,9 +35,10 @@ TEST(ShadingQueueTest, StartsEmpty)
 TEST(ShadingQueueTest, AddIncreasesSize)
 {
     ShadingQueue queue(SchedulingPolicy::None);
-
-    queue.add(makeRayState(0), makeHitRecord(0));
-    queue.add(makeRayState(1), makeHitRecord(1));
+    auto queue0 = makeSingleRayQueue(0);
+    auto queue1 = makeSingleRayQueue(1);
+    queue.add(queue0, 0, makeHitRecord(0));
+    queue.add(queue1, 0, makeHitRecord(1));
 
     EXPECT_EQ(queue.size(), 2);
 }
@@ -39,8 +46,8 @@ TEST(ShadingQueueTest, AddIncreasesSize)
 TEST(ShadingQueueTest, ClearResetsSize)
 {
     ShadingQueue queue(SchedulingPolicy::None);
-
-    queue.add(makeRayState(0), makeHitRecord(0));
+    auto queue0 = makeSingleRayQueue(0);
+    queue.add(queue0, 0, makeHitRecord(0));
     queue.clear();
 
     EXPECT_EQ(queue.size(), 0);
@@ -49,90 +56,113 @@ TEST(ShadingQueueTest, ClearResetsSize)
 TEST(ShadingQueueTest, NonePolicyPreservesArrivalOrder)
 {
     ShadingQueue queue(SchedulingPolicy::None);
-
-    queue.add(makeRayState(0), makeHitRecord(2));
-    queue.add(makeRayState(1), makeHitRecord(0));
-    queue.add(makeRayState(2), makeHitRecord(1));
+    auto queue0 = makeSingleRayQueue(0);
+    auto queue1 = makeSingleRayQueue(1);
+    auto queue2 = makeSingleRayQueue(2);
+    queue.add(queue0, 0, makeHitRecord(2));
+    queue.add(queue1, 0, makeHitRecord(0));
+    queue.add(queue2, 0, makeHitRecord(1));
     queue.schedule();
 
-    EXPECT_EQ(queue.getSorted(0).hitRecord.materialID, 2);
-    EXPECT_EQ(queue.getSorted(1).hitRecord.materialID, 0);
-    EXPECT_EQ(queue.getSorted(2).hitRecord.materialID, 1);
+    EXPECT_EQ(queue.getHitRecord(0).materialID, 2);
+    EXPECT_EQ(queue.getHitRecord(1).materialID, 0);
+    EXPECT_EQ(queue.getHitRecord(2).materialID, 1);
 }
 
-TEST(ShadingQueueTest, MaterialAwareSortsByMaterialIDascending)
+TEST(ShadingQueueTest, MaterialAwareSortsByMaterialIDAscending)
 {
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
-
-    queue.add(makeRayState(0), makeHitRecord(2));
-    queue.add(makeRayState(1), makeHitRecord(0));
-    queue.add(makeRayState(2), makeHitRecord(1));
+    auto queue0 = makeSingleRayQueue(0);
+    auto queue1 = makeSingleRayQueue(1);
+    auto queue2 = makeSingleRayQueue(2);
+    queue.add(queue0, 0, makeHitRecord(2));
+    queue.add(queue1, 0, makeHitRecord(0));
+    queue.add(queue2, 0, makeHitRecord(1));
     queue.schedule();
 
-    EXPECT_EQ(queue.getSorted(0).hitRecord.materialID, 0);
-    EXPECT_EQ(queue.getSorted(1).hitRecord.materialID, 1);
-    EXPECT_EQ(queue.getSorted(2).hitRecord.materialID, 2);
+    EXPECT_EQ(queue.getHitRecord(0).materialID, 0);
+    EXPECT_EQ(queue.getHitRecord(1).materialID, 1);
+    EXPECT_EQ(queue.getHitRecord(2).materialID, 2);
 }
 
 TEST(ShadingQueueTest, MaterialAwareGroupsSameMaterialTogether)
 {
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
 
-    queue.add(makeRayState(0), makeHitRecord(1));
-    queue.add(makeRayState(1), makeHitRecord(0));
-    queue.add(makeRayState(2), makeHitRecord(1));
-    queue.add(makeRayState(3), makeHitRecord(0));
-    queue.add(makeRayState(4), makeHitRecord(1));
+    for (int materialID : {1, 0, 1, 0, 1})
+    {
+        auto queue0 = makeSingleRayQueue(materialID);
+        queue.add(queue0, 0, makeHitRecord(materialID));
+    }
     queue.schedule();
 
-    EXPECT_EQ(queue.getSorted(0).hitRecord.materialID, 0);
-    EXPECT_EQ(queue.getSorted(1).hitRecord.materialID, 0);
-    EXPECT_EQ(queue.getSorted(2).hitRecord.materialID, 1);
-    EXPECT_EQ(queue.getSorted(3).hitRecord.materialID, 1);
-    EXPECT_EQ(queue.getSorted(4).hitRecord.materialID, 1);
+    EXPECT_EQ(queue.getHitRecord(0).materialID, 0);
+    EXPECT_EQ(queue.getHitRecord(1).materialID, 0);
+    EXPECT_EQ(queue.getHitRecord(2).materialID, 1);
+    EXPECT_EQ(queue.getHitRecord(3).materialID, 1);
+    EXPECT_EQ(queue.getHitRecord(4).materialID, 1);
 }
 
 TEST(ShadingQueueTest, TextureAwareSortsByMaterialThenTexture)
 {
     ShadingQueue queue(SchedulingPolicy::TextureAware);
-
-    queue.add(makeRayState(0), makeHitRecord(1, 2));
-    queue.add(makeRayState(1), makeHitRecord(0, 1));
-    queue.add(makeRayState(2), makeHitRecord(1, 0));
-    queue.add(makeRayState(3), makeHitRecord(0, 0));
+    auto queue0 = makeSingleRayQueue(0);
+    auto queue1 = makeSingleRayQueue(1);
+    auto queue2 = makeSingleRayQueue(2);
+    auto queue3 = makeSingleRayQueue(3);
+    queue.add(queue0, 0, makeHitRecord(1, 2));
+    queue.add(queue1, 0, makeHitRecord(0, 1));
+    queue.add(queue2, 0, makeHitRecord(1, 0));
+    queue.add(queue3, 0, makeHitRecord(0, 0));
     queue.schedule();
 
-    EXPECT_EQ(queue.getSorted(0).hitRecord.materialID, 0);
-    EXPECT_EQ(queue.getSorted(0).hitRecord.textureID, 0);
-    EXPECT_EQ(queue.getSorted(1).hitRecord.materialID, 0);
-    EXPECT_EQ(queue.getSorted(1).hitRecord.textureID, 1);
-    EXPECT_EQ(queue.getSorted(2).hitRecord.materialID, 1);
-    EXPECT_EQ(queue.getSorted(2).hitRecord.textureID, 0);
-    EXPECT_EQ(queue.getSorted(3).hitRecord.materialID, 1);
-    EXPECT_EQ(queue.getSorted(3).hitRecord.textureID, 2);
+    EXPECT_EQ(queue.getHitRecord(0).materialID, 0);
+    EXPECT_EQ(queue.getHitRecord(0).textureID,  0);
+    EXPECT_EQ(queue.getHitRecord(1).materialID, 0);
+    EXPECT_EQ(queue.getHitRecord(1).textureID,  1);
+    EXPECT_EQ(queue.getHitRecord(2).materialID, 1);
+    EXPECT_EQ(queue.getHitRecord(2).textureID,  0);
+    EXPECT_EQ(queue.getHitRecord(3).materialID, 1);
+    EXPECT_EQ(queue.getHitRecord(3).textureID,  2);
 }
 
 TEST(ShadingQueueTest, SingleEntryScheduleIsStable)
 {
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
-
-    queue.add(makeRayState(0), makeHitRecord(5));
+    auto queue0 = makeSingleRayQueue(0);
+    queue.add(queue0, 0, makeHitRecord(5));
     queue.schedule();
 
     EXPECT_EQ(queue.size(), 1);
-    EXPECT_EQ(queue.getSorted(0).hitRecord.materialID, 5);
+    EXPECT_EQ(queue.getHitRecord(0).materialID, 5);
 }
 
 TEST(ShadingQueueTest, AlreadySortedInputIsStable)
 {
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
-
-    queue.add(makeRayState(0), makeHitRecord(0));
-    queue.add(makeRayState(1), makeHitRecord(1));
-    queue.add(makeRayState(2), makeHitRecord(2));
+    
+    for (int materialID : {0, 1, 2})
+    {
+        auto queue0 = makeSingleRayQueue(materialID);
+        queue.add(queue0, 0, makeHitRecord(materialID));
+    }
     queue.schedule();
 
-    EXPECT_EQ(queue.getSorted(0).hitRecord.materialID, 0);
-    EXPECT_EQ(queue.getSorted(1).hitRecord.materialID, 1);
-    EXPECT_EQ(queue.getSorted(2).hitRecord.materialID, 2);
+    EXPECT_EQ(queue.getHitRecord(0).materialID, 0);
+    EXPECT_EQ(queue.getHitRecord(1).materialID, 1);
+    EXPECT_EQ(queue.getHitRecord(2).materialID, 2);
+}
+
+TEST(ShadingQueueTest, PixelIndexPreservedThroughSort)
+{
+    ShadingQueue queue(SchedulingPolicy::MaterialAware);
+    auto queue0 = makeSingleRayQueue(42);
+    auto queue1 = makeSingleRayQueue(99);
+    queue.add(queue0, 0, makeHitRecord(1));
+    queue.add(queue1, 0, makeHitRecord(0));
+    queue.schedule();
+
+    // After sort the materialID 0 first (px 99), then materialID 1 (px 42)
+    EXPECT_EQ(queue.getPixelIndex(0), 99);
+    EXPECT_EQ(queue.getPixelIndex(1), 42);
 }

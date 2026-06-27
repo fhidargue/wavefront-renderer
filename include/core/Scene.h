@@ -24,15 +24,23 @@ struct SceneGeometry
     std::vector<int> meshMaterialIDs;
     std::vector<std::string> meshUUIDs;
 
-    int meshCount() const { return static_cast<int>(meshMaterialIDs.size()); }
-    int totalVertexCount() const { return static_cast<int>(allPositionsX.size()); }
-    int totalTriangleCount() const { return static_cast<int>(allIndices.size()) / 3; }
+    int meshCount() const
+    {
+        return static_cast<int>(meshMaterialIDs.size());
+    }
+    int totalVertexCount() const
+    {
+        return static_cast<int>(allPositionsX.size());
+    }
+    int totalTriangleCount() const
+    {
+        return static_cast<int>(allIndices.size()) / 3;
+    }
 
     Point3 getVertex(int globalIndex) const
     {
-        return Point3(allPositionsX[globalIndex], 
-            allPositionsY[globalIndex],
-            allPositionsZ[globalIndex]);
+        return Point3(allPositionsX[globalIndex], allPositionsY[globalIndex],
+                      allPositionsZ[globalIndex]);
     }
 };
 

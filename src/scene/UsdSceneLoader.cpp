@@ -72,8 +72,8 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             TfToken sourceName;
             UsdShadeAttributeType sourceType;
 
-            if (!UsdShadeConnectableAPI::GetConnectedSource(output, &source, &sourceName, 
-                &sourceType))
+            if (!UsdShadeConnectableAPI::GetConnectedSource(output, &source, &sourceName,
+                                                            &sourceType))
                 continue;
 
             UsdShadeShader shader(source.GetPrim());
@@ -105,9 +105,8 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         }
 
         // Set UUID from prim path before adding to scene
-        Material mat = isEmissive
-            ? Material::makeEmissive(diffuse, 15.0f)
-            : Material::makeDiffuse(diffuse);
+        Material mat =
+            isEmissive ? Material::makeEmissive(diffuse, 15.0f) : Material::makeDiffuse(diffuse);
 
         mat.uuid = materialPath;
 
@@ -195,7 +194,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             if (iterator != materialIndexMap.end())
                 mesh.materialID = iterator->second;
         }
-        
+
         totalTriangles += mesh.triangleCount();
         scene.addMesh(mesh);
     }

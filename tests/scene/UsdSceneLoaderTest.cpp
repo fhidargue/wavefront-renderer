@@ -203,8 +203,7 @@ TEST(UsdSceneLoaderTest, MeshUUIDIsNotEmpty)
     Scene scene = UsdSceneLoader::load(path);
 
     for (const auto& mesh : scene.meshes)
-        EXPECT_FALSE(mesh.uuid.empty())
-            << "Mesh has empty UUID";
+        EXPECT_FALSE(mesh.uuid.empty()) << "Mesh has empty UUID";
 }
 
 TEST(UsdSceneLoaderTest, MaterialUUIDIsNotEmpty)
@@ -213,8 +212,7 @@ TEST(UsdSceneLoaderTest, MaterialUUIDIsNotEmpty)
     Scene scene = UsdSceneLoader::load(path);
 
     for (const auto& material : scene.materials)
-        EXPECT_FALSE(material.uuid.empty())
-            << "Material has empty UUID";
+        EXPECT_FALSE(material.uuid.empty()) << "Material has empty UUID";
 }
 
 TEST(UsdSceneLoaderTest, MeshUUIDMatchesPrimPath)
@@ -246,11 +244,10 @@ TEST(UsdSceneLoaderTest, UUIDsAreUniqueAcrossMeshes)
     Scene scene = UsdSceneLoader::load(path);
 
     std::unordered_set<string> uuids;
-    
+
     for (const auto& mesh : scene.meshes)
     {
-        EXPECT_TRUE(uuids.find(mesh.uuid) == uuids.end())
-            << "Duplicate UUID found: " << mesh.uuid;
+        EXPECT_TRUE(uuids.find(mesh.uuid) == uuids.end()) << "Duplicate UUID found: " << mesh.uuid;
         uuids.insert(mesh.uuid);
     }
 }
