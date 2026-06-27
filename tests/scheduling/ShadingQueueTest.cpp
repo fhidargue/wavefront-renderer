@@ -117,13 +117,13 @@ TEST(ShadingQueueTest, TextureAwareSortsByMaterialThenTexture)
     queue.schedule();
 
     EXPECT_EQ(queue.getHitRecord(0).materialID, 0);
-    EXPECT_EQ(queue.getHitRecord(0).textureID,  0);
+    EXPECT_EQ(queue.getHitRecord(0).textureID, 0);
     EXPECT_EQ(queue.getHitRecord(1).materialID, 0);
-    EXPECT_EQ(queue.getHitRecord(1).textureID,  1);
+    EXPECT_EQ(queue.getHitRecord(1).textureID, 1);
     EXPECT_EQ(queue.getHitRecord(2).materialID, 1);
-    EXPECT_EQ(queue.getHitRecord(2).textureID,  0);
+    EXPECT_EQ(queue.getHitRecord(2).textureID, 0);
     EXPECT_EQ(queue.getHitRecord(3).materialID, 1);
-    EXPECT_EQ(queue.getHitRecord(3).textureID,  2);
+    EXPECT_EQ(queue.getHitRecord(3).textureID, 2);
 }
 
 TEST(ShadingQueueTest, SingleEntryScheduleIsStable)
@@ -140,7 +140,7 @@ TEST(ShadingQueueTest, SingleEntryScheduleIsStable)
 TEST(ShadingQueueTest, AlreadySortedInputIsStable)
 {
     ShadingQueue queue(SchedulingPolicy::MaterialAware);
-    
+
     for (int materialID : {0, 1, 2})
     {
         auto queue0 = makeSingleRayQueue(materialID);

@@ -230,7 +230,23 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 
                 if (material.scatter(incomingRay, record, scene.textures, attenuation, scattered))
                 {
-                    localNextRays.add(scattered, throughput * attenuation, Color(0.0f, 0.0f, 0.0f),
+                    Color nextThroughput = throughput * attenuation;
+
+                    // Wavefront Russian Roulette
+                    // Rays with low throughput are terminated probabilistically
+                    if (depth + 1 >= rrMinDepth)
+                    {
+                        float survivalProbability = std::min(
+                            0.95f,
+                            std::max({nextThroughput.x, nextThroughput.y, nextThroughput.z}));
+
+                        if (randomFloat() > survivalProbability)
+                            continue;
+
+                        nextThroughput = nextThroughput / survivalProbability;
+                    }
+
+                    localNextRays.add(scattered, nextThroughput, Color(0.0f, 0.0f, 0.0f),
                                       pixelIndex, depth + 1, true);
                 }
             }

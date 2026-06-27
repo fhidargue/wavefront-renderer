@@ -12,9 +12,10 @@ class WavefrontRenderer
   public:
     int samplesPerPixel;
     int maxDepth;
+    int rrMinDepth = 3;
     SchedulingPolicy policy;
 
-    WavefrontRenderer(int samples, int maxDepth, SchedulingPolicy policy)
+    WavefrontRenderer(int samples, int maxDepth, SchedulingPolicy policy, int rrMinDepth = 3)
         : samplesPerPixel(samples), maxDepth(maxDepth), policy(policy)
     {
     }
