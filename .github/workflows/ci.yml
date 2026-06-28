@@ -7,6 +7,23 @@ on:
     branches: ["main"]
 
 jobs:
+  python-format:
+    name: Python Lint & Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Check formatting
+        run: ruff format --check tools/
+
+      - name: Check linting
+        run: ruff check tools/
+
   cpp-format:
     name: C++ Lint & Format
     runs-on: ubuntu-latest

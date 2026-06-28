@@ -7,6 +7,9 @@
 #include <scheduling/RayQueue.h>
 #include <scheduling/ShadingQueue.h>
 
+// Called every N samples during rendering with current progress
+using ProgressCallback = std::function<void(int currentSample, int totalSamples)>;
+
 class WavefrontRenderer
 {
   public:
@@ -21,7 +24,9 @@ class WavefrontRenderer
     {
     }
 
-    double renderScene(const Scene& scene, const Camera& camera, Image& image);
+    double renderScene(const Scene& scene, const Camera& camera, Image& image,
+                       const std::string& previewPath = "", int progressInterval = 4,
+                       ProgressCallback progressCallback = nullptr);
 
   private:
     void generatePrimaryRays(const Camera& camera, int width, int height, RayQueue& queue);
