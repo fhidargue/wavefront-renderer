@@ -2,6 +2,8 @@
 #include <math/Random.h>
 #include <cmath>
 
+using std::sqrt;
+
 const float PI = 3.14159265f;
 
 Vec3 randomInUnitSphere()
@@ -23,11 +25,11 @@ Vec3 reflect(const Vec3& incoming, const Vec3& normal)
 Vec3 cosineSampleHemisphere(const Vec3& normal)
 {
     // Cosine-weighted hemisphere sampling via samples of a 2D disk
-    float randomRadius = std::sqrt(randomFloat());
+    float randomRadius = sqrt(randomFloat());
     float randomAngle = 2.0f * PI * randomFloat();
     float directionX = randomRadius * std::cos(randomAngle);
     float directionZ = randomRadius * std::sin(randomAngle);
-    float directionY = std::sqrt(std::max(0.0f, 1.0f - randomRadius * randomRadius));
+    float directionY = sqrt(std::max(0.0f, 1.0f - randomRadius * randomRadius));
 
     // Build a local coordinate frame with the surface
     // normal as the Y axis, so the sampled direction is in world space
