@@ -121,28 +121,52 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
     const int rayCount = inputQueue.size();
 
     // Each thread gets its own hit/miss buckets
-    tbb::combinable<ShadingQueue> threadLocalHits;
+    tbb::combinable<ShadingQueue> threadLocalHits([this] { return ShadingQueue(policy); });
     tbb::combinable<RayQueue> threadLocalMisses;
 
-    tbb::parallel_for(tbb::blocked_range<int>(0, rayCount),
-                      [&](const tbb::blocked_range<int>& range)
-                      {
-                          auto& localHits = threadLocalHits.local();
-                          auto& localMisses = threadLocalMisses.local();
+    // Process rays in packets of 4 (SIMD) packet tracing
+    tbb::parallel_for(
+        tbb::blocked_range<int>(0, rayCount, 4),
+        [&](const tbb::blocked_range<int>& range)
+        {
+            auto& localHits = threadLocalHits.local();
+            auto& localMisses = threadLocalMisses.local();
 
-                          for (int i = range.begin(); i < range.end(); ++i)
-                          {
-                              Ray ray = inputQueue.getRay(i);
-                              HitRecord record;
+            int i = range.begin();
 
-                              if (scene.hit(ray, 0.001f, 1e9f, record))
-                                  localHits.add(inputQueue, i, record);
-                              else
-                                  localMisses.add(
-                                      ray, inputQueue.getThroughput(i), inputQueue.getAccumLight(i),
-                                      inputQueue.pixelIndices[i], inputQueue.depths[i], true);
-                          }
-                      });
+            while (i + 4 <= range.end())
+            {
+                HitRecord records[4];
+                int hitMask = scene.accelerator.intersect4(inputQueue, i, 4, records);
+
+                for (int j = 0; j < 4; ++j)
+                {
+                    if (hitMask & (1 << j))
+                        localHits.add(inputQueue, i + j, records[j]);
+                    else
+                        localMisses.add(inputQueue.getRay(i + j), inputQueue.getThroughput(i + j),
+                                        inputQueue.getAccumLight(i + j),
+                                        inputQueue.pixelIndices[i + j], inputQueue.depths[i + j],
+                                        true);
+                }
+
+                i += 4;
+            }
+
+            // Handle remaining rays with scalar intersection
+            while (i < range.end())
+            {
+                Ray ray = inputQueue.getRay(i);
+                HitRecord record;
+
+                if (scene.hit(ray, 0.001f, 1e9f, record))
+                    localHits.add(inputQueue, i, record);
+                else
+                    localMisses.add(ray, inputQueue.getThroughput(i), inputQueue.getAccumLight(i),
+                                    inputQueue.pixelIndices[i], inputQueue.depths[i], true);
+                ++i;
+            }
+        });
 
     // Merge thread local results into the shared queues
     threadLocalHits.combine_each(
@@ -229,7 +253,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 {
                     LightSample light = scene.sampleLight();
 
-                    if (light.valid) 
+                    if (light.valid)
                     {
                         Vec3 toLight = light.point - record.point;
                         float distanceToLight = toLight.length();
@@ -241,15 +265,18 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                         // Both light and surface must face each other
                         if (cosAtSurface > 0.0f && cosAtLight > 0.0f)
                         {
-                            bool shadowed = scene.accelerator.occluded(record.point, toLightDirection, distanceToLight);
+                            bool shadowed = scene.accelerator.occluded(
+                                record.point, toLightDirection, distanceToLight);
 
                             if (!shadowed)
                             {
-                                float geometry = (cosAtSurface * cosAtLight) / (distanceToLight * distanceToLight);
+                                float geometry = (cosAtSurface * cosAtLight) /
+                                                 (distanceToLight * distanceToLight);
                                 Color brdf = material.albedo * (1.0f / PI);
-                                
+
                                 // NEE contribution
-                                Color direct = throughput * brdf * light.emission * geometry * light.area;
+                                Color direct =
+                                    throughput * brdf * light.emission * geometry * light.area;
 
                                 localAccumContribs.push_back({pixelIndex, direct});
                             }

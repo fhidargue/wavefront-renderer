@@ -154,3 +154,163 @@ TEST(EmbreeTest, MultiMeshSceneHitsCorrectMaterial)
     EXPECT_EQ(record.materialID, materialB);
     EXPECT_NEAR(record.distance, 1.0f, 0.01f);
 }
+
+// SIMD intersect4
+
+// ─────────────────────────────────────────
+// SIMD intersect4 tests
+// ─────────────────────────────────────────
+
+static Scene buildFloorScene()
+{
+    Scene scene;
+    scene.addMaterial(Material::makeDiffuse(Color(0.8f, 0.8f, 0.8f)));
+
+    Mesh floor;
+    floor.materialID = 0;
+    floor.uuid = "/Test/Floor";
+    floor.vertexPositions = {
+        Point3(-5, 0, -5),
+        Point3( 5, 0, -5),
+        Point3( 5, 0,  5),
+        Point3(-5, 0,  5)
+    };
+    floor.triangleIndices = {0, 1, 2, 0, 2, 3};
+    scene.addMesh(floor);
+    scene.buildAccelerator();
+
+    return scene;
+}
+
+static RayQueue makeQueue(const std::vector<Ray>& rays)
+{
+    RayQueue queue;
+    for (int i = 0; i < static_cast<int>(rays.size()); ++i)
+        queue.addPrimary(rays[i], i);
+
+    return queue;
+}
+
+TEST(EmbreeTest, Intersect4AllFourRaysHit)
+{
+    Scene scene = buildFloorScene();
+
+    auto queue = makeQueue({
+        Ray(Point3(-2, 5, -2), Vec3(0, -1, 0)),
+        Ray(Point3( 0, 5,  0), Vec3(0, -1, 0)),
+        Ray(Point3( 2, 5,  2), Vec3(0, -1, 0)),
+        Ray(Point3(-1, 5,  1), Vec3(0, -1, 0))
+    });
+
+    HitRecord records[4];
+    int hitMask = scene.accelerator.intersect4(queue, 0, 4, records);
+
+    EXPECT_EQ(hitMask, 15);
+}
+
+TEST(EmbreeTest, Intersect4AllFourRaysMiss)
+{
+    Scene scene = buildFloorScene();
+
+    auto queue = makeQueue({
+        Ray(Point3(-2, 5, -2), Vec3(0, 1, 0)),
+        Ray(Point3( 0, 5,  0), Vec3(0, 1, 0)),
+        Ray(Point3( 2, 5,  2), Vec3(0, 1, 0)),
+        Ray(Point3(-1, 5,  1), Vec3(0, 1, 0))
+    });
+
+    HitRecord records[4];
+    int hitMask = scene.accelerator.intersect4(queue, 0, 4, records);
+
+    EXPECT_EQ(hitMask, 0);
+}
+
+TEST(EmbreeTest, Intersect4PartialHitMask)
+{
+    Scene scene = buildFloorScene();
+
+    // rays 0 and 2 hit, rays 1 and 3 miss
+    auto queue = makeQueue({
+        Ray(Point3(0, 5, 0), Vec3(0, -1, 0)),
+        Ray(Point3(0, 5, 0), Vec3(0,  1, 0)),
+        Ray(Point3(2, 5, 2), Vec3(0, -1, 0)),
+        Ray(Point3(0, 5, 0), Vec3(0,  1, 0))
+    });
+
+    HitRecord records[4];
+    int hitMask = scene.accelerator.intersect4(queue, 0, 4, records);
+
+    EXPECT_TRUE(hitMask  & (1 << 0));
+    EXPECT_FALSE(hitMask & (1 << 1));
+    EXPECT_TRUE(hitMask  & (1 << 2));
+    EXPECT_FALSE(hitMask & (1 << 3));
+}
+
+TEST(EmbreeTest, Intersect4MaterialIDCorrect)
+{
+    Scene scene = buildFloorScene();
+
+    auto queue = makeQueue({
+        Ray(Point3(0, 5, 0), Vec3(0, -1, 0)),
+        Ray(Point3(0, 5, 0), Vec3(0, -1, 0)),
+        Ray(Point3(0, 5, 0), Vec3(0, -1, 0)),
+        Ray(Point3(0, 5, 0), Vec3(0, -1, 0))
+    });
+
+    HitRecord records[4];
+    int hitMask = scene.accelerator.intersect4(queue, 0, 4, records);
+
+    ASSERT_EQ(hitMask, 15);
+
+    for (int i = 0; i < 4; ++i)
+        EXPECT_EQ(records[i].materialID, 0);
+}
+
+TEST(EmbreeTest, Intersect4MatchesScalarIntersect)
+{
+    Scene scene = buildFloorScene();
+
+    std::vector<Ray> rays = {
+        Ray(Point3(-2, 5, -2), Vec3(0, -1, 0)),
+        Ray(Point3( 0, 5,  0), Vec3(0, -1, 0)),
+        Ray(Point3( 2, 5,  2), Vec3(0, -1, 0)),
+        Ray(Point3(-1, 5,  1), Vec3(0, -1, 0))
+    };
+
+    auto queue = makeQueue(rays);
+    HitRecord simdRecords[4];
+    scene.accelerator.intersect4(queue, 0, 4, simdRecords);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        HitRecord scalar;
+        bool hit = scene.accelerator.intersect(rays[i], 0.001f, 1e9f, scalar);
+
+        ASSERT_TRUE(hit);
+        EXPECT_NEAR(simdRecords[i].distance, scalar.distance, 0.001f);
+        EXPECT_NEAR(simdRecords[i].point.x,  scalar.point.x,  0.001f);
+        EXPECT_NEAR(simdRecords[i].point.y,  scalar.point.y,  0.001f);
+        EXPECT_NEAR(simdRecords[i].point.z,  scalar.point.z,  0.001f);
+        EXPECT_EQ(simdRecords[i].materialID, scalar.materialID);
+    }
+}
+
+TEST(EmbreeTest, Intersect4StartIndexOffset)
+{
+    Scene scene = buildFloorScene();
+
+    // First 2 rays miss, last 4 hit
+    auto queue = makeQueue({
+        Ray(Point3(0, 5, 0), Vec3(0,  1, 0)),
+        Ray(Point3(0, 5, 0), Vec3(0,  1, 0)),
+        Ray(Point3(0, 5, 0), Vec3(0, -1, 0)),
+        Ray(Point3(1, 5, 0), Vec3(0, -1, 0)),
+        Ray(Point3(2, 5, 0), Vec3(0, -1, 0)),
+        Ray(Point3(3, 5, 0), Vec3(0, -1, 0))
+    });
+
+    HitRecord records[4];
+    int hitMask = scene.accelerator.intersect4(queue, 2, 4, records);
+
+    EXPECT_EQ(hitMask, 15);
+}

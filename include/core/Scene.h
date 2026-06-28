@@ -65,6 +65,7 @@ struct Scene
     std::vector<Mesh> meshes;
     std::vector<Material> materials;
     std::vector<Texture> textures;
+    std::vector<int> emissiveMeshIndices;
 
     SceneGeometry geometry;
 

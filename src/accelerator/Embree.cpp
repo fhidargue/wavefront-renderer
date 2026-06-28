@@ -188,6 +188,83 @@ bool EmbreeAccelerator::intersect(const Ray& ray, float minDistance, float maxDi
     return true;
 }
 
+// Trace 4 rays against the BVH (SIMD)
+int EmbreeAccelerator::intersect4(const RayQueue& queue, int startIndex, int count,
+                                  HitRecord* hitRecords) const
+{
+    alignas(16) int valid[4] = {0, 0, 0, 0};
+    alignas(16) RTCRayHit4 rayHit4;
+
+    // Fill the packet up with 4 rays from the SoA queue
+    for (int i = 0; i < count; ++i)
+    {
+        int queueIndex = startIndex + i;
+
+        // Mark flag as active before filling ray data
+        valid[i] = -1;
+
+        rayHit4.ray.org_x[i] = queue.originsX[queueIndex];
+        rayHit4.ray.org_y[i] = queue.originsY[queueIndex];
+        rayHit4.ray.org_z[i] = queue.originsZ[queueIndex];
+        rayHit4.ray.dir_x[i] = queue.dirsX[queueIndex];
+        rayHit4.ray.dir_y[i] = queue.dirsY[queueIndex];
+        rayHit4.ray.dir_z[i] = queue.dirsZ[queueIndex];
+        rayHit4.ray.tnear[i] = 0.001f;
+        rayHit4.ray.tfar[i] = 1e9f;
+        rayHit4.ray.mask[i] = 0xFFFFFFFF;
+        rayHit4.ray.flags[i] = 0;
+        rayHit4.ray.time[i] = 0.0f;
+        rayHit4.hit.geomID[i] = RTC_INVALID_GEOMETRY_ID;
+        rayHit4.hit.primID[i] = RTC_INVALID_GEOMETRY_ID;
+    }
+
+    // Single BVH traversal for all 4 rays at the same time
+    RTCIntersectArguments args;
+    rtcInitIntersectArguments(&args);
+    rtcIntersect4(valid, m_scene, &rayHit4, &args);
+
+    // Unpack results inside HitRecords
+    int hitMask = 0;
+    for (int i = 0; i < count; ++i)
+    {
+        if (rayHit4.hit.geomID[i] == RTC_INVALID_GEOMETRY_ID)
+            continue;
+
+        // Set bit i in the hit mask to indicate this ray intersected geometry
+        hitMask |= (1 << i);
+
+        const Mesh& mesh = m_sourceScene->meshes[rayHit4.hit.geomID[i]];
+
+        int index0 = mesh.triangleIndices[rayHit4.hit.primID[i] * 3 + 0];
+        int index1 = mesh.triangleIndices[rayHit4.hit.primID[i] * 3 + 1];
+        int index2 = mesh.triangleIndices[rayHit4.hit.primID[i] * 3 + 2];
+
+        const Point3& vertex0 = mesh.vertexPositions[index0];
+        const Point3& vertex1 = mesh.vertexPositions[index1];
+        const Point3& vertex2 = mesh.vertexPositions[index2];
+
+        int queueIndex = startIndex + i;
+
+        Ray ray(Point3(queue.originsX[queueIndex], queue.originsY[queueIndex],
+                       queue.originsZ[queueIndex]),
+                Vec3(queue.dirsX[queueIndex], queue.dirsY[queueIndex], queue.dirsZ[queueIndex]));
+
+        hitRecords[i].distance = rayHit4.ray.tfar[i];
+        hitRecords[i].point = ray.at(rayHit4.ray.tfar[i]);
+        hitRecords[i].materialID = mesh.materialID;
+        hitRecords[i].textureID = m_sourceScene->materials[mesh.materialID].textureID;
+        hitRecords[i].u = rayHit4.hit.u[i];
+        hitRecords[i].v = rayHit4.hit.v[i];
+
+        Vec3 edge1 = vertex1 - vertex0;
+        Vec3 edge2 = vertex2 - vertex0;
+        Vec3 outwardNormal = edge1.cross(edge2).normalized();
+        hitRecords[i].setFaceNormal(ray, outwardNormal);
+    }
+
+    return hitMask;
+}
+
 bool EmbreeAccelerator::occluded(const Point3& origin, const Vec3& direction,
                                  float maxDistance) const
 {

@@ -51,6 +51,13 @@ void Scene::addMesh(const Mesh& mesh)
 
 void Scene::buildAccelerator()
 {
+    // Cache emissive mesh indices for fast NEE sampling
+    emissiveMeshIndices.clear();
+
+    for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
+        if (materials[meshes[i].materialID].type == MaterialType::Emissive)
+            emissiveMeshIndices.push_back(i);
+
     accelerator.build(*this);
     accelerator.printStats();
     acceleratorBuilt = true;
@@ -105,24 +112,16 @@ bool Scene::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord&
 
 LightSample Scene::sampleLight() const
 {
-    // Collect emissive meshes
-    std::vector<int> lightIndices;
-
-    for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
-        if (materials[meshes[i].materialID].type == MaterialType::Emissive)
-            lightIndices.push_back(i);
-
-    if (lightIndices.empty())
+    // Use pre-cached emissive mesh indices
+    if (emissiveMeshIndices.empty())
         return {};
 
-    // Pick a random emissive mesh
-    int meshIndex = lightIndices[static_cast<int>(randomFloat() * lightIndices.size()) %
-                                 static_cast<int>(lightIndices.size())];
+    int meshIndex =
+        emissiveMeshIndices[static_cast<int>(randomFloat() * emissiveMeshIndices.size()) %
+                            static_cast<int>(emissiveMeshIndices.size())];
 
     const Mesh& mesh = meshes[meshIndex];
     int triangleCount = mesh.triangleCount();
-
-    // Pick a random triangle
     int triangleIndex = static_cast<int>(randomFloat() * triangleCount) % triangleCount;
 
     Point3 vertex0 = mesh.vertexPositions[mesh.triangleIndices[triangleIndex * 3 + 0]];
@@ -142,14 +141,13 @@ LightSample Scene::sampleLight() const
 
     Point3 point = vertex0 * r3 + vertex1 * r1 + vertex2 * r2;
 
-    // Triangle normal and area
     Vec3 edge1 = vertex1 - vertex0;
     Vec3 edge2 = vertex2 - vertex0;
     Vec3 cross = edge1.cross(edge2);
-    float triArea = cross.length() * 0.5f;
 
-    float totalArea =
-        triArea * static_cast<float>(triangleCount) * static_cast<float>(lightIndices.size());
+    float triArea = cross.length() * 0.5f;
+    float totalArea = triArea * static_cast<float>(triangleCount) *
+                      static_cast<float>(emissiveMeshIndices.size());
 
     Vec3 normal = cross.normalized();
     Color emission = materials[mesh.materialID].emitted();
