@@ -78,3 +78,7 @@ build/
 
 # macOS
 .DS_Store
+
+# python
+.venv
+__pycache__/

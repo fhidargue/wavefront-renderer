@@ -8,8 +8,14 @@
 #include <tbb/combinable.h>
 
 using std::vector;
+using std::cout;
+using std::endl;
+using std::min;
 
-double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image)
+double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera,
+                                       Image& image, const std::string& previewPath,
+                                       int progressInterval,
+                                       ProgressCallback progressCallback)
 {
     const int pixelCount = image.width * image.height;
     double totalShadeOnlyMs = 0.0;
@@ -53,13 +59,33 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
 
             currentQueue = nextQueue;
         }
+
+        // Write preview EXR every progressInterval samples
+        // Python UI polls this file and updates the display
+        if (!previewPath.empty() &&
+            progressInterval > 0 &&
+            (sample + 1) % progressInterval == 0)
+        {
+            int samplesCompleted = sample + 1;
+
+            // Average accumulator into image pixels
+            for (int i = 0; i < pixelCount; ++i)
+                image.pixels[i] =
+                    accumulator[i] / static_cast<float>(samplesCompleted);
+
+            image.write(previewPath);
+
+            cout << "Sample: " << samplesCompleted
+                      << "/" << samplesPerPixel << endl;
+
+            if (progressCallback)
+                progressCallback(samplesCompleted, samplesPerPixel);
+        }
     }
 
     // Final image write with gamma correction
     for (int i = 0; i < pixelCount; ++i)
-    {
         image.pixels[i] = accumulator[i] / static_cast<float>(samplesPerPixel);
-    }
 
     return totalShadeOnlyMs;
 }
@@ -221,6 +247,7 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
 void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                                  vector<Color>& accumulator, RayQueue& outputNextQueue)
 {
+    const float fireflyThreshold = 10.0f;
     const int workCount = shadingQueue.size();
 
     tbb::combinable<RayQueue> threadLocalNextRays;
@@ -246,7 +273,14 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 // Accumulate emitted light
                 Color emitted = material.emitted();
                 if (emitted.x > 0.0f || emitted.y > 0.0f || emitted.z > 0.0f)
+                {
+                    // Prevent firefly pixels
+                    emitted.x = min(emitted.x, fireflyThreshold);
+                    emitted.y = min(emitted.y, fireflyThreshold);
+                    emitted.z = min(emitted.z, fireflyThreshold);
+
                     localAccumContribs.push_back({pixelIndex, throughput * emitted});
+                }
 
                 // NEE direct light sample
                 if (material.type == MaterialType::Diffuse || material.type == MaterialType::Metal)
@@ -278,6 +312,11 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                                 Color direct =
                                     throughput * brdf * light.emission * geometry * light.area;
 
+                                // Prevent firefly pixels
+                                direct.x = min(direct.x, fireflyThreshold);
+                                direct.y = min(direct.y, fireflyThreshold);
+                                direct.z = min(direct.z, fireflyThreshold);
+
                                 localAccumContribs.push_back({pixelIndex, direct});
                             }
                         }
@@ -296,7 +335,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                     // Rays with low throughput are terminated probabilistically
                     if (depth + 1 >= rrMinDepth)
                     {
-                        float survivalProbability = std::min(
+                        float survivalProbability = min(
                             0.95f,
                             std::max({nextThroughput.x, nextThroughput.y, nextThroughput.z}));
 

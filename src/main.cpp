@@ -16,11 +16,21 @@ using std::cout;
 using std::endl;
 using std::string;
 
+static string derivePreviewPath(const string& outputPath)
+{
+    auto dot = outputPath.rfind('.');
+
+    if (dot != string::npos)
+        return outputPath.substr(0, dot) + "_preview" + outputPath.substr(dot);
+    
+    return outputPath + "_preview";
+}
+
 int main(int argc, char* argv[])
 {
     const int imageWidth = 600;
     const int imageHeight = 600;
-    const int samplesPerPixel = 128;
+    const int samplesPerPixel = 256;
     const int maxBounceDepth = 8;
 
     Scene scene;
@@ -54,13 +64,15 @@ int main(int argc, char* argv[])
     cout << "Rendering: " << imageWidth << "x" << imageHeight << " | " << samplesPerPixel
          << " samples | depth " << maxBounceDepth << endl;
 
+    string outputPath  = (argc >= 3) ? argv[2] : "output/cornellBox.exr";
+    string previewPath = derivePreviewPath(outputPath);
+
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::MaterialAware);
 
-    double shadingTimeMs = renderer.renderScene(scene, camera, image);
+    double shadingTimeMs = renderer.renderScene(scene, camera, image, previewPath, 4);
 
     cout << "Shading time: " << shadingTimeMs << "ms" << endl;
 
-    string outputPath = (argc >= 3) ? argv[2] : "../output/render.exr";
     image.write(outputPath);
 
     return 0;
