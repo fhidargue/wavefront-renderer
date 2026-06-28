@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 {
     const int imageWidth = 600;
     const int imageHeight = 600;
-    const int samplesPerPixel = 256;
+    const int samplesPerPixel = 128;
     const int maxBounceDepth = 8;
 
     Scene scene;

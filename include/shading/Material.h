@@ -36,3 +36,4 @@ struct Material
 
 Vec3 randomInUnitSphere();
 Vec3 reflect(const Vec3& incoming, const Vec3& normal);
+Vec3 cosineSampleHemisphere(const Vec3& normal);
