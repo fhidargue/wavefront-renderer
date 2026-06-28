@@ -7,15 +7,14 @@
 #include <tbb/blocked_range.h>
 #include <tbb/combinable.h>
 
-using std::vector;
 using std::cout;
 using std::endl;
 using std::min;
+using std::vector;
 
-double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera,
-                                       Image& image, const std::string& previewPath,
-                                       int progressInterval,
-                                       ProgressCallback progressCallback)
+double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,
+                                      const std::string& previewPath, int progressInterval,
+                                      ProgressCallback progressCallback)
 {
     const int pixelCount = image.width * image.height;
     double totalShadeOnlyMs = 0.0;
@@ -62,21 +61,17 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera,
 
         // Write preview EXR every progressInterval samples
         // Python UI polls this file and updates the display
-        if (!previewPath.empty() &&
-            progressInterval > 0 &&
-            (sample + 1) % progressInterval == 0)
+        if (!previewPath.empty() && progressInterval > 0 && (sample + 1) % progressInterval == 0)
         {
             int samplesCompleted = sample + 1;
 
             // Average accumulator into image pixels
             for (int i = 0; i < pixelCount; ++i)
-                image.pixels[i] =
-                    accumulator[i] / static_cast<float>(samplesCompleted);
+                image.pixels[i] = accumulator[i] / static_cast<float>(samplesCompleted);
 
             image.write(previewPath);
 
-            cout << "Sample: " << samplesCompleted
-                      << "/" << samplesPerPixel << endl;
+            cout << "Sample: " << samplesCompleted << "/" << samplesPerPixel << endl;
 
             if (progressCallback)
                 progressCallback(samplesCompleted, samplesPerPixel);
@@ -335,9 +330,9 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                     // Rays with low throughput are terminated probabilistically
                     if (depth + 1 >= rrMinDepth)
                     {
-                        float survivalProbability = min(
-                            0.95f,
-                            std::max({nextThroughput.x, nextThroughput.y, nextThroughput.z}));
+                        float survivalProbability =
+                            min(0.95f,
+                                std::max({nextThroughput.x, nextThroughput.y, nextThroughput.z}));
 
                         if (randomFloat() > survivalProbability)
                             continue;

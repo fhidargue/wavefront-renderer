@@ -22,7 +22,7 @@ static string derivePreviewPath(const string& outputPath)
 
     if (dot != string::npos)
         return outputPath.substr(0, dot) + "_preview" + outputPath.substr(dot);
-    
+
     return outputPath + "_preview";
 }
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     cout << "Rendering: " << imageWidth << "x" << imageHeight << " | " << samplesPerPixel
          << " samples | depth " << maxBounceDepth << endl;
 
-    string outputPath  = (argc >= 3) ? argv[2] : "output/cornellBox.exr";
+    string outputPath = (argc >= 3) ? argv[2] : "output/cornellBox.exr";
     string previewPath = derivePreviewPath(outputPath);
 
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::MaterialAware);
