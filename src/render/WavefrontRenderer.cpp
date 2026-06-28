@@ -3,10 +3,8 @@
 #include <chrono>
 #include <algorithm>
 #include <cmath>
-#include <mutex>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
-#include <tbb/enumerable_thread_specific.h>
 #include <tbb/combinable.h>
 
 using std::vector;
@@ -42,11 +40,15 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
             totalShadeOnlyMs +=
                 std::chrono::duration<double, std::milli>(shadeEnd - shadeStart).count();
 
-            for (const RayState& miss : missQueue.rays)
+            int missCount = missQueue.size();
+
+            for (int i = 0; i < missCount; ++i)
             {
-                Color skyColor = getSkyColor(miss.ray);
-                accumulator[miss.rayPixelIndex] =
-                    accumulator[miss.rayPixelIndex] + miss.throughtput * skyColor;
+                Ray ray = missQueue.getRay(i);
+                Color sky = getSkyColor(ray);
+                Color throughput = missQueue.getThroughput(i);
+                int pixelIndex = missQueue.pixelIndices[i];
+                accumulator[pixelIndex] = accumulator[pixelIndex] + throughput * sky;
             }
 
             currentQueue = nextQueue;
@@ -66,12 +68,12 @@ void WavefrontRenderer::generatePrimaryRays(const Camera& camera, int width, int
                                             RayQueue& outputQueue)
 {
     // Thread local ray buffer creation
-    tbb::combinable<vector<RayState>> threadLocalRays;
+    tbb::combinable<RayQueue> threadLocalQueues;
 
     tbb::parallel_for(tbb::blocked_range<int>(0, height),
                       [&](const tbb::blocked_range<int>& rowRange)
                       {
-                          auto& localRays = threadLocalRays.local();
+                          auto& local = threadLocalQueues.local();
 
                           for (int y = rowRange.begin(); y < rowRange.end(); ++y)
                           {
@@ -82,19 +84,34 @@ void WavefrontRenderer::generatePrimaryRays(const Camera& camera, int width, int
                                       1.0f - (static_cast<float>(y) + randomFloat()) / (height - 1);
 
                                   Ray ray = camera.getRay(u, v);
-                                  int pixelIndex = y * width + x;
-
-                                  localRays.push_back(RayState(ray, pixelIndex));
+                                  local.addPrimary(ray, y * width + x);
                               }
                           }
                       });
 
     // Merge all thread local ray buffers into an output queue
-    threadLocalRays.combine_each(
-        [&](const vector<RayState>& localRays)
+    threadLocalQueues.combine_each(
+        [&](const RayQueue& local)
         {
-            for (const RayState& ray : localRays)
-                outputQueue.add(ray);
+            // Merge all SoA arrays
+            auto append = [](auto& destination, const auto& src)
+
+            { destination.insert(destination.end(), src.begin(), src.end()); };
+            append(outputQueue.originsX, local.originsX);
+            append(outputQueue.originsY, local.originsY);
+            append(outputQueue.originsZ, local.originsZ);
+            append(outputQueue.dirsX, local.dirsX);
+            append(outputQueue.dirsY, local.dirsY);
+            append(outputQueue.dirsZ, local.dirsZ);
+            append(outputQueue.throughputsR, local.throughputsR);
+            append(outputQueue.throughputsG, local.throughputsG);
+            append(outputQueue.throughputsB, local.throughputsB);
+            append(outputQueue.accumLightR, local.accumLightR);
+            append(outputQueue.accumLightG, local.accumLightG);
+            append(outputQueue.accumLightB, local.accumLightB);
+            append(outputQueue.pixelIndices, local.pixelIndices);
+            append(outputQueue.depths, local.depths);
+            append(outputQueue.alive, local.alive);
         });
 }
 
@@ -104,40 +121,100 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
     const int rayCount = inputQueue.size();
 
     // Each thread gets its own hit/miss buckets
-    tbb::combinable<vector<ShadingWork>> threadLocalHits;
-    tbb::combinable<vector<RayState>> threadLocalMisses;
+    tbb::combinable<ShadingQueue> threadLocalHits([this] { return ShadingQueue(policy); });
+    tbb::combinable<RayQueue> threadLocalMisses;
 
-    tbb::parallel_for(tbb::blocked_range<int>(0, rayCount),
-                      [&](const tbb::blocked_range<int>& range)
-                      {
-                          auto& localHits = threadLocalHits.local();
-                          auto& localMisses = threadLocalMisses.local();
+    // Process rays in packets of 4 (SIMD) packet tracing
+    tbb::parallel_for(
+        tbb::blocked_range<int>(0, rayCount, 4),
+        [&](const tbb::blocked_range<int>& range)
+        {
+            auto& localHits = threadLocalHits.local();
+            auto& localMisses = threadLocalMisses.local();
 
-                          for (int i = range.begin(); i < range.end(); ++i)
-                          {
-                              const RayState& rayState = inputQueue.rays[i];
-                              HitRecord record;
+            int i = range.begin();
 
-                              if (scene.hit(rayState.ray, 0.001f, 1e9f, record))
-                                  localHits.push_back({rayState, record});
-                              else
-                                  localMisses.push_back(rayState);
-                          }
-                      });
+            while (i + 4 <= range.end())
+            {
+                HitRecord records[4];
+                int hitMask = scene.accelerator.intersect4(inputQueue, i, 4, records);
+
+                for (int j = 0; j < 4; ++j)
+                {
+                    if (hitMask & (1 << j))
+                        localHits.add(inputQueue, i + j, records[j]);
+                    else
+                        localMisses.add(inputQueue.getRay(i + j), inputQueue.getThroughput(i + j),
+                                        inputQueue.getAccumLight(i + j),
+                                        inputQueue.pixelIndices[i + j], inputQueue.depths[i + j],
+                                        true);
+                }
+
+                i += 4;
+            }
+
+            // Handle remaining rays with scalar intersection
+            while (i < range.end())
+            {
+                Ray ray = inputQueue.getRay(i);
+                HitRecord record;
+
+                if (scene.hit(ray, 0.001f, 1e9f, record))
+                    localHits.add(inputQueue, i, record);
+                else
+                    localMisses.add(ray, inputQueue.getThroughput(i), inputQueue.getAccumLight(i),
+                                    inputQueue.pixelIndices[i], inputQueue.depths[i], true);
+                ++i;
+            }
+        });
 
     // Merge thread local results into the shared queues
     threadLocalHits.combine_each(
-        [&](const vector<ShadingWork>& localHits)
+        [&](const ShadingQueue& local)
         {
-            for (const ShadingWork& hit : localHits)
-                outputShadingQueue.add(hit.rayState, hit.hitRecord);
+            auto append = [](auto& dst, const auto& src)
+            { dst.insert(dst.end(), src.begin(), src.end()); };
+            append(outputShadingQueue.hitPointsX, local.hitPointsX);
+            append(outputShadingQueue.hitPointsY, local.hitPointsY);
+            append(outputShadingQueue.hitPointsZ, local.hitPointsZ);
+            append(outputShadingQueue.hitNormalsX, local.hitNormalsX);
+            append(outputShadingQueue.hitNormalsY, local.hitNormalsY);
+            append(outputShadingQueue.hitNormalsZ, local.hitNormalsZ);
+            append(outputShadingQueue.materialIDs, local.materialIDs);
+            append(outputShadingQueue.textureIDs, local.textureIDs);
+            append(outputShadingQueue.originsX, local.originsX);
+            append(outputShadingQueue.originsY, local.originsY);
+            append(outputShadingQueue.originsZ, local.originsZ);
+            append(outputShadingQueue.dirsX, local.dirsX);
+            append(outputShadingQueue.dirsY, local.dirsY);
+            append(outputShadingQueue.dirsZ, local.dirsZ);
+            append(outputShadingQueue.throughputsR, local.throughputsR);
+            append(outputShadingQueue.throughputsG, local.throughputsG);
+            append(outputShadingQueue.throughputsB, local.throughputsB);
+            append(outputShadingQueue.pixelIndices, local.pixelIndices);
+            append(outputShadingQueue.depths, local.depths);
         });
 
     threadLocalMisses.combine_each(
-        [&](const vector<RayState>& localMisses)
+        [&](const RayQueue& local)
         {
-            for (const RayState& miss : localMisses)
-                outputMissQueue.add(miss);
+            auto append = [](auto& dst, const auto& src)
+            { dst.insert(dst.end(), src.begin(), src.end()); };
+            append(outputMissQueue.originsX, local.originsX);
+            append(outputMissQueue.originsY, local.originsY);
+            append(outputMissQueue.originsZ, local.originsZ);
+            append(outputMissQueue.dirsX, local.dirsX);
+            append(outputMissQueue.dirsY, local.dirsY);
+            append(outputMissQueue.dirsZ, local.dirsZ);
+            append(outputMissQueue.throughputsR, local.throughputsR);
+            append(outputMissQueue.throughputsG, local.throughputsG);
+            append(outputMissQueue.throughputsB, local.throughputsB);
+            append(outputMissQueue.accumLightR, local.accumLightR);
+            append(outputMissQueue.accumLightG, local.accumLightG);
+            append(outputMissQueue.accumLightB, local.accumLightB);
+            append(outputMissQueue.pixelIndices, local.pixelIndices);
+            append(outputMissQueue.depths, local.depths);
+            append(outputMissQueue.alive, local.alive);
         });
 }
 
@@ -146,7 +223,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 {
     const int workCount = shadingQueue.size();
 
-    tbb::combinable<vector<RayState>> threadLocalNextRays;
+    tbb::combinable<RayQueue> threadLocalNextRays;
     tbb::combinable<vector<std::pair<int, Color>>> threadLocalAccumContribs;
 
     tbb::parallel_for(
@@ -158,31 +235,79 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 
             for (int i = range.begin(); i < range.end(); ++i)
             {
-                const ShadingWork& work = shadingQueue.getSorted(i);
-                const Material& material = scene.getMaterial(work.hitRecord);
+                HitRecord record = shadingQueue.getHitRecord(i);
+                Ray incomingRay = shadingQueue.getRay(i);
+                Color throughput = shadingQueue.getThroughput(i);
+                int pixelIndex = shadingQueue.getPixelIndex(i);
+                int depth = shadingQueue.getDepth(i);
+
+                const Material& material = scene.getMaterial(record);
 
                 // Accumulate emitted light
                 Color emitted = material.emitted();
                 if (emitted.x > 0.0f || emitted.y > 0.0f || emitted.z > 0.0f)
+                    localAccumContribs.push_back({pixelIndex, throughput * emitted});
+
+                // NEE direct light sample
+                if (material.type == MaterialType::Diffuse || material.type == MaterialType::Metal)
                 {
-                    localAccumContribs.push_back(
-                        {work.rayState.rayPixelIndex, work.rayState.throughtput * emitted});
+                    LightSample light = scene.sampleLight();
+
+                    if (light.valid)
+                    {
+                        Vec3 toLight = light.point - record.point;
+                        float distanceToLight = toLight.length();
+                        Vec3 toLightDirection = toLight / distanceToLight;
+
+                        float cosAtSurface = record.normal.dot(toLightDirection);
+                        float cosAtLight = (toLightDirection * -1.0f).dot(light.normal);
+
+                        // Both light and surface must face each other
+                        if (cosAtSurface > 0.0f && cosAtLight > 0.0f)
+                        {
+                            bool shadowed = scene.accelerator.occluded(
+                                record.point, toLightDirection, distanceToLight);
+
+                            if (!shadowed)
+                            {
+                                float geometry = (cosAtSurface * cosAtLight) /
+                                                 (distanceToLight * distanceToLight);
+                                Color brdf = material.albedo * (1.0f / PI);
+
+                                // NEE contribution
+                                Color direct =
+                                    throughput * brdf * light.emission * geometry * light.area;
+
+                                localAccumContribs.push_back({pixelIndex, direct});
+                            }
+                        }
+                    }
                 }
 
-                // Scatter the ray
+                // Scatter the ray for the next bounce
                 Color attenuation;
                 Ray scattered;
 
-                if (material.scatter(work.rayState.ray, work.hitRecord, scene.textures, attenuation,
-                                     scattered))
+                if (material.scatter(incomingRay, record, scene.textures, attenuation, scattered))
                 {
-                    RayState nextRay = work.rayState;
+                    Color nextThroughput = throughput * attenuation;
 
-                    nextRay.ray = scattered;
-                    nextRay.throughtput = work.rayState.throughtput * attenuation;
-                    nextRay.rayDepth += 1;
+                    // Wavefront Russian Roulette
+                    // Rays with low throughput are terminated probabilistically
+                    if (depth + 1 >= rrMinDepth)
+                    {
+                        float survivalProbability = std::min(
+                            0.95f,
+                            std::max({nextThroughput.x, nextThroughput.y, nextThroughput.z}));
 
-                    localNextRays.push_back(nextRay);
+                        if (randomFloat() > survivalProbability)
+                            continue;
+
+                        nextThroughput = nextThroughput / survivalProbability;
+                    }
+
+                    localNextRays.add(scattered, nextThroughput, Color(0.0f, 0.0f, 0.0f),
+                                      pixelIndex, depth + 1, true);
                 }
             }
         });
@@ -197,10 +322,25 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 
     // Merge next bounce rays
     threadLocalNextRays.combine_each(
-        [&](const vector<RayState>& localRays)
+        [&](const RayQueue& local)
         {
-            for (const RayState& ray : localRays)
-                outputNextQueue.add(ray);
+            auto append = [](auto& dst, const auto& src)
+            { dst.insert(dst.end(), src.begin(), src.end()); };
+            append(outputNextQueue.originsX, local.originsX);
+            append(outputNextQueue.originsY, local.originsY);
+            append(outputNextQueue.originsZ, local.originsZ);
+            append(outputNextQueue.dirsX, local.dirsX);
+            append(outputNextQueue.dirsY, local.dirsY);
+            append(outputNextQueue.dirsZ, local.dirsZ);
+            append(outputNextQueue.throughputsR, local.throughputsR);
+            append(outputNextQueue.throughputsG, local.throughputsG);
+            append(outputNextQueue.throughputsB, local.throughputsB);
+            append(outputNextQueue.accumLightR, local.accumLightR);
+            append(outputNextQueue.accumLightG, local.accumLightG);
+            append(outputNextQueue.accumLightB, local.accumLightB);
+            append(outputNextQueue.pixelIndices, local.pixelIndices);
+            append(outputNextQueue.depths, local.depths);
+            append(outputNextQueue.alive, local.alive);
         });
 }
 

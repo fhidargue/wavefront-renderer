@@ -72,52 +72,54 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             TfToken sourceName;
             UsdShadeAttributeType sourceType;
 
-            if (UsdShadeConnectableAPI::GetConnectedSource(output, &source, &sourceName,
-                                                           &sourceType))
+            if (!UsdShadeConnectableAPI::GetConnectedSource(output, &source, &sourceName,
+                                                            &sourceType))
+                continue;
+
+            UsdShadeShader shader(source.GetPrim());
+            TfToken shaderId;
+            shader.GetIdAttr().Get(&shaderId, UsdTimeCode::Default());
+
+            if (shaderId != TfToken("UsdPreviewSurface"))
+                continue;
+
+            UsdShadeInput diffuseInput = shader.GetInput(TfToken("diffuseColor"));
+            if (diffuseInput)
             {
-                UsdShadeShader shader(source.GetPrim());
-                TfToken shaderId;
-                shader.GetIdAttr().Get(&shaderId, UsdTimeCode::Default());
+                GfVec3f color;
+                if (diffuseInput.Get(&color, UsdTimeCode::Default()))
+                    diffuse = Color(color[0], color[1], color[2]);
+            }
 
-                if (shaderId != TfToken("UsdPreviewSurface"))
-                    continue;
+            UsdShadeInput roughnessInput = shader.GetInput(TfToken("roughness"));
+            if (roughnessInput)
+                roughnessInput.Get(&roughness, UsdTimeCode::Default());
 
-                UsdShadeInput diffuseInput = shader.GetInput(TfToken("diffuseColor"));
-
-                if (diffuseInput)
-                {
-                    GfVec3f color;
-
-                    if (diffuseInput.Get(&color, UsdTimeCode::Default()))
-                        diffuse = Color(color[0], color[1], color[2]);
-                }
-
-                UsdShadeInput roughnessInput = shader.GetInput(TfToken("roughness"));
-
-                if (roughnessInput)
-                    roughnessInput.Get(&roughness, UsdTimeCode::Default());
-
-                UsdShadeInput emissiveInput = shader.GetInput(TfToken("emissiveColor"));
-
-                if (emissiveInput)
-                {
-                    GfVec3f emission;
-
-                    if (emissiveInput.Get(&emission, UsdTimeCode::Default()))
-                        isEmissive = (emission[0] + emission[1] + emission[2]) > 0.0f;
-                }
+            UsdShadeInput emissiveInput = shader.GetInput(TfToken("emissiveColor"));
+            if (emissiveInput)
+            {
+                GfVec3f emission;
+                if (emissiveInput.Get(&emission, UsdTimeCode::Default()))
+                    isEmissive = (emission[0] + emission[1] + emission[2]) > 0.0f;
             }
         }
 
-        int id = isEmissive ? scene.addMaterial(Material::makeEmissive(diffuse, 15.0f))
-                            : scene.addMaterial(Material::makeDiffuse(diffuse));
+        // Set UUID from prim path before adding to scene
+        Material mat =
+            isEmissive ? Material::makeEmissive(diffuse, 15.0f) : Material::makeDiffuse(diffuse);
 
+        mat.uuid = materialPath;
+
+        int id = scene.addMaterial(mat);
         materialIndexMap[materialPath] = id;
     }
 
     if (scene.materials.empty())
-        materialIndexMap["__default__"] =
-            scene.addMaterial(Material::makeDiffuse(Color(0.8f, 0.8f, 0.8f)));
+    {
+        Material defaultMat = Material::makeDiffuse(Color(0.8f, 0.8f, 0.8f));
+        defaultMat.uuid = "__default__";
+        materialIndexMap["__default__"] = scene.addMaterial(defaultMat);
+    }
 
     // Extract meshes
     UsdGeomXformCache xformCache;
@@ -156,10 +158,11 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         VtIntArray faceVertexIndices = faceIndicesVal.Get<VtIntArray>();
         VtIntArray faceVertexCounts = faceCountsVal.Get<VtIntArray>();
 
-        // Apply world transform
+        // Apply world transform to every vertex
         GfMatrix4d worldTransform = xformCache.GetLocalToWorldTransform(prim);
 
         Mesh mesh;
+        mesh.uuid = prim.GetPath().GetString();
 
         for (const GfVec3d& point : points)
         {

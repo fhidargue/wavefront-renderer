@@ -20,6 +20,7 @@ struct Material
     float roughness;
     float emission;
     int textureID;
+    std::string uuid;
 
     static Material makeDiffuse(const Color& albedo, int textureID = -1);
     static Material makeMetal(const Color& albedo, float roughness, int textureID = -1);
@@ -35,3 +36,4 @@ struct Material
 
 Vec3 randomInUnitSphere();
 Vec3 reflect(const Vec3& incoming, const Vec3& normal);
+Vec3 cosineSampleHemisphere(const Vec3& normal);

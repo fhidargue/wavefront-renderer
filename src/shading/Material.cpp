@@ -2,6 +2,10 @@
 #include <math/Random.h>
 #include <cmath>
 
+using std::sqrt;
+
+const float PI = 3.14159265f;
+
 Vec3 randomInUnitSphere()
 {
     while (true)
@@ -16,6 +20,25 @@ Vec3 randomInUnitSphere()
 Vec3 reflect(const Vec3& incoming, const Vec3& normal)
 {
     return incoming - normal * 2.0f * incoming.dot(normal);
+}
+
+Vec3 cosineSampleHemisphere(const Vec3& normal)
+{
+    // Cosine-weighted hemisphere sampling via samples of a 2D disk
+    float randomRadius = sqrt(randomFloat());
+    float randomAngle = 2.0f * PI * randomFloat();
+    float directionX = randomRadius * std::cos(randomAngle);
+    float directionZ = randomRadius * std::sin(randomAngle);
+    float directionY = sqrt(std::max(0.0f, 1.0f - randomRadius * randomRadius));
+
+    // Build a local coordinate frame with the surface
+    // normal as the Y axis, so the sampled direction is in world space
+    Vec3 worldUp = std::abs(normal.x) > 0.9f ? Vec3(0, 1, 0) : Vec3(1, 0, 0);
+    Vec3 tangent = normal.cross(worldUp).normalized();
+    Vec3 bitangent = normal.cross(tangent);
+
+    // Transform from tangent space to world space
+    return (tangent * directionX + normal * directionY + bitangent * directionZ).normalized();
 }
 
 Material Material::makeDiffuse(const Color& albedo, int textureID)
@@ -70,8 +93,8 @@ bool Material::scatter(const Ray& incoming, const HitRecord& record,
 
     if (type == MaterialType::Diffuse)
     {
-        Vec3 scatterDirection = record.normal + randomInUnitSphere().normalized();
-        scattered = Ray(record.point, scatterDirection.normalized());
+        Vec3 scatterDirection = cosineSampleHemisphere(record.normal);
+        scattered = Ray(record.point, scatterDirection);
         attenuation = surfaceColor;
 
         return true;

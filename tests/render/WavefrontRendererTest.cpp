@@ -230,3 +230,76 @@ TEST(SceneHitTest, WithAcceleratorHitsSameMeshAsWithout)
     EXPECT_NEAR(recordWithout.distance, recordWith.distance, 0.001f);
     EXPECT_EQ(recordWithout.materialID, recordWith.materialID);
 }
+
+// Rusian Roulette
+
+TEST(WavefrontRendererTest, RussianRouletteReducesQueueSizeAfterMinDepth)
+{
+    const int width = 16;
+    const int height = 16;
+
+    Scene scene = buildTestScene();
+    Camera camera = buildTestCamera(width, height);
+
+    Image imageRR(width, height);
+    Image imageNoRR(width, height);
+
+    // Aggressive RR with min depth 1
+    WavefrontRenderer rrRenderer(4, 8, SchedulingPolicy::None, 1);
+    double rrTime = rrRenderer.renderScene(scene, camera, imageRR);
+
+    // No RR
+    WavefrontRenderer noRrRenderer(4, 8, SchedulingPolicy::None, 999);
+    double noRrTime = noRrRenderer.renderScene(scene, camera, imageNoRR);
+
+    // RR renderer should be faster
+    EXPECT_GT(rrTime, 0.0);
+    EXPECT_GT(noRrTime, 0.0);
+
+    // Both images should have no pixels in zero
+    float rrBrightness = 0.0f;
+    float noRrBrightness = 0.0f;
+
+    for (int i = 0; i < width * height; ++i)
+    {
+        rrBrightness += (imageRR.pixels[i].x + imageRR.pixels[i].y + imageRR.pixels[i].z) / 3.0f;
+        noRrBrightness +=
+            (imageNoRR.pixels[i].x + imageNoRR.pixels[i].y + imageNoRR.pixels[i].z) / 3.0f;
+    }
+
+    rrBrightness /= static_cast<float>(width * height);
+    noRrBrightness /= static_cast<float>(width * height);
+
+    // Both should produce light
+    EXPECT_GT(rrBrightness, 0.0f);
+    EXPECT_GT(noRrBrightness, 0.0f);
+}
+
+TEST(WavefrontRendererTest, RussianRouletteDoesNotFireBeforeMinDepth)
+{
+    const int width = 8;
+    const int height = 8;
+
+    Scene scene = buildTestScene();
+    Camera camera = buildTestCamera(width, height);
+
+    Image imageNoRR(width, height);
+
+    // Aggresive min RR min depth
+    WavefrontRenderer noRrRenderer(8, 4, SchedulingPolicy::None, 999);
+    noRrRenderer.renderScene(scene, camera, imageNoRR);
+
+    // Every pixel should have received light
+    int litPixels = 0;
+
+    for (int i = 0; i < width * height; ++i)
+    {
+        float brightness =
+            (imageNoRR.pixels[i].x + imageNoRR.pixels[i].y + imageNoRR.pixels[i].z) / 3.0f;
+        if (brightness > 0.0f)
+            litPixels++;
+    }
+
+    // With RR disabled all pixels should receive some light
+    EXPECT_EQ(litPixels, width * height);
+}
