@@ -13,6 +13,7 @@ class WavefrontRenderer
     int samplesPerPixel;
     int maxDepth;
     int rrMinDepth = 3;
+    const float PI = 3.14159265f;
     SchedulingPolicy policy;
 
     WavefrontRenderer(int samples, int maxDepth, SchedulingPolicy policy, int rrMinDepth = 3)

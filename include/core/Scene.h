@@ -44,6 +44,15 @@ struct SceneGeometry
     }
 };
 
+struct LightSample
+{
+    Point3 point;
+    Vec3 normal;
+    Color emission;
+    float area = 0.0f;
+    bool valid = false;
+};
+
 struct Scene
 {
     Scene() = default;
@@ -72,4 +81,7 @@ struct Scene
     const Material& getMaterial(const HitRecord& record) const;
 
     bool hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const;
+
+    // NEE sample for a random point on emissive mesh
+    LightSample sampleLight() const;
 };

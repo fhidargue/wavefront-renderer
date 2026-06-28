@@ -224,7 +224,40 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 if (emitted.x > 0.0f || emitted.y > 0.0f || emitted.z > 0.0f)
                     localAccumContribs.push_back({pixelIndex, throughput * emitted});
 
-                // Scatter the ray
+                // NEE direct light sample
+                if (material.type == MaterialType::Diffuse || material.type == MaterialType::Metal)
+                {
+                    LightSample light = scene.sampleLight();
+
+                    if (light.valid) 
+                    {
+                        Vec3 toLight = light.point - record.point;
+                        float distanceToLight = toLight.length();
+                        Vec3 toLightDirection = toLight / distanceToLight;
+
+                        float cosAtSurface = record.normal.dot(toLightDirection);
+                        float cosAtLight = (toLightDirection * -1.0f).dot(light.normal);
+
+                        // Both light and surface must face each other
+                        if (cosAtSurface > 0.0f && cosAtLight > 0.0f)
+                        {
+                            bool shadowed = scene.accelerator.occluded(record.point, toLightDirection, distanceToLight);
+
+                            if (!shadowed)
+                            {
+                                float geometry = (cosAtSurface * cosAtLight) / (distanceToLight * distanceToLight);
+                                Color brdf = material.albedo * (1.0f / PI);
+                                
+                                // NEE contribution
+                                Color direct = throughput * brdf * light.emission * geometry * light.area;
+
+                                localAccumContribs.push_back({pixelIndex, direct});
+                            }
+                        }
+                    }
+                }
+
+                // Scatter the ray for the next bounce
                 Color attenuation;
                 Ray scattered;
 

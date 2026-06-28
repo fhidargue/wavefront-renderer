@@ -1,4 +1,5 @@
 #include <core/Scene.h>
+#include <math/Random.h>
 
 int Scene::addMaterial(const Material& material)
 {
@@ -100,4 +101,58 @@ bool Scene::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord&
     }
 
     return hitAnything;
+}
+
+LightSample Scene::sampleLight() const
+{
+    // Collect emissive meshes
+    std::vector<int> lightIndices;
+
+    for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
+        if (materials[meshes[i].materialID].type == MaterialType::Emissive)
+            lightIndices.push_back(i);
+
+    if (lightIndices.empty())
+        return {};
+
+    // Pick a random emissive mesh
+    int meshIndex = lightIndices[static_cast<int>(randomFloat() * lightIndices.size()) %
+                                 static_cast<int>(lightIndices.size())];
+
+    const Mesh& mesh = meshes[meshIndex];
+    int triangleCount = mesh.triangleCount();
+
+    // Pick a random triangle
+    int triangleIndex = static_cast<int>(randomFloat() * triangleCount) % triangleCount;
+
+    Point3 vertex0 = mesh.vertexPositions[mesh.triangleIndices[triangleIndex * 3 + 0]];
+    Point3 vertex1 = mesh.vertexPositions[mesh.triangleIndices[triangleIndex * 3 + 1]];
+    Point3 vertex2 = mesh.vertexPositions[mesh.triangleIndices[triangleIndex * 3 + 2]];
+
+    float r1 = randomFloat();
+    float r2 = randomFloat();
+
+    if (r1 + r2 > 1.0f)
+    {
+        r1 = 1.0f - r1;
+        r2 = 1.0f - r2;
+    }
+
+    float r3 = 1.0f - r1 - r2;
+
+    Point3 point = vertex0 * r3 + vertex1 * r1 + vertex2 * r2;
+
+    // Triangle normal and area
+    Vec3 edge1 = vertex1 - vertex0;
+    Vec3 edge2 = vertex2 - vertex0;
+    Vec3 cross = edge1.cross(edge2);
+    float triArea = cross.length() * 0.5f;
+
+    float totalArea =
+        triArea * static_cast<float>(triangleCount) * static_cast<float>(lightIndices.size());
+
+    Vec3 normal = cross.normalized();
+    Color emission = materials[mesh.materialID].emitted();
+
+    return {point, normal, emission, totalArea, true};
 }

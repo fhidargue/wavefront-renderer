@@ -187,3 +187,27 @@ bool EmbreeAccelerator::intersect(const Ray& ray, float minDistance, float maxDi
 
     return true;
 }
+
+bool EmbreeAccelerator::occluded(const Point3& origin, const Vec3& direction,
+                                 float maxDistance) const
+{
+    RTCRay ray;
+    ray.org_x = origin.x;
+    ray.org_y = origin.y;
+    ray.org_z = origin.z;
+    ray.dir_x = direction.x;
+    ray.dir_y = direction.y;
+    ray.dir_z = direction.z;
+    ray.tnear = 0.001f;
+    ray.tfar = maxDistance - 0.001f;
+    ray.mask = 0xFFFFFFFF;
+    ray.flags = 0;
+    ray.time = 0.0f;
+
+    RTCOccludedArguments args;
+    rtcInitOccludedArguments(&args);
+    rtcOccluded1(m_scene, &ray, &args);
+
+    // Embree sets tfar to -inf when occlusion happens
+    return ray.tfar < 0.0f;
+}

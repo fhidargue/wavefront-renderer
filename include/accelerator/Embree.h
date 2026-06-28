@@ -25,6 +25,7 @@ class EmbreeAccelerator
     void printStats() const;
 
     bool intersect(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const;
+    bool occluded(const Point3& origin, const Vec3& direction, float maxDistance) const;
 
     const Scene* m_sourceScene = nullptr;
     bool m_built = false;
