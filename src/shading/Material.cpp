@@ -24,16 +24,16 @@ Vec3 cosineSampleHemisphere(const Vec3& normal)
 {
     // Cosine-weighted hemisphere sampling via samples of a 2D disk
     float randomRadius = std::sqrt(randomFloat());
-    float randomAngle  = 2.0f * PI * randomFloat();
+    float randomAngle = 2.0f * PI * randomFloat();
     float directionX = randomRadius * std::cos(randomAngle);
     float directionZ = randomRadius * std::sin(randomAngle);
     float directionY = std::sqrt(std::max(0.0f, 1.0f - randomRadius * randomRadius));
 
     // Build a local coordinate frame with the surface
     // normal as the Y axis, so the sampled direction is in world space
-    Vec3 worldUp    = std::abs(normal.x) > 0.9f ? Vec3(0, 1, 0) : Vec3(1, 0, 0);
-    Vec3 tangent    = normal.cross(worldUp).normalized();
-    Vec3 bitangent  = normal.cross(tangent);
+    Vec3 worldUp = std::abs(normal.x) > 0.9f ? Vec3(0, 1, 0) : Vec3(1, 0, 0);
+    Vec3 tangent = normal.cross(worldUp).normalized();
+    Vec3 bitangent = normal.cross(tangent);
 
     // Transform from tangent space to world space
     return (tangent * directionX + normal * directionY + bitangent * directionZ).normalized();
