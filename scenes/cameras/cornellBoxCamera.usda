@@ -1,0 +1,22 @@
+#usda 1.0
+(
+    defaultPrim = "Camera"
+    upAxis = "Y"
+    doc = "Cornell Box camera - matches cornellBox.usda scene"
+)
+
+def Camera "Camera"
+{
+    float3 xformOp:translate = (0, 5, 15)
+    float3 xformOp:rotateXYZ = (0, 0, 0)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+
+    float focalLength = 53
+    float horizontalAperture = 600
+    float verticalAperture = 600
+
+    # Custom renderer attributes
+    float3 custom:target = (0, 5, -2)
+    float3 custom:up = (0, 1, 0)
+    float custom:fov = 53
+}

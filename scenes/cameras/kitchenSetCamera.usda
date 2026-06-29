@@ -1,0 +1,19 @@
+#usda 1.0
+(
+    defaultPrim = "Camera"
+    upAxis = "Y"
+    doc = "Kitchen Set camera"
+)
+
+def Camera "Camera"
+{
+    # Updated to -90 X axis correction
+    float3 xformOp:translate = (71, 100, 300)
+    uniform token[] xformOpOrder = ["xformOp:translate"]
+
+    # Custom renderer attributes
+    float3 custom:eye = (240, 200, 400)
+    float3 custom:target = (71, 60, 0)
+    float3 custom:up = ( 0, 1, 0)
+    float custom:fov = 50
+}
