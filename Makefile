@@ -25,4 +25,4 @@ cornell: build
 	@./$(BUILD_DIR)/renderer output/cornellBoxHardcoded.exr
 
 preview: build
-	@uv run python3 -m tools.main scenes/cornellBox.usda output/cornellBox.exr
+	@uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr

@@ -4,7 +4,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QSurfaceFormat
 
-from tools.window import RenderWindow
+from gui.window import RenderWindow
 
 
 def configure_opengl():

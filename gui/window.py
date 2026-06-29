@@ -11,10 +11,10 @@ from PySide6.QtWidgets import (
     QLabel,
     QProgressBar,
 )
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Qt
 
-from tools.render.display import RenderDisplay
-from tools.render.worker import RenderWorker
+from gui.render.display import RenderDisplay
+from gui.render.worker import RenderWorker
 
 
 class RenderWindow(QMainWindow):
@@ -96,6 +96,12 @@ class RenderWindow(QMainWindow):
         self.poll_timer = QTimer()
         self.poll_timer.setInterval(500)
         self.poll_timer.timeout.connect(self._poll_output)
+    
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.close()
+        else:
+            super().keyPressEvent(event)
 
     def start_render(self):
         if self.worker and self.worker.isRunning():

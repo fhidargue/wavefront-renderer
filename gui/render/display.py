@@ -1,10 +1,9 @@
 """
-display.py
+Displays the rendered image as a fullscreen OpenGL texture.
 
-QOpenGLWidget that displays the rendered image as a fullscreen OpenGL texture.
-Uses OpenGL 3.3 Core Profile with proper vertex/fragment shaders.
-
-Inspired by Jon Macey's PBORender and SimpleFBO demos.
+Inspired by Jon Macey, PBORender and SimpleFBO demos, Bournemouth University
+Code referenced from: https://github.com/NCCA/FBODemos
+Date accessed: 28, June 2026.
 """
 
 import numpy as np
@@ -13,7 +12,7 @@ import ctypes
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 import OpenGL.GL as GL
 
-from tools.image_loader import load_exr, linear_to_srgb
+from gui.image_loader import load_exr, linear_to_srgb
 
 
 def _load_shader(filename: str) -> str:
