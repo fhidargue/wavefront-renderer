@@ -96,7 +96,7 @@ class RenderWindow(QMainWindow):
         self.poll_timer = QTimer()
         self.poll_timer.setInterval(500)
         self.poll_timer.timeout.connect(self._poll_output)
-    
+
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
             self.close()
