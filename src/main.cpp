@@ -79,8 +79,7 @@ int main(int argc, char* argv[])
     string previewPath = derivePreviewPath(outputPath);
 
     cout << "Rendering: " << imageWidth << "x" << imageHeight << " | " << samplesPerPixel
-         << " samples"
-         << " | depth " << maxBounceDepth << endl;
+         << " samples" << " | depth " << maxBounceDepth << endl;
 
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::MaterialAware);
 
