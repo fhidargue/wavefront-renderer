@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+    "name": "wavefront-renderer",
+    "version": "0.1.0",
+    "dependencies": [
+        "tbb",
+        "gtest",
+        "nlohmann-json",
+        "embree",
+        "openimageio"
+    ]
+}
