@@ -47,6 +47,7 @@ set(RENDERER_SOURCES
     src/shading/Material.cpp
     src/render/WavefrontRenderer.cpp
     src/scene/CornellBox.cpp
+    src/scene/CameraLoader.cpp
     src/accelerator/Embree.cpp
 )
 

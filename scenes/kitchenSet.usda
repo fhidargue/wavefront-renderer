@@ -1,0 +1,60 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    upAxis = "Z"
+    doc = "Kitchen Set with ceiling lamp light shooting downward"
+)
+
+def Xform "World"
+{
+    # Reference the original Kitchen Set
+    def "Kitchen" (
+        prepend references = @/Users/fhidalgo/Downloads/Kitchen_set/Kitchen_set.usd@
+    )
+    {
+    }
+
+    def Scope "Materials"
+    {
+        def Material "LampLight"
+        {
+            token outputs:surface.connect = </World/Materials/LampLight/Shader.outputs:surface>
+
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 0.85, 0.6)
+                color3f inputs:emissiveColor = (150.0, 120.0, 80.0)
+                float inputs:roughness = 1.0
+                token outputs:surface
+            }
+        }
+    }
+
+    def Mesh "LampDisc" (
+        apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        # Center at lamp position, slightly below lamp
+        point3f[] points = [
+            (-29, -80, 200),
+            ( -9, -80, 200), ( -9, -60, 200),
+            (-29, -60, 200), (-49, -60, 200),
+            (-49, -80, 200), (-49,-100, 200),
+            (-29,-100, 200), ( -9,-100, 200)
+        ]
+        int[] faceVertexCounts  = [3, 3, 3, 3, 3, 3, 3, 3]
+        int[] faceVertexIndices = [
+            0, 2, 1,
+            0, 3, 2,
+            0, 4, 3,
+            0, 5, 4,
+            0, 6, 5,
+            0, 7, 6,
+            0, 8, 7,
+            0, 1, 8
+        ]
+        uniform token orientation = "leftHanded"
+        rel material:binding = </World/Materials/LampLight>
+    }
+}

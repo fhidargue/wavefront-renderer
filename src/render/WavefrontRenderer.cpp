@@ -1,12 +1,14 @@
 #include <render/WavefrontRenderer.h>
 #include <math/Random.h>
 #include <chrono>
+#include <cstdio>
 #include <algorithm>
 #include <cmath>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 #include <tbb/combinable.h>
 
+using std::cerr;
 using std::cout;
 using std::endl;
 using std::min;
@@ -81,6 +83,13 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     // Final image write with gamma correction
     for (int i = 0; i < pixelCount; ++i)
         image.pixels[i] = accumulator[i] / static_cast<float>(samplesPerPixel);
+
+    // Delete preview file once the render is complete
+    if (!previewPath.empty())
+    {
+        if (std::remove(previewPath.c_str()) != 0)
+            cerr << "WARNING: Could not delete preview: " << previewPath << endl;
+    }
 
     return totalShadeOnlyMs;
 }
@@ -381,8 +390,8 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 Color WavefrontRenderer::getSkyColor(const Ray& ray) const
 {
     float blendFactor = 0.5f * (ray.direction.normalized().y + 1.0f);
-    Color white(1.0f, 1.0f, 1.0f);
-    Color skyBlue(0.5f, 0.7f, 1.0f);
+    Color darkSky(0.02f, 0.02f, 0.05f);
+    Color horizon(0.05f, 0.04f, 0.03f);
 
-    return white * (1.0f - blendFactor) + skyBlue * blendFactor;
+    return horizon * (1.0f - blendFactor) + darkSky * blendFactor;
 }

@@ -50,15 +50,6 @@ class RenderWorker(QThread):
         """
         Runs on the background thread
         """
-        # Remove stale preview from previous render
-        preview = Path(self.preview_path)
-
-        if preview.exists():
-            try:
-                os.remove(preview)
-            except OSError:
-                pass
-
         if not self.renderer_path.exists():
             self.renderFailed.emit(
                 f"Renderer not found: {self.renderer_path}\nRun 'make build' first."

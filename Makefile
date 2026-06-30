@@ -1,6 +1,6 @@
 BUILD_DIR = build
 
-.PHONY: all build clean rebuild test render cornell
+.PHONY: all build clean rebuild test render cornell kitchen preview
 
 all: build
 
@@ -18,11 +18,18 @@ rebuild: clean build
 test: build
 	@./$(BUILD_DIR)/tests
 
-render: build
-	@./$(BUILD_DIR)/renderer scenes/cornellBox.usda output/cornellBox.exr
-
 cornell: build
-	@./$(BUILD_DIR)/renderer output/cornellBoxHardcoded.exr
+	@./$(BUILD_DIR)/renderer scenes/cornellBox.usda output/cornellBox.exr \
+		scenes/cameras/cornellBoxCamera.usda
+
+kitchen: build
+	@./$(BUILD_DIR)/renderer scenes/kitchenSet.usda \
+		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda
 
 preview: build
-	@uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr
+	@uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr \
+		scenes/cameras/cornellBoxCamera.usda
+
+preview-kitchen: build
+	@uv run python3 -m gui.main scenes/kitchenSet.usda \
+		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda

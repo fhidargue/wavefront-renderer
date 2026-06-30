@@ -11,6 +11,8 @@
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/xformCache.h>
 #include <pxr/usd/usdGeom/mesh.h>
+#include <pxr/usd/usdGeom/metrics.h>
+#include <pxr/usd/usdGeom/primvarsAPI.h>
 #include <pxr/usd/usdShade/material.h>
 #include <pxr/usd/usdShade/materialBindingAPI.h>
 #include <pxr/usd/usdShade/shader.h>
@@ -19,11 +21,13 @@
 #include <pxr/base/gf/vec4d.h>
 #include <pxr/base/gf/matrix4d.h>
 #include <pxr/base/vt/array.h>
+#include <pxr/base/gf/rotation.h>
 
 using std::cerr;
 using std::cout;
 using std::endl;
 using std::string;
+using std::to_string;
 using std::vector;
 
 PXR_NAMESPACE_USING_DIRECTIVE
@@ -39,9 +43,68 @@ static void triangulateFace(const VtIntArray& indices, int startIndex, int verte
     }
 }
 
+static Color readDisplayColor(const UsdGeomMesh& meshPrim)
+{
+    // Fallback implementation for scenes without UsdPreviewSurface
+    const Color defaultColor = Color(0.8f, 0.8f, 0.8f);
+    UsdGeomPrimvar displayColorPrimvar =
+        UsdGeomPrimvarsAPI(meshPrim.GetPrim()).GetPrimvar(TfToken("displayColor"));
+
+    if (!displayColorPrimvar.IsDefined())
+        return defaultColor;
+
+    VtValue value;
+    displayColorPrimvar.Get(&value, UsdTimeCode::Default());
+
+    if (value.IsEmpty())
+        return defaultColor;
+
+    if (value.IsHolding<VtVec3fArray>())
+    {
+        VtVec3fArray colors = value.UncheckedGet<VtVec3fArray>();
+
+        if (!colors.empty())
+            return Color(colors[0][0], colors[0][1], colors[0][2]);
+    }
+
+    if (value.IsHolding<GfVec3f>())
+    {
+        GfVec3f color = value.UncheckedGet<GfVec3f>();
+        return Color(color[0], color[1], color[2]);
+    }
+
+    return defaultColor;
+}
+
+static void printSceneSummary(const string& usdFilePath, const Scene& scene, int totalTriangles,
+                              bool isZUp)
+{
+    int diffuseCount = 0;
+    int emissiveCount = 0;
+
+    for (const auto& mat : scene.materials)
+    {
+        if (mat.type == MaterialType::Diffuse)
+            diffuseCount++;
+        if (mat.type == MaterialType::Emissive)
+            emissiveCount++;
+    }
+
+    cout << "\n========================================" << endl;
+    cout << "  Scene Summary" << endl;
+    cout << "========================================" << endl;
+    cout << "  File       : " << usdFilePath << endl;
+    cout << "  upAxis     : " << (isZUp ? "Z (corrected to Y)" : "Y") << endl;
+    cout << "  Materials  : " << scene.materials.size() << " (" << diffuseCount << " diffuse, "
+         << emissiveCount << " emissive)" << endl;
+    cout << "  Meshes     : " << scene.meshes.size() << endl;
+    cout << "  Triangles  : " << totalTriangles << endl;
+    cout << "========================================\n" << endl;
+}
+
 Scene UsdSceneLoader::load(const string& usdFilePath)
 {
-    UsdStageRefPtr stage = UsdStage::Open(usdFilePath);
+    UsdStageRefPtr stage = UsdStage::Open(usdFilePath, UsdStage::LoadAll);
 
     if (!stage)
     {
@@ -51,6 +114,18 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
     Scene scene;
     std::unordered_map<string, int> materialIndexMap;
+
+    // Detect upAxis from the USD scene
+    TfToken upAxis = UsdGeomGetStageUpAxis(stage);
+    bool isZUp = (upAxis == UsdGeomTokens->z);
+
+    GfMatrix4d upAxisCorrection(1.0);
+    if (isZUp)
+    {
+        upAxisCorrection = GfMatrix4d().SetRotate(GfRotation(GfVec3d(1, 0, 0), -90.0));
+
+        cout << "Applied Z up axis correction" << endl;
+    }
 
     // Extract materials
     for (const UsdPrim& prim : stage->Traverse())
@@ -63,6 +138,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         string materialPath = prim.GetPath().GetString();
 
         Color diffuse(0.8f, 0.8f, 0.8f);
+        Color emissiveColor(0.0f, 0.0f, 0.0f);
         float roughness = 1.0f;
         bool isEmissive = false;
 
@@ -100,13 +176,16 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             {
                 GfVec3f emission;
                 if (emissiveInput.Get(&emission, UsdTimeCode::Default()))
+                {
+                    emissiveColor = Color(emission[0], emission[1], emission[2]);
                     isEmissive = (emission[0] + emission[1] + emission[2]) > 0.0f;
+                }
             }
         }
 
         // Set UUID from prim path before adding to scene
-        Material mat =
-            isEmissive ? Material::makeEmissive(diffuse, 15.0f) : Material::makeDiffuse(diffuse);
+        Material mat = isEmissive ? Material::makeEmissive(emissiveColor, 1.0f)
+                                  : Material::makeDiffuse(diffuse);
 
         mat.uuid = materialPath;
 
@@ -161,6 +240,9 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         // Apply world transform to every vertex
         GfMatrix4d worldTransform = xformCache.GetLocalToWorldTransform(prim);
 
+        if (isZUp)
+            worldTransform = worldTransform * upAxisCorrection;
+
         Mesh mesh;
         mesh.uuid = prim.GetPath().GetString();
 
@@ -185,6 +267,8 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         UsdShadeMaterialBindingAPI bindingAPI(prim);
         UsdShadeMaterial boundMaterial = bindingAPI.ComputeBoundMaterial();
 
+        mesh.materialID = 0;
+
         if (boundMaterial)
         {
             string matPath = boundMaterial.GetPath().GetString();
@@ -194,12 +278,34 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             if (iterator != materialIndexMap.end())
                 mesh.materialID = iterator->second;
         }
+        else
+        {
+            Color displayColor = readDisplayColor(meshPrim);
+            string colorKey = "displayColor_" + to_string(int(displayColor.x * 255)) + "_" +
+                              to_string(int(displayColor.y * 255)) + "_" +
+                              to_string(int(displayColor.z * 255));
+
+            auto iterator = materialIndexMap.find(colorKey);
+
+            if (iterator != materialIndexMap.end())
+            {
+                mesh.materialID = iterator->second;
+            }
+            else
+            {
+                Material material = Material::makeDiffuse(displayColor);
+                material.uuid = colorKey;
+                int id = scene.addMaterial(material);
+                materialIndexMap[colorKey] = id;
+                mesh.materialID = id;
+            }
+        }
 
         totalTriangles += mesh.triangleCount();
         scene.addMesh(mesh);
     }
 
-    cout << "Scene loaded from USD: " << usdFilePath << endl;
+    printSceneSummary(usdFilePath, scene, totalTriangles, isZUp);
 
     return scene;
 };
