@@ -22,8 +22,8 @@ Camera CameraLoader::defaultCornellBox(int imageWidth, int imageHeight)
 
 Camera CameraLoader::defaultKitchenSet(int imageWidth, int imageHeight)
 {
-    return Camera(Point3(240.0f, 200.0f, 400.0f), Point3(71.0f, 60.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f),
-                  50.0f, imageWidth, imageHeight);
+    return Camera(Point3(240.0f, 200.0f, 400.0f), Point3(71.0f, 60.0f, 0.0f),
+                  Vec3(0.0f, 1.0f, 0.0f), 50.0f, imageWidth, imageHeight);
 }
 
 Camera CameraLoader::load(const string& cameraFilePath, int imageWidth, int imageHeight)

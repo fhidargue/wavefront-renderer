@@ -184,8 +184,8 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         }
 
         // Set UUID from prim path before adding to scene
-        Material mat =
-            isEmissive ? Material::makeEmissive(emissiveColor, 1.0f) : Material::makeDiffuse(diffuse);
+        Material mat = isEmissive ? Material::makeEmissive(emissiveColor, 1.0f)
+                                  : Material::makeDiffuse(diffuse);
 
         mat.uuid = materialPath;
 

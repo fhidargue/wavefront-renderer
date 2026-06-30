@@ -8,11 +8,11 @@
 #include <tbb/blocked_range.h>
 #include <tbb/combinable.h>
 
+using std::cerr;
 using std::cout;
 using std::endl;
 using std::min;
 using std::vector;
-using std::cerr;
 
 double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,
                                       const std::string& previewPath, int progressInterval,
