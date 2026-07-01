@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -18,10 +19,7 @@ def configure_opengl():
     QSurfaceFormat.setDefaultFormat(fmt)
 
 
-def resolve_paths(argv: list[str]) -> tuple[str, str, str]:
-    """
-    Resolve renderer, scene and output paths from CLI args or defaults
-    """
+def resolve_paths(argv: list[str]) -> tuple[str, str, str, int, int]:
     project_root = Path(__file__).resolve().parents[1]
     renderer_path = str(project_root / "build" / "renderer")
     scene_path = (
@@ -31,7 +29,10 @@ def resolve_paths(argv: list[str]) -> tuple[str, str, str]:
         argv[2] if len(argv) > 2 else str(project_root / "output" / "preview.exr")
     )
 
-    return renderer_path, scene_path, output_path
+    width = int(os.environ.get("WIDTH", 600))
+    height = int(os.environ.get("HEIGHT", 600))
+
+    return renderer_path, scene_path, output_path, width, height
 
 
 def main():
@@ -41,14 +42,15 @@ def main():
     app.setApplicationName("Wavefront Renderer")
     app.setOrganizationName("Bournemouth University")
 
-    renderer_path, scene_path, output_path = resolve_paths(sys.argv)
+    renderer_path, scene_path, output_path, width, height = resolve_paths(sys.argv)
+    print(f"DEBUG: width={width} height={height}")
 
     window = RenderWindow(
         renderer_path=renderer_path,
         scene_path=scene_path,
         output_path=output_path,
-        width=600,
-        height=600,
+        width=width,
+        height=height,
     )
     window.show()
 

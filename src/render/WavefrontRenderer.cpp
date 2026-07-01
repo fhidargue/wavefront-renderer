@@ -4,6 +4,9 @@
 #include <cstdio>
 #include <algorithm>
 #include <cmath>
+#include <csignal>
+#include <cstdlib>
+#include <cstring>
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range.h>
 #include <tbb/combinable.h>
@@ -13,11 +16,33 @@ using std::cout;
 using std::endl;
 using std::min;
 using std::vector;
+using std::signal;
+using std::string;
+
+static char previewPathBuffer[4096];
+
+static void onSignal(int)
+{
+    if (previewPathBuffer[0] != '\0')
+        std::remove(previewPathBuffer);
+    std::exit(1);
+}
+
+static void removePreviewImage(const string& previewPath)
+{
+    std::strncpy(previewPathBuffer, previewPath.c_str(), sizeof(previewPathBuffer) - 1);
+    previewPathBuffer[sizeof(previewPathBuffer) - 1] = '\0';
+    signal(SIGTERM, onSignal);
+    signal(SIGINT,  onSignal);
+}
 
 double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,
-                                      const std::string& previewPath, int progressInterval,
+                                      const string& previewPath, int progressInterval,
                                       ProgressCallback progressCallback)
 {
+    // Delete the preview image is the process is terminated
+    removePreviewImage(previewPath);
+
     const int pixelCount = image.width * image.height;
     double totalShadeOnlyMs = 0.0;
 

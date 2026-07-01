@@ -1,4 +1,6 @@
 BUILD_DIR = build
+WIDTH ?= 600
+HEIGHT ?= 600
 
 .PHONY: all build clean rebuild test render cornell kitchen preview
 
@@ -20,16 +22,18 @@ test: build
 
 cornell: build
 	@./$(BUILD_DIR)/renderer scenes/cornellBox.usda output/cornellBox.exr \
-		scenes/cameras/cornellBoxCamera.usda
+		scenes/cameras/cornellBoxCamera.usda \
+		--width $(WIDTH) --height $(HEIGHT)
 
 kitchen: build
 	@./$(BUILD_DIR)/renderer scenes/kitchenSet.usda \
-		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda
+		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda \
+		--width $(WIDTH) --height $(HEIGHT)
 
 preview: build
-	@uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr \
-		scenes/cameras/cornellBoxCamera.usda
+	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr \
+		scenes/cameras/cornellBoxCamera.usda 
 
 preview-kitchen: build
-	@uv run python3 -m gui.main scenes/kitchenSet.usda \
-		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda
+	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/kitchenSet.usda \
+		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda 

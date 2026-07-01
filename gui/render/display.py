@@ -167,11 +167,17 @@ class RenderDisplay(QOpenGLWidget):
         """
         Load an EXR from disk and upload to the GPU texture
         """
-        pixels = load_exr(filepath)
-
-        if pixels is None:
-            print(f"Display could not load: {filepath}")
+        if self.texture_id is None:
             return
+        
+        # If the file fails mid write, skip the frame
+        try:
+            pixels = load_exr(filepath)
+
+            if pixels is None:
+                return
+        except Exception:
+            return 
 
         self._upload_pixels(linear_to_srgb(pixels))
         self.has_image = True
@@ -186,6 +192,13 @@ class RenderDisplay(QOpenGLWidget):
         """
         Upload numpy array to GPU texture
         """
+        if self.texture_id is None:
+            return
+        
+        height, width, _ = pixels.shape
+        if width != self.render_width or height != self.render_height:
+            return
+        
         self.makeCurrent()
         GL.glBindTexture(GL.GL_TEXTURE_2D, self.texture_id)
         GL.glTexSubImage2D(
@@ -193,8 +206,8 @@ class RenderDisplay(QOpenGLWidget):
             0,
             0,
             0,
-            self.render_width,
-            self.render_height,
+            width,
+            height,
             GL.GL_RGB,
             GL.GL_FLOAT,
             pixels.flatten(),
