@@ -66,8 +66,10 @@ class RenderWorker(QThread):
             str(self.renderer_path),
             self.scene_path,
             self.output_path,
-            "--width", str(self.width),
-            "--height", str(self.height),
+            "--width",
+            str(self.width),
+            "--height",
+            str(self.height),
         ]
 
         try:

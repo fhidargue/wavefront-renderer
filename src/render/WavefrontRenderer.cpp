@@ -15,9 +15,9 @@ using std::cerr;
 using std::cout;
 using std::endl;
 using std::min;
-using std::vector;
 using std::signal;
 using std::string;
+using std::vector;
 
 static char previewPathBuffer[4096];
 
@@ -33,7 +33,7 @@ static void removePreviewImage(const string& previewPath)
     std::strncpy(previewPathBuffer, previewPath.c_str(), sizeof(previewPathBuffer) - 1);
     previewPathBuffer[sizeof(previewPathBuffer) - 1] = '\0';
     signal(SIGTERM, onSignal);
-    signal(SIGINT,  onSignal);
+    signal(SIGINT, onSignal);
 }
 
 double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,

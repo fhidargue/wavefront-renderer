@@ -15,8 +15,8 @@
 
 using std::cout;
 using std::endl;
-using std::string;
 using std::stoi;
+using std::string;
 
 static string derivePreviewPath(const string& outputPath)
 {
