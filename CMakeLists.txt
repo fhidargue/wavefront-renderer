@@ -12,21 +12,23 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(include)
 
-list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
-
 option(ENABLE_USD "Enable USD scene loading" OFF)
 
 if(ENABLE_USD)
-    set(USD_INSTALL_DIR "$ENV{HOME}/Documents/Projects/USDInstall")
-    find_package(pxr REQUIRED HINTS ${USD_INSTALL_DIR})
-    include_directories(${USD_INSTALL_DIR}/include)
-    link_directories(${USD_INSTALL_DIR}/lib)
+    set(pxr_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/share/pxr")
+    set(USD_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib")
+    link_directories("${USD_LIB_DIR}")
+    find_package(pxr REQUIRED)
     add_compile_definitions(ENABLE_USD)
-    set(TBB_LINK "${USD_INSTALL_DIR}/lib/libtbb.dylib")
-    set(USD_LIBS usd_usd usd_usdGeom usd_usdShade usd_sdf usd_tf usd_ar usd_gf usd_vt usd_plug usd_work)
-    
-    # Suppress TBB warnings
     add_compile_options(-Wno-\#pragma-messages)
+
+    # Do NOT link TBB separately — USD has TBB statically linked
+    # Two TBB instances cause deadlock in PcpCache::_ComputePrimIndexesInParallel
+    set(TBB_LINK "")
+    set(USD_LIBS
+        usd_usd usd_usdGeom usd_usdShade usd_sdf
+        usd_tf usd_ar usd_gf usd_vt usd_plug usd_work
+    )
 else()
     find_package(TBB REQUIRED)
     set(TBB_LINK TBB::tbb)
@@ -35,7 +37,6 @@ endif()
 
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
-find_package(nlohmann_json REQUIRED)
 find_package(OpenImageIO REQUIRED)
 
 include_directories(${EMBREE_INCLUDE_DIRS})
@@ -63,7 +64,6 @@ add_executable(renderer
 target_link_libraries(renderer PRIVATE
     ${TBB_LINK}
     embree
-    nlohmann_json::nlohmann_json
     ${USD_LIBS}
     OpenImageIO::OpenImageIO
 )
@@ -89,22 +89,20 @@ endif()
 target_link_libraries(tests PRIVATE
     ${TBB_LINK}
     embree
-    nlohmann_json::nlohmann_json
     ${USD_LIBS}
     OpenImageIO::OpenImageIO
     GTest::GTest
     GTest::Main
 )
 
-# rpath so renderer and tests find USD dylibs at runtime
 if(ENABLE_USD)
     set_target_properties(renderer PROPERTIES
-        BUILD_RPATH "${USD_INSTALL_DIR}/lib"
-        INSTALL_RPATH "${USD_INSTALL_DIR}/lib"
+        BUILD_RPATH "${USD_LIB_DIR}"
+        INSTALL_RPATH "${USD_LIB_DIR}"
     )
     set_target_properties(tests PROPERTIES
-        BUILD_RPATH "${USD_INSTALL_DIR}/lib"
-        INSTALL_RPATH "${USD_INSTALL_DIR}/lib"
+        BUILD_RPATH "${USD_LIB_DIR}"
+        INSTALL_RPATH "${USD_LIB_DIR}"
     )
 endif()
 

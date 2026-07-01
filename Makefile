@@ -5,10 +5,12 @@ BUILD_DIR = build
 all: build
 
 build:
-	@cmake -B $(BUILD_DIR) -G Ninja -DCMAKE_BUILD_TYPE=Release \
+	cmake -B $(BUILD_DIR) \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_TOOLCHAIN_FILE=$(HOME)/Documents/Projects/vcpkg/scripts/buildsystems/vcpkg.cmake \
 		-DENABLE_USD=ON \
-		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -Wno-dev 2>/dev/null || true
-	@ninja -C $(BUILD_DIR)
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+	cmake --build $(BUILD_DIR) --parallel
 
 clean:
 	@rm -rf $(BUILD_DIR)
