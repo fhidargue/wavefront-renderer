@@ -22,12 +22,16 @@ class RenderWorker(QThread):
         renderer_path: str,
         scene_path: str,
         output_path: str,
+        width: int = 600,
+        height: int = 600,
         parent=None,
     ):
         super().__init__(parent)
         self.renderer_path = Path(renderer_path)
         self.scene_path = scene_path
         self.output_path = output_path
+        self.width = width
+        self.height = height
         self.preview_path = self._derive_preview_path(output_path)
         self._stop = False
 
@@ -62,6 +66,10 @@ class RenderWorker(QThread):
             str(self.renderer_path),
             self.scene_path,
             self.output_path,
+            "--width",
+            str(self.width),
+            "--height",
+            str(self.height),
         ]
 
         try:

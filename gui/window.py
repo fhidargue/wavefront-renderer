@@ -117,6 +117,8 @@ class RenderWindow(QMainWindow):
             renderer_path=self.renderer_path,
             scene_path=self.scene_path,
             output_path=self.output_path,
+            width=self.width,
+            height=self.height,
         )
         self.worker.statusUpdate.connect(self._on_status_update)
         self.worker.progressUpdate.connect(self._on_progress_update)

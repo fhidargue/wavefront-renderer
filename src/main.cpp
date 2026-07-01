@@ -15,6 +15,7 @@
 
 using std::cout;
 using std::endl;
+using std::stoi;
 using std::string;
 
 static string derivePreviewPath(const string& outputPath)
@@ -29,15 +30,29 @@ static string derivePreviewPath(const string& outputPath)
 
 int main(int argc, char* argv[])
 {
-    const int imageWidth = 600;
-    const int imageHeight = 600;
     const int samplesPerPixel = 512;
     const int maxBounceDepth = 8;
     const int progressInterval = 4;
+    int imageWidth = 600;
+    int imageHeight = 600;
 
-    string usdFilePath = (argc >= 2) ? argv[1] : "";
-    string outputPath = (argc >= 3) ? argv[2] : "output/cornellBox.exr";
-    string cameraFile = (argc >= 4) ? argv[3] : "";
+    // Separate size flags from positional args
+    std::vector<string> positional;
+
+    for (int i = 1; i < argc; ++i)
+    {
+        string arg = argv[i];
+        if (arg == "--width" && i + 1 < argc)
+            imageWidth = std::stoi(argv[++i]);
+        else if (arg == "--height" && i + 1 < argc)
+            imageHeight = std::stoi(argv[++i]);
+        else
+            positional.push_back(arg);
+    }
+
+    string usdFilePath = (positional.size() >= 1) ? positional[0] : "";
+    string outputPath = (positional.size() >= 2) ? positional[1] : "output/cornellBox.exr";
+    string cameraFile = (positional.size() >= 3) ? positional[2] : "";
 
     Scene scene;
 
