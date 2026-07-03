@@ -12,17 +12,30 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(include)
 
-list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
+if(APPLE)
+    list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
+else()
+    list(APPEND CMAKE_PREFIX_PATH $ENV{HOME}/deps)
+endif()
 
 option(ENABLE_USD "Enable USD scene loading" OFF)
 
 if(ENABLE_USD)
-    set(USD_INSTALL_DIR "$ENV{HOME}/Documents/Projects/USDInstall")
+    if(DEFINED ENV{USD_INSTALL_DIR})
+        set(USD_INSTALL_DIR "$ENV{USD_INSTALL_DIR}")
+    elseif(APPLE)
+        set(USD_INSTALL_DIR "$ENV{HOME}/Documents/Projects/USDInstall")
+    else()
+        set(USD_INSTALL_DIR "$ENV{HOME}/USDInstall")
+    endif()
+
+    list(APPEND CMAKE_PREFIX_PATH ${USD_INSTALL_DIR} ${USD_INSTALL_DIR}/lib64/cmake)
     find_package(pxr REQUIRED HINTS ${USD_INSTALL_DIR})
+
     include_directories(${USD_INSTALL_DIR}/include)
     link_directories(${USD_INSTALL_DIR}/lib)
     add_compile_definitions(ENABLE_USD)
-    set(TBB_LINK "${USD_INSTALL_DIR}/lib/libtbb.dylib")
+    set(TBB_LINK "${USD_INSTALL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}tbb${CMAKE_SHARED_LIBRARY_SUFFIX}")
     set(USD_LIBS usd_usd usd_usdGeom usd_usdShade usd_sdf usd_tf usd_ar usd_gf usd_vt usd_plug usd_work)
     
     # Suppress TBB warnings
@@ -35,8 +48,13 @@ endif()
 
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
-find_package(nlohmann_json REQUIRED)
 find_package(OpenImageIO REQUIRED)
+
+if(TARGET GTest::gtest)
+    set(GTEST_LIBS GTest::gtest GTest::gtest_main)
+else()
+    set(GTEST_LIBS GTest::GTest GTest::Main)
+endif()
 
 include_directories(${EMBREE_INCLUDE_DIRS})
 
@@ -63,7 +81,6 @@ add_executable(renderer
 target_link_libraries(renderer PRIVATE
     ${TBB_LINK}
     embree
-    nlohmann_json::nlohmann_json
     ${USD_LIBS}
     OpenImageIO::OpenImageIO
 )
@@ -89,11 +106,9 @@ endif()
 target_link_libraries(tests PRIVATE
     ${TBB_LINK}
     embree
-    nlohmann_json::nlohmann_json
     ${USD_LIBS}
     OpenImageIO::OpenImageIO
-    GTest::GTest
-    GTest::Main
+    ${GTEST_LIBS}
 )
 
 # rpath so renderer and tests find USD dylibs at runtime

@@ -13,5 +13,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "clang-format>=22.1.5",
     "ruff>=0.15.20",
 ]

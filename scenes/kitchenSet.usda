@@ -9,7 +9,7 @@ def Xform "World"
 {
     # Reference the original Kitchen Set
     def "Kitchen" (
-        prepend references = @/Users/fhidalgo/Downloads/Kitchen_set/Kitchen_set.usd@
+    prepend references = @Kitchen_set.usd@
     )
     {
     }
