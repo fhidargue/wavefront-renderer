@@ -32,14 +32,18 @@ if(ENABLE_USD)
     list(APPEND CMAKE_PREFIX_PATH ${USD_INSTALL_DIR} ${USD_INSTALL_DIR}/lib64/cmake)
     find_package(pxr REQUIRED HINTS ${USD_INSTALL_DIR})
 
-    include_directories(${USD_INSTALL_DIR}/include)
+    include_directories(SYSTEM ${USD_INSTALL_DIR}/include)
     link_directories(${USD_INSTALL_DIR}/lib)
     add_compile_definitions(ENABLE_USD)
     set(TBB_LINK "${USD_INSTALL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}tbb${CMAKE_SHARED_LIBRARY_SUFFIX}")
     set(USD_LIBS usd_usd usd_usdGeom usd_usdShade usd_sdf usd_tf usd_ar usd_gf usd_vt usd_plug usd_work)
     
-    # Suppress TBB warnings
-    add_compile_options(-Wno-\#pragma-messages)
+    # Suppress TBB deprecation messages
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+        add_compile_options(-Wno-\#pragma-messages)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(-Wno-cpp)
+    endif()
 else()
     find_package(TBB REQUIRED)
     set(TBB_LINK TBB::tbb)
