@@ -121,7 +121,7 @@ class RenderWindow(QMainWindow):
             output_path=self.output_path,
             width=self.width,
             height=self.height,
-            denoise=self.denoise
+            denoise=self.denoise,
         )
         self.worker.statusUpdate.connect(self._on_status_update)
         self.worker.progressUpdate.connect(self._on_progress_update)

@@ -43,7 +43,9 @@ def main():
     app.setApplicationName("Wavefront Renderer")
     app.setOrganizationName("Bournemouth University")
 
-    renderer_path, scene_path, output_path, width, height, denoise = resolve_paths(sys.argv)
+    renderer_path, scene_path, output_path, width, height, denoise = resolve_paths(
+        sys.argv
+    )
 
     window = RenderWindow(
         renderer_path=renderer_path,
@@ -51,7 +53,7 @@ def main():
         output_path=output_path,
         width=width,
         height=height,
-        denoise=denoise
+        denoise=denoise,
     )
     window.show()
 
