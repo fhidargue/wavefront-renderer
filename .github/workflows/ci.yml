@@ -88,6 +88,11 @@ jobs:
           sudo cp -r oidn-2.5.0.x86_64.linux/lib/* /usr/local/lib64/
           sudo ldconfig || true
 
+      - name: Debug OIDN layout
+        run: |
+          find oidn-2.5.0.x86_64.linux -maxdepth 3
+          find /usr/local/lib64 -iname "*OpenImageDenoise*"
+
       - name: Configure
         run: |
           cmake -B build \
