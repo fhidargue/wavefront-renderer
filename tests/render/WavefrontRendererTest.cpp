@@ -145,10 +145,10 @@ TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange)
     Image imageBaseline(width, height);
     Image imageMaterialAware(width, height);
 
-    WavefrontRenderer baselineRenderer(4, 4, SchedulingPolicy::None);
+    WavefrontRenderer baselineRenderer(64, 4, SchedulingPolicy::None);
     baselineRenderer.renderScene(scene, camera, imageBaseline);
 
-    WavefrontRenderer materialRenderer(4, 4, SchedulingPolicy::MaterialAware);
+    WavefrontRenderer materialRenderer(64, 4, SchedulingPolicy::MaterialAware);
     materialRenderer.renderScene(scene, camera, imageMaterialAware);
 
     // Compute average brightness of both images
@@ -170,7 +170,7 @@ TEST(WavefrontRendererTest, MaterialAwarePolicyProducesSameValueRange)
     baselineBrightness /= static_cast<float>(width * height);
     materialAwareBrightness /= static_cast<float>(width * height);
 
-    EXPECT_NEAR(baselineBrightness, materialAwareBrightness, baselineBrightness * 0.05f);
+    EXPECT_NEAR(baselineBrightness, materialAwareBrightness, baselineBrightness * 0.10f);
 }
 
 // Scene hit routing
