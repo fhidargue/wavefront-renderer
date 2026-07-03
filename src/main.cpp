@@ -2,6 +2,7 @@
 #include <string>
 #include <math/Vec3.h>
 #include <core/Camera.h>
+#include <core/Denoiser.h>
 #include <core/Image.h>
 #include <core/Scene.h>
 #include <shading/Material.h>
@@ -35,6 +36,7 @@ int main(int argc, char* argv[])
     const int progressInterval = 4;
     int imageWidth = 600;
     int imageHeight = 600;
+    bool denoiseEnabled = false;
 
     // Separate size flags from positional args
     std::vector<string> positional;
@@ -46,6 +48,8 @@ int main(int argc, char* argv[])
             imageWidth = std::stoi(argv[++i]);
         else if (arg == "--height" && i + 1 < argc)
             imageHeight = std::stoi(argv[++i]);
+        else if (arg == "--denoise")
+            denoiseEnabled = true;
         else
             positional.push_back(arg);
     }
@@ -102,6 +106,12 @@ int main(int argc, char* argv[])
         renderer.renderScene(scene, camera, image, previewPath, progressInterval);
 
     cout << "Shading time: " << shadingTimeMs << "ms" << endl;
+
+    if (denoiseEnabled)
+    {
+        if (!Denoiser::denoise(image))
+            cout << "Denoise failed, writing noisy image instead." << endl;
+    }
 
     image.write(outputPath);
 

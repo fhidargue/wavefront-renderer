@@ -25,6 +25,7 @@ class RenderWindow(QMainWindow):
         output_path: str,
         width: int = 600,
         height: int = 600,
+        denoise: bool = False,
         parent=None,
     ):
         super().__init__(parent)
@@ -33,6 +34,7 @@ class RenderWindow(QMainWindow):
         self.output_path = output_path
         self.width = width
         self.height = height
+        self.denoise = denoise
         self.worker = None
         self.start_time = None
 
@@ -119,6 +121,7 @@ class RenderWindow(QMainWindow):
             output_path=self.output_path,
             width=self.width,
             height=self.height,
+            denoise=self.denoise,
         )
         self.worker.statusUpdate.connect(self._on_status_update)
         self.worker.progressUpdate.connect(self._on_progress_update)

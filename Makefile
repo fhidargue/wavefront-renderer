@@ -26,20 +26,20 @@ test: build
 cornell: build
 	@./$(BUILD_DIR)/renderer scenes/cornellBox.usda output/cornellBox.exr \
 		scenes/cameras/cornellBoxCamera.usda \
-		--width $(WIDTH) --height $(HEIGHT)
+		--width $(WIDTH) --height $(HEIGHT) --denoise
 
 kitchen: build
 	@PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) ./$(BUILD_DIR)/renderer scenes/kitchenSet.usda \
 		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda \
-		--width $(WIDTH) --height $(HEIGHT)
+		--width $(WIDTH) --height $(HEIGHT) --denoise
 
 preview: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr \
-		scenes/cameras/cornellBoxCamera.usda 
+		scenes/cameras/cornellBoxCamera.usda --denoise
 
 preview-kitchen: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) uv run python3 -m gui.main scenes/kitchenSet.usda \
-		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda
+		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda --denoise
 
 format:
 	@find . -name "*.cpp" -o -name "*.h" | grep -v "/build/" | xargs clang-format -i

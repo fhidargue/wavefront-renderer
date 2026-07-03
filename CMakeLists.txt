@@ -53,6 +53,7 @@ endif()
 find_package(embree 4 REQUIRED)
 find_package(GTest REQUIRED)
 find_package(OpenImageIO REQUIRED)
+find_package(OpenImageDenoise REQUIRED)
 
 if(TARGET GTest::gtest)
     set(GTEST_LIBS GTest::gtest GTest::gtest_main)
@@ -65,6 +66,7 @@ include_directories(${EMBREE_INCLUDE_DIRS})
 set(RENDERER_SOURCES
     src/core/Scene.cpp
     src/core/Image.cpp
+    src/core/Denoiser.cpp
     src/geometry/Mesh.cpp
     src/shading/Material.cpp
     src/render/WavefrontRenderer.cpp
@@ -87,6 +89,7 @@ target_link_libraries(renderer PRIVATE
     embree
     ${USD_LIBS}
     OpenImageIO::OpenImageIO
+    OpenImageDenoise
 )
 
 add_executable(tests
@@ -112,6 +115,7 @@ target_link_libraries(tests PRIVATE
     embree
     ${USD_LIBS}
     OpenImageIO::OpenImageIO
+    OpenImageDenoise
     ${GTEST_LIBS}
 )
 

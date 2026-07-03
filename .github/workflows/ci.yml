@@ -80,11 +80,20 @@ jobs:
           echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/embree.conf
           sudo ldconfig || true
 
+      - name: Install OpenImageDenoise
+        run: |
+          wget -q https://github.com/OpenImageDenoise/oidn/releases/download/v2.5.0/oidn-2.5.0.x86_64.linux.tar.gz
+          tar -xzf oidn-2.5.0.x86_64.linux.tar.gz
+          sudo cp -r oidn-2.5.0.x86_64.linux/include/OpenImageDenoise /usr/local/include/
+          sudo mkdir -p /usr/local/lib
+          sudo cp -r oidn-2.5.0.x86_64.linux/lib/* /usr/local/lib/
+          sudo ldconfig || true
+
       - name: Configure
         run: |
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="/usr/local/lib64/cmake/embree-4.4.1;/usr/local"
+            -DCMAKE_PREFIX_PATH="/usr/local/lib64/cmake/embree-4.4.1;/usr/local/lib/cmake/OpenImageDenoise-2.5.0;/usr/local"
 
       - name: Build
         run: cmake --build build --parallel

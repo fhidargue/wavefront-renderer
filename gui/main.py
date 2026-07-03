@@ -31,8 +31,9 @@ def resolve_paths(argv: list[str]) -> tuple[str, str, str, int, int]:
 
     width = int(os.environ.get("WIDTH", 600))
     height = int(os.environ.get("HEIGHT", 600))
+    denoise = "--denoise" in argv
 
-    return renderer_path, scene_path, output_path, width, height
+    return renderer_path, scene_path, output_path, width, height, denoise
 
 
 def main():
@@ -42,8 +43,9 @@ def main():
     app.setApplicationName("Wavefront Renderer")
     app.setOrganizationName("Bournemouth University")
 
-    renderer_path, scene_path, output_path, width, height = resolve_paths(sys.argv)
-    print(f"DEBUG: width={width} height={height}")
+    renderer_path, scene_path, output_path, width, height, denoise = resolve_paths(
+        sys.argv
+    )
 
     window = RenderWindow(
         renderer_path=renderer_path,
@@ -51,6 +53,7 @@ def main():
         output_path=output_path,
         width=width,
         height=height,
+        denoise=denoise,
     )
     window.show()
 
