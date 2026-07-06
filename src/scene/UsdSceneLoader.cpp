@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <unordered_map>
+#include <cstdio>
 
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/primRange.h>
@@ -31,6 +32,15 @@ using std::to_string;
 using std::vector;
 
 PXR_NAMESPACE_USING_DIRECTIVE
+
+static string colorToHex(const Color& color)
+{
+    char buffer[8];
+    std::snprintf(buffer, sizeof(buffer), "%02X%02X%02X", static_cast<int>(color.x * 255),
+                  static_cast<int>(color.y * 255), static_cast<int>(color.z * 255));
+
+    return string(buffer);
+}
 
 static void triangulateFace(const VtIntArray& indices, int startIndex, int vertexCount,
                             vector<int>& outIndices)
@@ -294,7 +304,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             else
             {
                 Material material = Material::makeDiffuse(displayColor);
-                material.uuid = colorKey;
+                material.uuid = "displayColor #" + colorToHex(displayColor);
                 int id = scene.addMaterial(material);
                 materialIndexMap[colorKey] = id;
                 mesh.materialID = id;

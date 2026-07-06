@@ -43,6 +43,8 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     // Delete the preview image is the process is terminated
     removePreviewImage(previewPath);
 
+    materialCostTracker = MaterialCostTracker(static_cast<int>(scene.materials.size()));
+
     const int pixelCount = image.width * image.height;
     double totalShadeOnlyMs = 0.0;
 
@@ -63,6 +65,7 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
 
             intersectAll(currentQueue, scene, shadingQueue, missQueue);
             shadingQueue.schedule();
+            shadingQueue.materialize();
 
             RayQueue nextQueue;
             auto shadeStart = std::chrono::high_resolution_clock::now();
@@ -108,6 +111,9 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     // Final image write with gamma correction
     for (int i = 0; i < pixelCount; ++i)
         image.pixels[i] = accumulator[i] / static_cast<float>(samplesPerPixel);
+
+    // Print material cost stats
+    materialCostTracker.printStats(scene.materials);
 
     // Delete preview file once the render is complete
     if (!previewPath.empty())
@@ -278,9 +284,15 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 {
     const float fireflyThreshold = 10.0f;
     const int workCount = shadingQueue.size();
+    const int materialCount = static_cast<int>(scene.materials.size());
 
     tbb::combinable<RayQueue> threadLocalNextRays;
     tbb::combinable<vector<std::pair<int, Color>>> threadLocalAccumContribs;
+
+    tbb::combinable<vector<double>> threadLocalCostSum(
+        [materialCount] { return vector<double>(materialCount, 0.0); });
+    tbb::combinable<vector<int>> threadLocalCostCount([materialCount]
+                                                      { return vector<int>(materialCount, 0); });
 
     tbb::parallel_for(
         tbb::blocked_range<int>(0, workCount),
@@ -288,6 +300,8 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
         {
             auto& localNextRays = threadLocalNextRays.local();
             auto& localAccumContribs = threadLocalAccumContribs.local();
+            auto& localCostSum = threadLocalCostSum.local();
+            auto& localCostCount = threadLocalCostCount.local();
 
             for (int i = range.begin(); i < range.end(); ++i)
             {
@@ -356,7 +370,31 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 Color attenuation;
                 Ray scattered;
 
-                if (material.scatter(incomingRay, record, scene.textures, attenuation, scattered))
+                const bool shouldTimeThisRay = (randomFloat() < 0.25f);
+                bool didScatter =
+                    material.scatter(incomingRay, record, scene.textures, attenuation, scattered);
+
+                if (shouldTimeThisRay)
+                {
+                    didScatter = material.scatter(incomingRay, record, scene.textures, attenuation,
+                                                  scattered);
+
+                    auto scatterStart = std::chrono::high_resolution_clock::now();
+                    auto scatterEnd = std::chrono::high_resolution_clock::now();
+
+                    double scatterCostNs =
+                        std::chrono::duration<double, std::nano>(scatterEnd - scatterStart).count();
+
+                    localCostSum[record.materialID] += scatterCostNs;
+                    localCostCount[record.materialID] += 1;
+                }
+                else
+                {
+                    didScatter = material.scatter(incomingRay, record, scene.textures, attenuation,
+                                                  scattered);
+                }
+
+                if (didScatter)
                 {
                     Color nextThroughput = throughput * attenuation;
 
@@ -364,9 +402,20 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                     // Rays with low throughput are terminated probabilistically
                     if (depth + 1 >= rrMinDepth)
                     {
-                        float survivalProbability =
+                        float baseSurvivalProbability =
                             min(0.95f,
                                 std::max({nextThroughput.x, nextThroughput.y, nextThroughput.z}));
+
+                        float survivalProbability = baseSurvivalProbability;
+
+                        if (useCostAwareRR)
+                        {
+                            float relativeCost = static_cast<float>(
+                                materialCostTracker.relativeCost(record.materialID));
+
+                            survivalProbability =
+                                std::clamp(baseSurvivalProbability / relativeCost, 0.05f, 0.95f);
+                        }
 
                         if (randomFloat() > survivalProbability)
                             continue;
@@ -379,6 +428,30 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 }
             }
         });
+
+    // Merge material shading cost samples into the tracker
+    vector<double> totalCostSum(materialCount, 0.0);
+    vector<int> totalCostCount(materialCount, 0);
+
+    threadLocalCostSum.combine_each(
+        [&](const vector<double>& local)
+        {
+            for (int i = 0; i < materialCount; ++i)
+                totalCostSum[i] += local[i];
+        });
+
+    threadLocalCostCount.combine_each(
+        [&](const vector<int>& local)
+        {
+            for (int i = 0; i < materialCount; ++i)
+                totalCostCount[i] += local[i];
+        });
+
+    for (int i = 0; i < materialCount; ++i)
+    {
+        if (totalCostCount[i] > 0)
+            materialCostTracker.record(i, totalCostSum[i] / totalCostCount[i]);
+    }
 
     // Merge accumulator contributions
     threadLocalAccumContribs.combine_each(

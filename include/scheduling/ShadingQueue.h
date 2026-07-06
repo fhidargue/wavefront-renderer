@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <type_traits>
 #include <tbb/parallel_sort.h>
 #include <scheduling/RayQueue.h>
 #include <core/HitRecord.h>
@@ -182,5 +183,46 @@ struct ShadingQueue
     bool empty() const
     {
         return materialIDs.empty();
+    }
+
+    // Physically reorders every ray array into sorted order, turning the
+    // logical sort in sortedIndices into real memory coherent layout
+    void materialize()
+    {
+        const int rayCount = size();
+
+        auto permuteArray = [&](auto& array)
+        {
+            std::decay_t<decltype(array)> reordered(rayCount);
+
+            for (int position = 0; position < rayCount; ++position)
+                reordered[position] = array[sortedIndices[position]];
+
+            array = std::move(reordered);
+        };
+
+        permuteArray(hitPointsX);
+        permuteArray(hitPointsY);
+        permuteArray(hitPointsZ);
+        permuteArray(hitNormalsX);
+        permuteArray(hitNormalsY);
+        permuteArray(hitNormalsZ);
+        permuteArray(materialIDs);
+        permuteArray(textureIDs);
+        permuteArray(originsX);
+        permuteArray(originsY);
+        permuteArray(originsZ);
+        permuteArray(dirsX);
+        permuteArray(dirsY);
+        permuteArray(dirsZ);
+        permuteArray(throughputsR);
+        permuteArray(throughputsG);
+        permuteArray(throughputsB);
+        permuteArray(pixelIndices);
+        permuteArray(depths);
+
+        // Data will now be physically sorted
+        for (int position = 0; position < rayCount; ++position)
+            sortedIndices[position] = position;
     }
 };

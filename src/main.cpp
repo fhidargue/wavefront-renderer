@@ -37,6 +37,7 @@ int main(int argc, char* argv[])
     int imageWidth = 600;
     int imageHeight = 600;
     bool denoiseEnabled = false;
+    bool useCostAwareRR = true;
 
     // Separate size flags from positional args
     std::vector<string> positional;
@@ -50,6 +51,8 @@ int main(int argc, char* argv[])
             imageHeight = std::stoi(argv[++i]);
         else if (arg == "--denoise")
             denoiseEnabled = true;
+        else if (arg == "--no-cost-rr")
+            useCostAwareRR = false;
         else
             positional.push_back(arg);
     }
@@ -63,7 +66,7 @@ int main(int argc, char* argv[])
     if (!usdFilePath.empty())
     {
 #ifdef ENABLE_USD
-        cout << "Loading USD scene: " << usdFilePath << endl;
+        cout << "\nLoading USD scene: " << usdFilePath << endl;
         scene = UsdSceneLoader::load(usdFilePath);
 #else
         cout << "USD support not compiled in. Rendering Cornell Box." << endl;
@@ -76,7 +79,7 @@ int main(int argc, char* argv[])
         scene = CornellBox::build();
     }
 
-    cout << "\nBuilding BVH..." << endl;
+    cout << "Building BVH..." << endl;
     scene.buildAccelerator();
     cout << "BVH built successfully\n" << endl;
 
@@ -101,6 +104,7 @@ int main(int argc, char* argv[])
          << " samples" << " | depth " << maxBounceDepth << endl;
 
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::MaterialAware);
+    renderer.useCostAwareRR = useCostAwareRR;
 
     double shadingTimeMs =
         renderer.renderScene(scene, camera, image, previewPath, progressInterval);
