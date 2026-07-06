@@ -6,6 +6,7 @@
 #include <core/Image.h>
 #include <scheduling/RayQueue.h>
 #include <scheduling/ShadingQueue.h>
+#include <render/MaterialCostTracker.h>
 
 // Called every N samples during rendering with current progress
 using ProgressCallback = std::function<void(int currentSample, int totalSamples)>;
@@ -16,6 +17,7 @@ class WavefrontRenderer
     int samplesPerPixel;
     int maxDepth;
     int rrMinDepth = 3;
+    bool useCostAwareRR = true;
     const float PI = 3.14159265f;
     SchedulingPolicy policy;
 
@@ -29,6 +31,8 @@ class WavefrontRenderer
                        ProgressCallback progressCallback = nullptr);
 
   private:
+    MaterialCostTracker materialCostTracker{0};
+
     void generatePrimaryRays(const Camera& camera, int width, int height, RayQueue& queue);
     void intersectAll(const RayQueue& inputQueue, const Scene& scene,
                       ShadingQueue& outputShadingQueue, RayQueue& outputMissQueue);

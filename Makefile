@@ -1,9 +1,16 @@
 BUILD_DIR = build
 WIDTH ?= 600
 HEIGHT ?= 600
+COST_RR ?= 1
 KITCHEN_SET_PATH=$(HOME)/Downloads/Kitchen_set
 
 export PXR_AR_DEFAULT_SEARCH_PATH := $(KITCHEN_SET_PATH)
+
+ifeq ($(COST_RR),0)
+COST_RR_FLAG = --no-cost-rr
+else
+COST_RR_FLAG =
+endif
 
 .PHONY: all build clean rebuild test cornell kitchen preview preview-kitchen format
 
@@ -26,12 +33,12 @@ test: build
 cornell: build
 	@./$(BUILD_DIR)/renderer scenes/cornellBox.usda output/cornellBox.exr \
 		scenes/cameras/cornellBoxCamera.usda \
-		--width $(WIDTH) --height $(HEIGHT) --denoise
+		--width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG)
 
 kitchen: build
 	@PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) ./$(BUILD_DIR)/renderer scenes/kitchenSet.usda \
 		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda \
-		--width $(WIDTH) --height $(HEIGHT) --denoise
+		--width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG)
 
 preview: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr \
