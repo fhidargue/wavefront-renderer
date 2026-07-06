@@ -26,12 +26,17 @@ class MaterialCostTracker
         {
             averageCostNanoseconds[materialID] = costNanoseconds;
             initialized[materialID] = true;
-
-            return;
+            trackedMaterialCount += 1;
+            cachedTotalCost += costNanoseconds;
         }
+        else
+        {
+            double oldCost = averageCostNanoseconds[materialID];
+            double newCost = (1.0 - emaWeight) * oldCost + emaWeight * costNanoseconds;
 
-        averageCostNanoseconds[materialID] =
-            (1.0 - emaWeight) * averageCostNanoseconds[materialID] + emaWeight * costNanoseconds;
+            averageCostNanoseconds[materialID] = newCost;
+            cachedTotalCost += (newCost - oldCost);
+        }
     }
 
     // Returns this material's average cost relative to the average cost
@@ -40,25 +45,10 @@ class MaterialCostTracker
     {
         const int minimumSamplesForConfidence = 50;
 
-        if (sampleCount[materialID] < minimumSamplesForConfidence)
+        if (sampleCount[materialID] < minimumSamplesForConfidence || trackedMaterialCount == 0)
             return 1.0;
 
-        double totalCost = 0.0;
-        int trackedCount = 0;
-
-        for (size_t i = 0; i < averageCostNanoseconds.size(); ++i)
-        {
-            if (initialized[i] && sampleCount[i] >= minimumSamplesForConfidence)
-            {
-                totalCost += averageCostNanoseconds[i];
-                ++trackedCount;
-            }
-        }
-
-        if (trackedCount == 0 || !initialized[materialID])
-            return 1.0;
-
-        double globalAverage = totalCost / trackedCount;
+        double globalAverage = cachedTotalCost / trackedMaterialCount;
 
         if (globalAverage <= 0.0)
             return 1.0;
@@ -93,6 +83,9 @@ class MaterialCostTracker
     }
 
   private:
+    double cachedTotalCost = 0.0;
+    int trackedMaterialCount = 0;
+
     std::vector<double> averageCostNanoseconds;
     std::vector<bool> initialized;
     std::vector<int> sampleCount;
