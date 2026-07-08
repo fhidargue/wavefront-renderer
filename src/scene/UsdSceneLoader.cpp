@@ -240,11 +240,11 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
     int diffuseCount = 0;
     int emissiveCount = 0;
 
-    for (const auto& mat : scene.materials)
+    for (const auto& material : scene.materials)
     {
-        if (mat.type == MaterialType::Diffuse)
+        if (material.type == MaterialType::Diffuse)
             diffuseCount++;
-        if (mat.type == MaterialType::Emissive)
+        if (material.type == MaterialType::Emissive)
             emissiveCount++;
     }
 
@@ -380,10 +380,12 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             }
 
             UsdShadeInput roughnessInput = shader.GetInput(TfToken("roughness"));
+
             if (roughnessInput)
                 roughnessInput.Get(&roughness, UsdTimeCode::Default());
 
             UsdShadeInput emissiveInput = shader.GetInput(TfToken("emissiveColor"));
+
             if (emissiveInput)
             {
                 GfVec3f emission;

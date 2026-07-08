@@ -100,6 +100,7 @@ add_executable(tests
     tests/main.cpp
     tests/math/Vec3Test.cpp
     tests/core/RayTest.cpp
+    tests/core/EnvironmentMapTest.cpp
     tests/geometry/TriangleTest.cpp
     tests/geometry/SphereTest.cpp
     tests/scheduling/RayQueueTest.cpp
@@ -107,11 +108,12 @@ add_executable(tests
     tests/shading/MaterialTest.cpp
     tests/accelerator/EmbreeTest.cpp
     tests/render/WavefrontRendererTest.cpp
+    tests/render/MaterialCostTrackerTest.cpp
     ${RENDERER_SOURCES}
 )
 
 if(ENABLE_USD)
-    target_sources(tests PRIVATE tests/scene/UsdSceneLoaderTest.cpp)
+    target_sources(tests PRIVATE tests/scene/UsdSceneLoaderTest.cpp tests/scene/UsdLuxLightTest.cpp)
 endif()
 
 target_link_libraries(tests PRIVATE
