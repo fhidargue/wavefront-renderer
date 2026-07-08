@@ -12,7 +12,7 @@ else
 COST_RR_FLAG =
 endif
 
-.PHONY: all build clean rebuild test cornell kitchen preview preview-kitchen format
+.PHONY: all build clean rebuild test cornell kitchen first second third preview preview-kitchen format
 
 all: build
 
@@ -38,6 +38,11 @@ cornell: build
 kitchen: build
 	@PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) ./$(BUILD_DIR)/renderer scenes/kitchenSet.usda \
 		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda \
+		--width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG)
+
+first: build
+	@./$(BUILD_DIR)/renderer scenes/firstScene.usda output/firstScene.exr \
+		scenes/cameras/firstSceneCamera.usda \
 		--width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG)
 
 preview: build

@@ -1,0 +1,317 @@
+#usda 1.0
+(
+    defaultPrim = "Simple Room"
+    upAxis = "Y"
+    metersPerUnit = 1
+)
+
+def Xform "SimpleRoom"
+{
+    # Materials
+
+    def Material "Plastic"
+    {
+        token outputs:surface.connect = </SimpleRoom/Plastic/PreviewSurface.outputs:surface>
+
+        def Shader "PreviewSurface"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.8, 0.05, 0.05)
+            float inputs:roughness = 0.35
+            float inputs:metallic = 0.0
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    def Material "Wood"
+    {
+        token outputs:surface.connect = </SimpleRoom/Wood/PreviewSurface.outputs:surface>
+
+        def Shader "PreviewSurface"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor.connect = </SimpleRoom/Wood/BaseColorTexture.outputs:rgb>
+            float inputs:roughness = 0.55
+            float inputs:metallic = 0.0
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+
+        def Shader "BaseColorTexture"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @./textures/wood_baseColor.png@
+            float2 inputs:st.connect = </SimpleRoom/Wood/TexCoordReader.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+        }
+
+        def Shader "TexCoordReader"
+        {
+            uniform token info:id = "UsdPrimvarReader_float2"
+            token inputs:varname = "st"
+            float2 outputs:result
+        }
+    }
+
+    def Material "Metal"
+    {
+        token outputs:surface.connect = </SimpleRoom/Metal/PreviewSurface.outputs:surface>
+
+        def Shader "PreviewSurface"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor.connect = </SimpleRoom/Metal/BaseColorTexture.outputs:rgb>
+            float inputs:roughness = 0.15
+            float inputs:metallic = 1.0
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+
+        def Shader "BaseColorTexture"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @./textures/metal_baseColor.png@
+            float2 inputs:st.connect = </SimpleRoom/Metal/TexCoordReader.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+        }
+
+        def Shader "TexCoorReader"
+        {
+            uniform token info:id = "UsdPrimvarReader_float2"
+            token inputs:varname = "st"
+            float2 outputs:result
+        }
+    }
+
+    def Material "Glass"
+    {
+        token outputs:surface.connect = </SimpleRoom/Glass/PreviewSurface.outputs:surface>
+
+        def Shader "PreviewSurface"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.9, 0.95, 1.0)
+            float inputs:roughness = 0.02
+            float inputs:metallic = 0.0
+            float inputs:opacity = 0.15
+            float inputs:ior = 1.5
+            token outputs:surface
+        }
+    }
+
+    def Material "MattePaint"
+    {
+        token outputs:surface.connect = </SimpleRoom/MattePaint/PreviewSurface.outputs:surface>
+
+        def Shader "PreviewSurface"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.85, 0.85, 0.82)
+            float inputs:roughness = 0.9
+            float inputs:metallic = 0.0
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+    }
+
+    # Geometry
+
+    def Mesh "Floor" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Wood>
+
+        float3[] extent = [(-5, 0, -5), (5, 0.1, 5)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        point3f[] points = [(-5, 0, -5), (5, 0, -5), (5, 0, 5), (-5, 0, 5)]
+        texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
+            interpolation = "vertex"
+        )
+    }
+
+    def Mesh "WallBack" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/MattePaint>
+
+        float3[] extent = [(-5, 0, -5), (5, 4, -5)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        point3f[] points = [(-5, 0, -5), (5, 0, -5), (5, 4, -5), (-5, 4, -5)]
+    }
+
+    def Mesh "WallLeft" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/MattePaint>
+
+        float3[] extent = [(-5, 0, -5), (-5, 4, 5)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        point3f[] points = [(-5, 0, -5), (-5, 0, 5), (-5, 4, 5), (-5, 4, -5)]
+    }
+
+    def Cube "TableTop" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Wood>
+        double size = 1
+        float3[] extent = [(-1, -0.05, -0.6), (1, 0.05, 0.6)]
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (0,0.75,0,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cube "TableLeg_1" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Wood>
+        double size = 0.1
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,7.5,0,0), (0,0,1,0), (-0.85,0.375,-0.5,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cube "TableLeg_2" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Wood>
+        double size = 0.1
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,7.5,0,0), (0,0,1,0), (0.85,0.375,-0.5,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cube "TableLeg_3" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Wood>
+        double size = 0.1
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,7.5,0,0), (0,0,1,0), (-0.85,0.375,0.5,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cube "TableLeg_4" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Wood>
+        double size = 0.1
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,7.5,0,0), (0,0,1,0), (0.85,0.375,0.5,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cube "ChairSeat" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Plastic>
+        double size = 0.5
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,0.1,0,0), (0,0,1,0), (2,0.45,1.5,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cube "ChairBack" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Plastic>
+        double size = 0.5
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,0.1,0,0), (0,0,1,0), (2,0.9,1.75,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Sphere "TeapotBody" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Metal>
+        double radius = 0.2
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (0,0.9,0,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cylinder "TeapotSpout" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Metal>
+        double radius = 0.03
+        double height = 0.3
+        matrix4d xformOp:transform = ( (0.7,0,0.7,0), (0,1,0,0), (-0.7,0,0.7,0), (0.25,0.9,0,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cube "DecorCube" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Glass>
+        double size = 0.3
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (-2,0.9,1,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Sphere "DecorSphere" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Glass>
+        double radius = 0.15
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (-2,1.35,1,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cylinder "LampBase" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Metal>
+        double radius = 0.15
+        double height = 0.05
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (3,0.025,-2,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Cylinder "LampPole" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/Metal>
+        double radius = 0.03
+        double height = 1.4
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (3,0.75,-2,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    def Sphere "LampShade" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        rel material:binding = </SimpleRoom/MattePaint>
+        double radius = 0.25
+        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (3,1.5,-2,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+
+    # Light
+
+    def DistantLight "KeyLight"
+    {
+        float inputs:intensity = 3.0
+        float inputs:angle = 1.0
+        color3f inputs:color = (1.0, 0.97, 0.92)
+        matrix4d xformOp:transform = ( (0.8,0,0.6,0), (0,0.7,0,0), (-0.6,0,0.8,0), (0,0,0,1) )
+        uniform token[] xformOpOrder = ["xformOp:transform"]
+    }
+}

@@ -6,12 +6,17 @@
 #include <iostream>
 #include <unordered_map>
 #include <cstdio>
+#include <cmath>
 
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/primRange.h>
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/xformCache.h>
 #include <pxr/usd/usdGeom/mesh.h>
+#include <pxr/usd/usdGeom/sphere.h>
+#include <pxr/usd/usdGeom/cube.h>
+#include <pxr/usd/usdGeom/sphere.h>
+#include <pxr/usd/usdGeom/cylinder.h>
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usd/usdGeom/primvarsAPI.h>
 #include <pxr/usd/usdShade/material.h>
@@ -53,12 +58,127 @@ static void triangulateFace(const VtIntArray& indices, int startIndex, int verte
     }
 }
 
-static Color readDisplayColor(const UsdGeomMesh& meshPrim)
+static void toVtArrays(const vector<GfVec3f>& points, const vector<int>& faceCounts,
+                       const vector<int>& faceIndices, VtVec3fArray& outPoints,
+                       VtIntArray& outFaceCounts, VtIntArray& outFaceIndices)
+{
+    outPoints = VtVec3fArray(points.begin(), points.end());
+    outFaceCounts = VtIntArray(faceCounts.begin(), faceCounts.end());
+    outFaceIndices = VtIntArray(faceIndices.begin(), faceIndices.end());
+}
+
+static void appendRing(vector<GfVec3f>& points, double radius, float z, int segments)
+{
+    for (int i = 0; i < segments; ++i)
+    {
+        float angle = static_cast<float>(i) / segments * 2.0f * static_cast<float>(M_PI);
+        points.push_back(GfVec3f(static_cast<float>(radius) * std::cos(angle),
+                                 static_cast<float>(radius) * std::sin(angle), z));
+    }
+}
+
+static void tessellateCube(double size, VtVec3fArray& outPoints, VtIntArray& outFaceCounts,
+                           VtIntArray& outFaceIndices)
+{
+    float halfSize = static_cast<float>(size) * 0.5f;
+
+    vector<GfVec3f> points = {
+        GfVec3f(-halfSize, -halfSize, -halfSize), GfVec3f(halfSize, -halfSize, -halfSize),
+        GfVec3f(halfSize, halfSize, -halfSize),   GfVec3f(-halfSize, halfSize, -halfSize),
+        GfVec3f(-halfSize, -halfSize, halfSize),  GfVec3f(halfSize, -halfSize, halfSize),
+        GfVec3f(halfSize, halfSize, halfSize),    GfVec3f(-halfSize, halfSize, halfSize),
+    };
+
+    // Six quad faces
+    vector<int> faceIndices = {
+        0, 1, 2, 3, // -Z
+        4, 7, 6, 5, // +Z
+        0, 4, 5, 1, // -Y
+        2, 6, 7, 3, // +Y
+        0, 3, 7, 4, // -X
+        1, 5, 6, 2, // +X
+    };
+    vector<int> faceCounts(6, 4);
+
+    toVtArrays(points, faceCounts, faceIndices, outPoints, outFaceCounts, outFaceIndices);
+}
+
+static void tessellateSphere(double radius, int segmentsU, int segmentsV, VtVec3fArray& outPoints,
+                             VtIntArray& outFaceCounts, VtIntArray& outFaceIndices)
+{
+    vector<GfVec3f> points;
+    vector<int> faceCounts;
+    vector<int> faceIndices;
+
+    // Rings of vertices from pole to pole, UV sphere
+    for (int v = 0; v <= segmentsV; ++v)
+    {
+        float theta = static_cast<float>(v) / segmentsV * static_cast<float>(M_PI);
+        float y = static_cast<float>(radius) * std::cos(theta);
+        float ringRadius = radius * std::sin(theta);
+
+        appendRing(points, ringRadius, y, segmentsU);
+    }
+
+    auto vertexIndex = [segmentsU](int v, int u) { return v * segmentsU + (u % segmentsU); };
+
+    for (int v = 0; v < segmentsV; ++v)
+    {
+        for (int u = 0; u < segmentsU; ++u)
+        {
+            faceIndices.insert(faceIndices.end(),
+                               {vertexIndex(v, u), vertexIndex(v, u + 1), vertexIndex(v + 1, u + 1),
+                                vertexIndex(v + 1, u)});
+            faceCounts.push_back(4);
+        }
+    }
+
+    toVtArrays(points, faceCounts, faceIndices, outPoints, outFaceCounts, outFaceIndices);
+}
+
+static void tessellateCylinder(double radius, double height, int segments, VtVec3fArray& outPoints,
+                               VtIntArray& outFaceCounts, VtIntArray& outFaceIndices)
+{
+    vector<GfVec3f> points;
+    vector<int> faceCounts;
+    vector<int> faceIndices;
+
+    float halfHeight = static_cast<float>(height) * 0.5f;
+
+    appendRing(points, radius, -halfHeight, segments);
+    appendRing(points, radius, halfHeight, segments);
+
+    int bottomCenterIndex = static_cast<int>(points.size());
+    points.push_back(GfVec3f(0.0f, 0.0f, -halfHeight));
+    int topCenterIndex = static_cast<int>(points.size());
+    points.push_back(GfVec3f(0.0f, 0.0f, halfHeight));
+
+    for (int i = 0; i < segments; ++i)
+    {
+        int next = (i + 1) % segments;
+
+        // Side quad
+        faceIndices.insert(faceIndices.end(), {i, next, segments + next, segments + i});
+        faceCounts.push_back(4);
+
+        // Bottom cap triangle
+        faceIndices.insert(faceIndices.end(), {bottomCenterIndex, next, i});
+        faceCounts.push_back(3);
+
+        // Top cap triangle
+        faceIndices.insert(faceIndices.end(), {topCenterIndex, segments + i, segments + next});
+        faceCounts.push_back(3);
+    }
+
+    toVtArrays(points, faceCounts, faceIndices, outPoints, outFaceCounts, outFaceIndices);
+}
+
+static Color readDisplayColor(const UsdPrim& prim)
 {
     // Fallback implementation for scenes without UsdPreviewSurface
     const Color defaultColor = Color(0.8f, 0.8f, 0.8f);
     UsdGeomPrimvar displayColorPrimvar =
-        UsdGeomPrimvarsAPI(meshPrim.GetPrim()).GetPrimvar(TfToken("displayColor"));
+        UsdGeomPrimvarsAPI(prim).GetPrimvar(TfToken("displayColor"));
 
     if (!displayColorPrimvar.IsDefined())
         return defaultColor;
@@ -216,36 +336,75 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
     for (const UsdPrim& prim : stage->Traverse())
     {
-        if (!prim.IsA<UsdGeomMesh>())
+        bool isMesh = prim.IsA<UsdGeomMesh>();
+        bool isCube = prim.IsA<UsdGeomCube>();
+        bool isSphere = prim.IsA<UsdGeomSphere>();
+        bool isCylinder = prim.IsA<UsdGeomCylinder>();
+
+        if (!isMesh && !isCube && !isSphere && !isCylinder)
             continue;
 
-        UsdGeomMesh meshPrim(prim);
+        VtVec3fArray points;
+        VtIntArray faceVertexIndices;
+        VtIntArray faceVertexCounts;
 
-        // Use VtValue to read point3f[] from the USD
-        VtValue pointsVal;
-        meshPrim.GetPointsAttr().Get(&pointsVal, UsdTimeCode::Default());
-
-        if (pointsVal.IsEmpty())
+        if (isMesh)
         {
-            cerr << "WARNING: " << prim.GetPath() << " has no points, skipping" << endl;
-            continue;
+            UsdGeomMesh meshPrim(prim);
+
+            // Use VtValue to read point3f[] from the USD
+            VtValue pointsVal;
+            meshPrim.GetPointsAttr().Get(&pointsVal, UsdTimeCode::Default());
+
+            if (pointsVal.IsEmpty())
+            {
+                cerr << "WARNING: " << prim.GetPath() << " has no points, skipping" << endl;
+                continue;
+            }
+
+            points = pointsVal.Get<VtVec3fArray>();
+
+            VtValue faceIndicesVal;
+            VtValue faceCountsVal;
+
+            meshPrim.GetFaceVertexIndicesAttr().Get(&faceIndicesVal, UsdTimeCode::Default());
+            meshPrim.GetFaceVertexCountsAttr().Get(&faceCountsVal, UsdTimeCode::Default());
+
+            if (faceIndicesVal.IsEmpty() || faceCountsVal.IsEmpty())
+            {
+                cerr << "WARNING: " << prim.GetPath() << "has no face data, skipping mesh" << endl;
+                continue;
+            }
+
+            faceVertexIndices = faceIndicesVal.Get<VtIntArray>();
+            faceVertexCounts = faceCountsVal.Get<VtIntArray>();
         }
-
-        VtVec3fArray points = pointsVal.Get<VtVec3fArray>();
-
-        VtValue faceIndicesVal;
-        VtValue faceCountsVal;
-        meshPrim.GetFaceVertexIndicesAttr().Get(&faceIndicesVal, UsdTimeCode::Default());
-        meshPrim.GetFaceVertexCountsAttr().Get(&faceCountsVal, UsdTimeCode::Default());
-
-        if (faceIndicesVal.IsEmpty() || faceCountsVal.IsEmpty())
+        else if (isCube)
         {
-            cerr << "WARNING: " << prim.GetPath() << "has no face data, skipping mesh" << endl;
-            continue;
-        }
+            UsdGeomCube cubePrim(prim);
+            double size = 2.0;
 
-        VtIntArray faceVertexIndices = faceIndicesVal.Get<VtIntArray>();
-        VtIntArray faceVertexCounts = faceCountsVal.Get<VtIntArray>();
+            cubePrim.GetSizeAttr().Get(&size, UsdTimeCode::Default());
+            tessellateCube(size, points, faceVertexCounts, faceVertexIndices);
+        }
+        else if (isSphere)
+        {
+            UsdGeomSphere spherePrim(prim);
+            double radius = 1.0;
+
+            spherePrim.GetRadiusAttr().Get(&radius, UsdTimeCode::Default());
+            tessellateSphere(radius, 16, 12, points, faceVertexCounts, faceVertexIndices);
+        }
+        else if (isCylinder)
+        {
+            UsdGeomCylinder cylinderPrim(prim);
+            double radius = 1.0;
+            double height = 2.0;
+
+            cylinderPrim.GetRadiusAttr().Get(&radius, UsdTimeCode::Default());
+            cylinderPrim.GetHeightAttr().Get(&height, UsdTimeCode::Default());
+            tessellateCylinder(radius, height, 16, points, faceVertexCounts, faceVertexIndices);
+        }
 
         // Apply world transform to every vertex
         GfMatrix4d worldTransform = xformCache.GetLocalToWorldTransform(prim);
@@ -267,6 +426,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
         // Triangulate faces
         int indexPos = 0;
+
         for (int count : faceVertexCounts)
         {
             triangulateFace(faceVertexIndices, indexPos, count, mesh.triangleIndices);
@@ -290,7 +450,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         }
         else
         {
-            Color displayColor = readDisplayColor(meshPrim);
+            Color displayColor = readDisplayColor(prim);
             string colorKey = "displayColor_" + to_string(int(displayColor.x * 255)) + "_" +
                               to_string(int(displayColor.y * 255)) + "_" +
                               to_string(int(displayColor.z * 255));
