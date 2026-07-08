@@ -20,8 +20,8 @@ static string writeTempUsda(const string& filename, const string& content)
     return path;
 }
 
-static string writeSolidColorImage(const string& filename, int width, int height, float r,
-                                   float g, float b)
+static string writeSolidColorImage(const string& filename, int width, int height, float r, float g,
+                                   float b)
 {
     string path = "/tmp/" + filename;
 
@@ -280,7 +280,8 @@ def Xform "Root"
 {
     def DomeLight "SkyLight"
     {
-        asset inputs:texture:file = @)" + texturePath + R"(@
+        asset inputs:texture:file = @)" +
+                     texturePath + R"(@
         float inputs:intensity = 1.5
         color3f inputs:color = (1.0, 1.0, 1.0)
     }
