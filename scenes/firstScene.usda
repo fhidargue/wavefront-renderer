@@ -1,96 +1,32 @@
 #usda 1.0
 (
-    defaultPrim = "Simple Room"
+    defaultPrim = "TeapotRoom"
     upAxis = "Y"
     metersPerUnit = 1
 )
 
-def Xform "SimpleRoom"
+def Xform "TeapotRoom"
 {
     # Materials
 
-    def Material "Plastic"
+    def Material "Ceramic"
     {
-        token outputs:surface.connect = </SimpleRoom/Plastic/PreviewSurface.outputs:surface>
+        token outputs:surface.connect = </TeapotRoom/Ceramic/PreviewSurface.outputs:surface>
 
         def Shader "PreviewSurface"
         {
             uniform token info:id = "UsdPreviewSurface"
-            color3f inputs:diffuseColor = (0.8, 0.05, 0.05)
-            float inputs:roughness = 0.35
+            color3f inputs:diffuseColor = (0.92, 0.9, 0.85)
+            float inputs:roughness = 0.25
             float inputs:metallic = 0.0
             float inputs:opacity = 1.0
             token outputs:surface
-        }
-    }
-
-    def Material "Wood"
-    {
-        token outputs:surface.connect = </SimpleRoom/Wood/PreviewSurface.outputs:surface>
-
-        def Shader "PreviewSurface"
-        {
-            uniform token info:id = "UsdPreviewSurface"
-            color3f inputs:diffuseColor.connect = </SimpleRoom/Wood/BaseColorTexture.outputs:rgb>
-            float inputs:roughness = 0.55
-            float inputs:metallic = 0.0
-            float inputs:opacity = 1.0
-            token outputs:surface
-        }
-
-        def Shader "BaseColorTexture"
-        {
-            uniform token info:id = "UsdUVTexture"
-            asset inputs:file = @./textures/wood_baseColor.png@
-            float2 inputs:st.connect = </SimpleRoom/Wood/TexCoordReader.outputs:result>
-            token inputs:wrapS = "repeat"
-            token inputs:wrapT = "repeat"
-            float3 outputs:rgb
-        }
-
-        def Shader "TexCoordReader"
-        {
-            uniform token info:id = "UsdPrimvarReader_float2"
-            token inputs:varname = "st"
-            float2 outputs:result
-        }
-    }
-
-    def Material "Metal"
-    {
-        token outputs:surface.connect = </SimpleRoom/Metal/PreviewSurface.outputs:surface>
-
-        def Shader "PreviewSurface"
-        {
-            uniform token info:id = "UsdPreviewSurface"
-            color3f inputs:diffuseColor.connect = </SimpleRoom/Metal/BaseColorTexture.outputs:rgb>
-            float inputs:roughness = 0.15
-            float inputs:metallic = 1.0
-            float inputs:opacity = 1.0
-            token outputs:surface
-        }
-
-        def Shader "BaseColorTexture"
-        {
-            uniform token info:id = "UsdUVTexture"
-            asset inputs:file = @./textures/metal_baseColor.png@
-            float2 inputs:st.connect = </SimpleRoom/Metal/TexCoordReader.outputs:result>
-            token inputs:wrapS = "repeat"
-            token inputs:wrapT = "repeat"
-            float3 outputs:rgb
-        }
-
-        def Shader "TexCoorReader"
-        {
-            uniform token info:id = "UsdPrimvarReader_float2"
-            token inputs:varname = "st"
-            float2 outputs:result
         }
     }
 
     def Material "Glass"
     {
-        token outputs:surface.connect = </SimpleRoom/Glass/PreviewSurface.outputs:surface>
+        token outputs:surface.connect = </TeapotRoom/Glass/PreviewSurface.outputs:surface>
 
         def Shader "PreviewSurface"
         {
@@ -104,14 +40,78 @@ def Xform "SimpleRoom"
         }
     }
 
-    def Material "MattePaint"
+    def Material "Metal"
     {
-        token outputs:surface.connect = </SimpleRoom/MattePaint/PreviewSurface.outputs:surface>
+        token outputs:surface.connect = </TeapotRoom/Metal/PreviewSurface.outputs:surface>
 
         def Shader "PreviewSurface"
         {
             uniform token info:id = "UsdPreviewSurface"
-            color3f inputs:diffuseColor = (0.85, 0.85, 0.82)
+            color3f inputs:diffuseColor.connect = </TeapotRoom/Metal/BaseColorTexture.outputs:rgb>
+            float inputs:roughness = 0.15
+            float inputs:metallic = 1.0
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+
+        def Shader "BaseColorTexture"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @./textures/metal.png@
+            float2 inputs:st.connect = </TeapotRoom/Metal/TexCoordReader.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+        }
+
+        def Shader "TexCoordReader"
+        {
+            uniform token info:id = "UsdPrimvarReader_float2"
+            token inputs:varname = "st"
+            float2 outputs:result
+        }
+    }
+
+    def Material "Wood"
+    {
+        token outputs:surface.connect = </TeapotRoom/Wood/PreviewSurface.outputs:surface>
+
+        def Shader "PreviewSurface"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor.connect = </TeapotRoom/Wood/BaseColorTexture.outputs:rgb>
+            float inputs:roughness = 0.55
+            float inputs:metallic = 0.0
+            float inputs:opacity = 1.0
+            token outputs:surface
+        }
+
+        def Shader "BaseColorTexture"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @./textures/wood.png@
+            float2 inputs:st.connect = </TeapotRoom/Wood/TexCoordReader.outputs:result>
+            token inputs:wrapS = "repeat"
+            token inputs:wrapT = "repeat"
+            float3 outputs:rgb
+        }
+
+        def Shader "TexCoordReader"
+        {
+            uniform token info:id = "UsdPrimvarReader_float2"
+            token inputs:varname = "st"
+            float2 outputs:result
+        }
+    }
+
+    def Material "MattePaint"
+    {
+        token outputs:surface.connect = </TeapotRoom/MattePaint/PreviewSurface.outputs:surface>
+
+        def Shader "PreviewSurface"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.75, 0.75, 0.75)
             float inputs:roughness = 0.9
             float inputs:metallic = 0.0
             float inputs:opacity = 1.0
@@ -119,199 +119,267 @@ def Xform "SimpleRoom"
         }
     }
 
-    # Geometry
+    # Room geometry
 
-    def Mesh "Floor" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Mesh "Floor" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Wood>
-
-        float3[] extent = [(-5, 0, -5), (5, 0.1, 5)]
+        rel material:binding = </TeapotRoom/MattePaint>
         int[] faceVertexCounts = [4]
         int[] faceVertexIndices = [0, 1, 2, 3]
-        point3f[] points = [(-5, 0, -5), (5, 0, -5), (5, 0, 5), (-5, 0, 5)]
-        texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
-            interpolation = "vertex"
-        )
+        point3f[] points = [(-4.5, 0, -3), (4.5, 0, -3), (4.5, 0, 3), (-4.5, 0, 3)]
     }
 
-    def Mesh "WallBack" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Mesh "WallBack" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/MattePaint>
-
-        float3[] extent = [(-5, 0, -5), (5, 4, -5)]
+        rel material:binding = </TeapotRoom/MattePaint>
         int[] faceVertexCounts = [4]
         int[] faceVertexIndices = [0, 1, 2, 3]
-        point3f[] points = [(-5, 0, -5), (5, 0, -5), (5, 4, -5), (-5, 4, -5)]
+        point3f[] points = [(-4.5, 0, -3), (4.5, 0, -3), (4.5, 4, -3), (-4.5, 4, -3)]
     }
 
-    def Mesh "WallLeft" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Mesh "WallLeft" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/MattePaint>
-
-        float3[] extent = [(-5, 0, -5), (-5, 4, 5)]
+        rel material:binding = </TeapotRoom/MattePaint>
         int[] faceVertexCounts = [4]
         int[] faceVertexIndices = [0, 1, 2, 3]
-        point3f[] points = [(-5, 0, -5), (-5, 0, 5), (-5, 4, 5), (-5, 4, -5)]
+        point3f[] points = [(-4.5, 0, -3), (-4.5, 0, 3), (-4.5, 4, 3), (-4.5, 4, -3)]
     }
 
-    def Cube "TableTop" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Mesh "WallRight" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Wood>
-        double size = 1
-        float3[] extent = [(-1, -0.05, -0.6), (1, 0.05, 0.6)]
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (0,0.75,0,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/MattePaint>
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        point3f[] points = [(4.5, 0, -3), (4.5, 0, 3), (4.5, 4, 3), (4.5, 4, -3)]
     }
 
-    def Cube "TableLeg_1" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Mesh "Ceiling" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Wood>
-        double size = 0.1
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,7.5,0,0), (0,0,1,0), (-0.85,0.375,-0.5,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/MattePaint>
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        point3f[] points = [(-4.5, 4, -3), (4.5, 4, -3), (4.5, 4, 3), (-4.5, 4, 3)]
     }
 
-    def Cube "TableLeg_2" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    # Lights
+
+    def RectLight "CeilingLight"
     {
-        rel material:binding = </SimpleRoom/Wood>
-        double size = 0.1
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,7.5,0,0), (0,0,1,0), (0.85,0.375,-0.5,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        float inputs:width = 3.0
+        float inputs:height = 2.0
+        float inputs:intensity = 50.0
+        color3f inputs:color = (1.0, 1.0, 1.0)
+        double3 xformOp:translate = (0, 3.95, 0)
+        float3 xformOp:rotateXYZ = (90, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
-    def Cube "TableLeg_3" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def SphereLight "FillLight"
     {
-        rel material:binding = </SimpleRoom/Wood>
-        double size = 0.1
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,7.5,0,0), (0,0,1,0), (-0.85,0.375,0.5,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        float inputs:radius = 0.3
+        float inputs:intensity = 50.0
+        color3f inputs:color = (0.9, 0.95, 1.0)
+        double3 xformOp:translate = (3.5, 2.5, 3.5)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
     }
 
-    def Cube "TableLeg_4" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    # Teapots
+
+    def Xform "Teapot_00" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Wood>
-        double size = 0.1
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,7.5,0,0), (0,0,1,0), (0.85,0.375,0.5,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Ceramic>
+        double3 xformOp:translate = (-3.25, 0, -1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Cube "ChairSeat" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_01" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Plastic>
-        double size = 0.5
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,0.1,0,0), (0,0,1,0), (2,0.45,1.5,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Glass>
+        double3 xformOp:translate = (-1.95, 0, -1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Cube "ChairBack" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_02" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Plastic>
-        double size = 0.5
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,0.1,0,0), (0,0,1,0), (2,0.9,1.75,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Metal>
+        double3 xformOp:translate = (-0.65, 0, -1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Sphere "TeapotBody" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_03" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Metal>
-        double radius = 0.2
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (0,0.9,0,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Wood>
+        double3 xformOp:translate = (0.65, 0, -1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Cylinder "TeapotSpout" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_04" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Metal>
-        double radius = 0.03
-        double height = 0.3
-        matrix4d xformOp:transform = ( (0.7,0,0.7,0), (0,1,0,0), (-0.7,0,0.7,0), (0.25,0.9,0,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/MattePaint>
+        double3 xformOp:translate = (1.95, 0, -1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Cube "DecorCube" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_05" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Glass>
-        double size = 0.3
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (-2,0.9,1,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Ceramic>
+        double3 xformOp:translate = (3.25, 0, -1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Sphere "DecorSphere" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_06" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Glass>
-        double radius = 0.15
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (-2,1.35,1,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Glass>
+        double3 xformOp:translate = (-3.25, 0, 0)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Cylinder "LampBase" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_07" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Metal>
-        double radius = 0.15
-        double height = 0.05
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (3,0.025,-2,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Metal>
+        double3 xformOp:translate = (-1.95, 0, 0)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Cylinder "LampPole" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_08" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/Metal>
-        double radius = 0.03
-        double height = 1.4
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (3,0.75,-2,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Wood>
+        double3 xformOp:translate = (-0.65, 0, 0)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    def Sphere "LampShade" (
-        prepend apiSchemas = ["MaterialBindingAPI"]
-    )
+    def Xform "Teapot_09" (apiSchemas = ["MaterialBindingAPI"])
     {
-        rel material:binding = </SimpleRoom/MattePaint>
-        double radius = 0.25
-        matrix4d xformOp:transform = ( (1,0,0,0), (0,1,0,0), (0,0,1,0), (3,1.5,-2,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/MattePaint>
+        double3 xformOp:translate = (0.65, 0, 0)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 
-    # Light
-
-    def DistantLight "KeyLight"
+    def Xform "Teapot_10" (apiSchemas = ["MaterialBindingAPI"])
     {
-        float inputs:intensity = 3.0
-        float inputs:angle = 1.0
-        color3f inputs:color = (1.0, 0.97, 0.92)
-        matrix4d xformOp:transform = ( (0.8,0,0.6,0), (0,0.7,0,0), (-0.6,0,0.8,0), (0,0,0,1) )
-        uniform token[] xformOpOrder = ["xformOp:transform"]
+        rel material:binding = </TeapotRoom/Ceramic>
+        double3 xformOp:translate = (1.95, 0, 0)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
+    }
+
+    def Xform "Teapot_11" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        rel material:binding = </TeapotRoom/Glass>
+        double3 xformOp:translate = (3.25, 0, 0)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
+    }
+
+    def Xform "Teapot_12" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        rel material:binding = </TeapotRoom/Metal>
+        double3 xformOp:translate = (-3.25, 0, 1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
+    }
+
+    def Xform "Teapot_13" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        rel material:binding = </TeapotRoom/Wood>
+        double3 xformOp:translate = (-1.95, 0, 1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
+    }
+
+    def Xform "Teapot_14" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        rel material:binding = </TeapotRoom/MattePaint>
+        double3 xformOp:translate = (-0.65, 0, 1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
+    }
+
+    def Xform "Teapot_15" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        rel material:binding = </TeapotRoom/Ceramic>
+        double3 xformOp:translate = (0.65, 0, 1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
+    }
+
+    def Xform "Teapot_16" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        rel material:binding = </TeapotRoom/Glass>
+        double3 xformOp:translate = (1.95, 0, 1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
+    }
+
+    def Xform "Teapot_17" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        rel material:binding = </TeapotRoom/Metal>
+        double3 xformOp:translate = (3.25, 0, 1.3)
+        double3 xformOp:scale = (0.15, 0.15, 0.15)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        def "Geo" (prepend references = @./objects/teapot.usda@)
+        {
+        }
     }
 }

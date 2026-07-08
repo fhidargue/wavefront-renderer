@@ -201,6 +201,24 @@ static void buildDiskLightQuad(double radius, int segments, VtVec3fArray& outPoi
     toVtArrays(points, faceCounts, faceIndices, outPoints, outFaceCounts, outFaceIndices);
 }
 
+static void buildRectLightQuad(double width, double height, VtVec3fArray& outPoints,
+                               VtIntArray& outFaceCounts, VtIntArray& outFaceIndices)
+{
+    float halfWidth = static_cast<float>(width) * 0.5f;
+    float halfHeight = static_cast<float>(height) * 0.5f;
+
+    vector<GfVec3f> points = {
+        GfVec3f(-halfWidth, -halfHeight, 0.0f),
+        GfVec3f(halfWidth, -halfHeight, 0.0f),
+        GfVec3f(halfWidth, halfHeight, 0.0f),
+        GfVec3f(-halfWidth, halfHeight, 0.0f),
+    };
+    vector<int> faceIndices = {0, 1, 2, 3};
+    vector<int> faceCounts = {4};
+
+    toVtArrays(points, faceCounts, faceIndices, outPoints, outFaceCounts, outFaceIndices);
+}
+
 static Color readDisplayColor(const UsdPrim& prim)
 {
     // Fallback implementation for scenes without UsdPreviewSurface
@@ -492,6 +510,16 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             cylinderPrim.GetRadiusAttr().Get(&radius, UsdTimeCode::Default());
             cylinderPrim.GetHeightAttr().Get(&height, UsdTimeCode::Default());
             tessellateCylinder(radius, height, 16, points, faceVertexCounts, faceVertexIndices);
+        }
+        else if (isRectLight)
+        {
+            UsdLuxRectLight rectLight(prim);
+            double width = 1.0;
+            double height = 1.0;
+
+            rectLight.GetWidthAttr().Get(&width, UsdTimeCode::Default());
+            rectLight.GetHeightAttr().Get(&height, UsdTimeCode::Default());
+            buildRectLightQuad(width, height, points, faceVertexCounts, faceVertexIndices);
         }
         else if (isDiskLight)
         {
