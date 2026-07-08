@@ -12,6 +12,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(include)
 
+set(HDRI_DIR "${CMAKE_SOURCE_DIR}/scenes/hdri" CACHE PATH "Directory containing HDRI environment maps")
+add_compile_definitions(HDRI_DIR="${HDRI_DIR}")
+
 if(APPLE)
     list(APPEND CMAKE_PREFIX_PATH /opt/homebrew)
 else()
@@ -36,7 +39,7 @@ if(ENABLE_USD)
     link_directories(${USD_INSTALL_DIR}/lib)
     add_compile_definitions(ENABLE_USD)
     set(TBB_LINK "${USD_INSTALL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}tbb${CMAKE_SHARED_LIBRARY_SUFFIX}")
-    set(USD_LIBS usd_usd usd_usdGeom usd_usdShade usd_sdf usd_tf usd_ar usd_gf usd_vt usd_plug usd_work)
+    set(USD_LIBS usd_usd usd_usdGeom usd_usdShade usd_sdf usd_tf usd_ar usd_gf usd_vt usd_plug usd_work usd_usdLux)
     
     # Suppress TBB deprecation messages
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
@@ -67,6 +70,7 @@ set(RENDERER_SOURCES
     src/core/Scene.cpp
     src/core/Image.cpp
     src/core/Denoiser.cpp
+    src/core/EnvironmentMap.cpp
     src/geometry/Mesh.cpp
     src/shading/Material.cpp
     src/render/WavefrontRenderer.cpp

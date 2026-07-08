@@ -25,6 +25,7 @@ class RenderWorker(QThread):
         width: int = 600,
         height: int = 600,
         denoise: bool = False,
+        env_path: str = "",
         parent=None,
     ):
         super().__init__(parent)
@@ -34,6 +35,7 @@ class RenderWorker(QThread):
         self.width = width
         self.height = height
         self.denoise = denoise
+        self.env_path = env_path
         self.preview_path = self._derive_preview_path(output_path)
         self._stop = False
 
@@ -76,6 +78,9 @@ class RenderWorker(QThread):
 
         if self.denoise:
             cmd.append("--denoise")
+
+        if self.env_path:
+            cmd.extend(["--env", self.env_path])
 
         try:
             process = subprocess.Popen(

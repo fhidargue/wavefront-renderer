@@ -22,6 +22,12 @@
 #include <pxr/usd/usdShade/material.h>
 #include <pxr/usd/usdShade/materialBindingAPI.h>
 #include <pxr/usd/usdShade/shader.h>
+#include <pxr/usd/usdLux/domeLight.h>
+#include <pxr/usd/usdLux/rectLight.h>
+#include <pxr/usd/usdLux/diskLight.h>
+#include <pxr/usd/usdLux/sphereLight.h>
+#include <pxr/usd/usdLux/cylinderLight.h>
+#include <pxr/usd/usdLux/distantLight.h>
 #include <pxr/usd/usd/timeCode.h>
 #include <pxr/base/gf/vec3f.h>
 #include <pxr/base/gf/vec4d.h>
@@ -173,6 +179,28 @@ static void tessellateCylinder(double radius, double height, int segments, VtVec
     toVtArrays(points, faceCounts, faceIndices, outPoints, outFaceCounts, outFaceIndices);
 }
 
+static void buildDiskLightQuad(double radius, int segments, VtVec3fArray& outPoints,
+                               VtIntArray& outFaceCounts, VtIntArray& outFaceIndices)
+{
+    vector<GfVec3f> points;
+    vector<int> faceCounts;
+    vector<int> faceIndices;
+
+    // Disk lies in local XY plane to match UsdLux convention
+    appendRing(points, radius, 0.0f, segments);
+    int centerIndex = static_cast<int>(points.size());
+    points.push_back(GfVec3f(0.0f, 0.0f, 0.0f));
+
+    for (int i = 0; i < segments; ++i)
+    {
+        int next = (i + 1) % segments;
+        faceIndices.insert(faceIndices.end(), {centerIndex, i, next});
+        faceCounts.push_back(3);
+    }
+
+    toVtArrays(points, faceCounts, faceIndices, outPoints, outFaceCounts, outFaceIndices);
+}
+
 static Color readDisplayColor(const UsdPrim& prim)
 {
     // Fallback implementation for scenes without UsdPreviewSurface
@@ -257,6 +285,60 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         cout << "Applied Z up axis correction" << endl;
     }
 
+    // Extract global lights
+    UsdGeomXformCache xformCache;
+
+    for (const UsdPrim& prim : stage->Traverse())
+    {
+        if (prim.IsA<UsdLuxDistantLight>() && scene.directionalLight.intensity == 0.0f)
+        {
+            UsdLuxDistantLight distantLight(prim);
+            float intensity = 1.0f;
+            GfVec3f color(1.0f, 1.0f, 1.0f);
+
+            distantLight.GetIntensityAttr().Get(&intensity, UsdTimeCode::Default());
+            distantLight.GetColorAttr().Get(&color, UsdTimeCode::Default());
+
+            GfMatrix4d worldTransform = xformCache.GetLocalToWorldTransform(prim);
+
+            if (isZUp)
+                worldTransform = worldTransform * upAxisCorrection;
+
+            GfVec4d localDir(0.0, 0.0, -1.0, 0.0);
+            GfVec4d worldDir = localDir * worldTransform;
+
+            scene.directionalLight.direction =
+                Vec3(static_cast<float>(worldDir[0]), static_cast<float>(worldDir[1]),
+                     static_cast<float>(worldDir[2]))
+                    .normalized();
+            scene.directionalLight.color = Color(color[0], color[1], color[2]);
+            scene.directionalLight.intensity = intensity;
+        }
+
+        if (prim.IsA<UsdLuxDomeLight>() && !scene.environmentMap.isLoaded())
+        {
+            UsdLuxDomeLight domeLight(prim);
+            SdfAssetPath textureAsset;
+            float intensity = 1.0f;
+            GfVec3f color(1.0f, 1.0f, 1.0f);
+
+            domeLight.GetTextureFileAttr().Get(&textureAsset, UsdTimeCode::Default());
+            domeLight.GetIntensityAttr().Get(&intensity, UsdTimeCode::Default());
+            domeLight.GetColorAttr().Get(&color, UsdTimeCode::Default());
+
+            string resolvedPath = textureAsset.GetResolvedPath();
+
+            if (resolvedPath.empty())
+                resolvedPath = textureAsset.GetAssetPath();
+
+            if (!resolvedPath.empty() && scene.environmentMap.load(resolvedPath))
+            {
+                scene.environmentMap.intensityScale = intensity;
+                scene.environmentMap.tint = Color(color[0], color[1], color[2]);
+            }
+        }
+    }
+
     // Extract materials
     for (const UsdPrim& prim : stage->Traverse())
     {
@@ -331,7 +413,6 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
     }
 
     // Extract meshes
-    UsdGeomXformCache xformCache;
     int totalTriangles = 0;
 
     for (const UsdPrim& prim : stage->Traverse())
@@ -340,8 +421,13 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         bool isCube = prim.IsA<UsdGeomCube>();
         bool isSphere = prim.IsA<UsdGeomSphere>();
         bool isCylinder = prim.IsA<UsdGeomCylinder>();
+        bool isRectLight = prim.IsA<UsdLuxRectLight>();
+        bool isDiskLight = prim.IsA<UsdLuxDiskLight>();
+        bool isSphereLight = prim.IsA<UsdLuxSphereLight>();
+        bool isCylinderLight = prim.IsA<UsdLuxCylinderLight>();
 
-        if (!isMesh && !isCube && !isSphere && !isCylinder)
+        if (!isMesh && !isCube && !isSphere && !isCylinder && !isRectLight && !isDiskLight &&
+            !isSphereLight && !isCylinderLight)
             continue;
 
         VtVec3fArray points;
@@ -405,6 +491,32 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
             cylinderPrim.GetHeightAttr().Get(&height, UsdTimeCode::Default());
             tessellateCylinder(radius, height, 16, points, faceVertexCounts, faceVertexIndices);
         }
+        else if (isDiskLight)
+        {
+            UsdLuxDiskLight diskLight(prim);
+            double radius = 0.5;
+
+            diskLight.GetRadiusAttr().Get(&radius, UsdTimeCode::Default());
+            buildDiskLightQuad(radius, 24, points, faceVertexCounts, faceVertexIndices);
+        }
+        else if (isSphereLight)
+        {
+            UsdLuxSphereLight sphereLight(prim);
+            double radius = 0.5;
+
+            sphereLight.GetRadiusAttr().Get(&radius, UsdTimeCode::Default());
+            tessellateSphere(radius, 16, 12, points, faceVertexCounts, faceVertexIndices);
+        }
+        else if (isCylinderLight)
+        {
+            UsdLuxCylinderLight cylinderLight(prim);
+            double radius = 0.5;
+            double length = 1.0;
+
+            cylinderLight.GetRadiusAttr().Get(&radius, UsdTimeCode::Default());
+            cylinderLight.GetLengthAttr().Get(&length, UsdTimeCode::Default());
+            tessellateCylinder(radius, length, 16, points, faceVertexCounts, faceVertexIndices);
+        }
 
         // Apply world transform to every vertex
         GfMatrix4d worldTransform = xformCache.GetLocalToWorldTransform(prim);
@@ -437,9 +549,26 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         UsdShadeMaterialBindingAPI bindingAPI(prim);
         UsdShadeMaterial boundMaterial = bindingAPI.ComputeBoundMaterial();
 
+        // Determine if the Mesh is a light source
+        bool isAreaLight = isRectLight || isDiskLight || isSphereLight || isCylinderLight;
+
         mesh.materialID = 0;
 
-        if (boundMaterial)
+        if (isAreaLight)
+        {
+            UsdLuxLightAPI lightAPI(prim);
+            float intensity = 1.0f;
+            GfVec3f color(1.0f, 1.0f, 1.0f);
+
+            lightAPI.GetIntensityAttr().Get(&intensity, UsdTimeCode::Default());
+            lightAPI.GetColorAttr().Get(&color, UsdTimeCode::Default());
+
+            Color emissiveColor(color[0], color[1], color[2]);
+            Material material = Material::makeEmissive(emissiveColor, intensity);
+            material.uuid = prim.GetPath().GetString();
+            mesh.materialID = scene.addMaterial(material);
+        }
+        else if (boundMaterial)
         {
             string matPath = boundMaterial.GetPath().GetString();
 

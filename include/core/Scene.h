@@ -4,6 +4,7 @@
 #include <geometry/Sphere.h>
 #include <geometry/Mesh.h>
 #include <core/HitRecord.h>
+#include <core/EnvironmentMap.h>
 #include <shading/Material.h>
 #include <shading/Texture.h>
 #include <core/Ray.h>
@@ -53,6 +54,13 @@ struct LightSample
     bool valid = false;
 };
 
+struct DirectionalLight
+{
+    Vec3 direction;
+    Color color = Color(1.0f, 1.0f, 1.0f);
+    float intensity = 0.0f;
+};
+
 struct Scene
 {
     Scene() = default;
@@ -71,6 +79,9 @@ struct Scene
 
     EmbreeAccelerator accelerator;
     bool acceleratorBuilt = false;
+
+    EnvironmentMap environmentMap;
+    DirectionalLight directionalLight;
 
     int addMaterial(const Material& material);
     int addTexture(const Texture& texture);

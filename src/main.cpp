@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
     int imageHeight = 600;
     bool denoiseEnabled = false;
     bool useCostAwareRR = true;
+    string environmentMapPath;
 
     // Separate size flags from positional args
     std::vector<string> positional;
@@ -53,6 +54,8 @@ int main(int argc, char* argv[])
             denoiseEnabled = true;
         else if (arg == "--no-cost-rr")
             useCostAwareRR = false;
+        else if (arg == "--env" && i + 1 < argc)
+            environmentMapPath = argv[++i];
         else
             positional.push_back(arg);
     }
@@ -79,9 +82,8 @@ int main(int argc, char* argv[])
         scene = CornellBox::build();
     }
 
-    cout << "Building BVH..." << endl;
+    // Build Embree BVH
     scene.buildAccelerator();
-    cout << "BVH built successfully\n" << endl;
 
     Camera camera = [&]() -> Camera
     {
@@ -105,6 +107,7 @@ int main(int argc, char* argv[])
 
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::MaterialAware);
     renderer.useCostAwareRR = useCostAwareRR;
+    renderer.environmentMapPath = environmentMapPath;
 
     double shadingTimeMs =
         renderer.renderScene(scene, camera, image, previewPath, progressInterval);

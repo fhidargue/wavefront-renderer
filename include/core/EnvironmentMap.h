@@ -15,6 +15,9 @@ class EnvironmentMap
     };
     Color sample(const Vec3& direction) const;
 
+    float intensityScale = 1.0f;
+    Color tint = Color(1.0f, 1.0f, 1.0f);
+
   private:
     std::vector<float> pixels;
     int width = 0;

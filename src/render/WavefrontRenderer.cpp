@@ -45,6 +45,9 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
 
     materialCostTracker = MaterialCostTracker(static_cast<int>(scene.materials.size()));
 
+    if (!environmentMapPath.empty())
+        environmentMap.load(environmentMapPath);
+
     const int pixelCount = image.width * image.height;
     double totalShadeOnlyMs = 0.0;
 
@@ -366,20 +369,44 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                     }
                 }
 
+                // Directional light NEE
+                if (scene.directionalLight.intensity > 0.0f)
+                {
+                    Vec3 toLightDirection = scene.directionalLight.direction * -1.0f;
+                    float cosAtSurface = record.normal.dot(toLightDirection);
+
+                    if (cosAtSurface > 0.0f)
+                    {
+                        bool shadowed =
+                            scene.accelerator.occluded(record.point, toLightDirection, 1e6f);
+
+                        if (!shadowed)
+                        {
+                            Color brdf = material.albedo * (1.0f / PI);
+                            Color direct = throughput * brdf * scene.directionalLight.color *
+                                           scene.directionalLight.intensity * cosAtSurface;
+
+                            direct.x = min(direct.x, fireflyThreshold);
+                            direct.y = min(direct.y, fireflyThreshold);
+                            direct.z = min(direct.z, fireflyThreshold);
+
+                            localAccumContribs.push_back({pixelIndex, direct});
+                        }
+                    }
+                }
+
                 // Scatter the ray for the next bounce
                 Color attenuation;
                 Ray scattered;
+                bool didScatter;
 
                 const bool shouldTimeThisRay = (randomFloat() < 0.25f);
-                bool didScatter =
-                    material.scatter(incomingRay, record, scene.textures, attenuation, scattered);
 
                 if (shouldTimeThisRay)
                 {
+                    auto scatterStart = std::chrono::high_resolution_clock::now();
                     didScatter = material.scatter(incomingRay, record, scene.textures, attenuation,
                                                   scattered);
-
-                    auto scatterStart = std::chrono::high_resolution_clock::now();
                     auto scatterEnd = std::chrono::high_resolution_clock::now();
 
                     double scatterCostNs =
@@ -487,6 +514,9 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 
 Color WavefrontRenderer::getSkyColor(const Ray& ray) const
 {
+    if (environmentMap.isLoaded())
+        return environmentMap.sample(ray.direction);
+
     float blendFactor = 0.5f * (ray.direction.normalized().y + 1.0f);
     Color darkSky(0.02f, 0.02f, 0.05f);
     Color horizon(0.05f, 0.04f, 0.03f);
