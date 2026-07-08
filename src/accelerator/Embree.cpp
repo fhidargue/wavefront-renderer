@@ -120,7 +120,7 @@ void EmbreeAccelerator::build(const Scene& scene)
 
 void EmbreeAccelerator::printStats() const
 {
-    cout << "\n========================================" << endl;
+    cout << "========================================" << endl;
     cout << "  Embree BVH Stats" << endl;
     cout << "========================================" << endl;
     cout << "  Meshes registered : " << m_meshCount << endl;

@@ -4,6 +4,7 @@
 #include <core/Scene.h>
 #include <core/Camera.h>
 #include <core/Image.h>
+#include <core/EnvironmentMap.h>
 #include <scheduling/RayQueue.h>
 #include <scheduling/ShadingQueue.h>
 #include <render/MaterialCostTracker.h>
@@ -21,6 +22,9 @@ class WavefrontRenderer
     const float PI = 3.14159265f;
     SchedulingPolicy policy;
 
+    // Set an empty environment map variable in case we want an HDRI
+    std::string environmentMapPath;
+
     WavefrontRenderer(int samples, int maxDepth, SchedulingPolicy policy, int rrMinDepth = 3)
         : samplesPerPixel(samples), maxDepth(maxDepth), policy(policy)
     {
@@ -32,6 +36,7 @@ class WavefrontRenderer
 
   private:
     MaterialCostTracker materialCostTracker{0};
+    EnvironmentMap environmentMap;
 
     void generatePrimaryRays(const Camera& camera, int width, int height, RayQueue& queue);
     void intersectAll(const RayQueue& inputQueue, const Scene& scene,

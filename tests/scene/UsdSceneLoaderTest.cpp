@@ -118,9 +118,9 @@ TEST(UsdSceneLoaderTest, DetectsDiffuseMaterial)
 
     bool foundDiffuse = false;
 
-    for (const auto& mat : scene.materials)
+    for (const auto& material : scene.materials)
     {
-        if (mat.type == MaterialType::Diffuse)
+        if (material.type == MaterialType::Diffuse)
             foundDiffuse = true;
     }
 

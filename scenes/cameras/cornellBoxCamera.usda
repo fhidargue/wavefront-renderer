@@ -15,7 +15,6 @@ def Camera "Camera"
     float horizontalAperture = 600
     float verticalAperture = 600
 
-    # Custom renderer attributes
     float3 custom:target = (0, 5, -2)
     float3 custom:up = (0, 1, 0)
     float custom:fov = 53
