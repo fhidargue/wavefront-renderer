@@ -86,38 +86,52 @@ Color Material::getSurfaceColor(const HitRecord& record, const std::vector<Textu
 }
 
 bool Material::scatter(const Ray& incoming, const HitRecord& record,
-                       const std::vector<Texture>& textures, Color& attenuation,
-                       Ray& scattered) const
+                       const std::vector<Texture>& textures, Color& attenuation, Ray& scattered,
+                       float& outPdf) const
 {
     Color surfaceColor = getSurfaceColor(record, textures);
 
-    if (type == MaterialType::Diffuse)
+    switch (type)
+    {
+    case MaterialType::Diffuse:
     {
         Vec3 scatterDirection = cosineSampleHemisphere(record.normal);
         scattered = Ray(record.point, scatterDirection);
         attenuation = surfaceColor;
 
+        float cosAtSurface = std::max(0.0f, record.normal.dot(scatterDirection));
+        outPdf = cosAtSurface / PI;
+
         return true;
     }
 
-    if (type == MaterialType::Metal)
+    case MaterialType::Metal:
     {
         Vec3 reflected = reflect(incoming.direction, record.normal);
         Vec3 fuzz = randomInUnitSphere() * roughness;
         scattered = Ray(record.point, (reflected + fuzz).normalized());
         attenuation = surfaceColor;
 
+        // Metal has no clean PDF
+        outPdf = -1.0f;
+
         return scattered.direction.dot(record.normal) > 0.0f;
     }
 
-    if (type == MaterialType::Emissive)
+    case MaterialType::Emissive:
     {
         attenuation = surfaceColor * emission;
+        outPdf = -1.0f;
 
         return false;
     }
 
-    return false;
+    default:
+    {
+        outPdf = -1.0f;
+        return false;
+    }
+    }
 }
 
 Color Material::emitted() const

@@ -74,6 +74,9 @@ struct Scene
     std::vector<Material> materials;
     std::vector<Texture> textures;
     std::vector<int> emissiveMeshIndices;
+    float cachedTotalEmissiveArea = -1.0f;
+
+    float totalEmissiveArea() const;
 
     SceneGeometry geometry;
 

@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <numeric>
 #include <type_traits>
 #include <tbb/parallel_sort.h>
 #include <scheduling/RayQueue.h>
@@ -25,6 +26,7 @@ struct ShadingQueue
     std::vector<float> hitNormalsX;
     std::vector<float> hitNormalsY;
     std::vector<float> hitNormalsZ;
+    std::vector<float> hitDistances;
 
     std::vector<int> materialIDs;
     std::vector<int> textureIDs;
@@ -35,6 +37,7 @@ struct ShadingQueue
     std::vector<float> throughputsR, throughputsG, throughputsB;
     std::vector<int> pixelIndices;
     std::vector<int> depths;
+    std::vector<float> pdfs;
 
     // Sort order
     std::vector<int> sortedIndices;
@@ -53,6 +56,7 @@ struct ShadingQueue
         hitNormalsX.push_back(hit.normal.x);
         hitNormalsY.push_back(hit.normal.y);
         hitNormalsZ.push_back(hit.normal.z);
+        hitDistances.push_back(hit.distance);
         materialIDs.push_back(hit.materialID);
         textureIDs.push_back(hit.textureID);
 
@@ -67,47 +71,45 @@ struct ShadingQueue
         throughputsB.push_back(rays.throughputsB[rayIndex]);
         pixelIndices.push_back(rays.pixelIndices[rayIndex]);
         depths.push_back(rays.depths[rayIndex]);
+        pdfs.push_back(rays.pdfs[rayIndex]);
     }
 
     void schedule()
     {
-        int n = size();
+        const int n = size();
+
         sortedIndices.resize(n);
+        std::iota(sortedIndices.begin(), sortedIndices.end(), 0);
 
-        for (int i = 0; i < n; ++i)
-            sortedIndices[i] = i;
+        auto materialCompare = [this](int a, int b) { return materialIDs[a] < materialIDs[b]; };
 
-        if (policy == SchedulingPolicy::None)
-            return;
-
-        if (policy == SchedulingPolicy::MaterialAware)
+        auto textureCompare = [this](int a, int b)
         {
-            std::sort(sortedIndices.begin(), sortedIndices.end(),
-                      [this](int a, int b) { return materialIDs[a] < materialIDs[b]; });
+            if (materialIDs[a] != materialIDs[b])
+                return materialIDs[a] < materialIDs[b];
 
-            return;
-        }
+            return textureIDs[a] < textureIDs[b];
+        };
 
-        if (policy == SchedulingPolicy::MaterialAwareParallel)
+        switch (policy)
         {
-            tbb::parallel_sort(sortedIndices.begin(), sortedIndices.end(),
-                               [this](int a, int b) { return materialIDs[a] < materialIDs[b]; });
+        case SchedulingPolicy::None:
+            break;
 
-            return;
-        }
+        case SchedulingPolicy::MaterialAware:
+            std::sort(sortedIndices.begin(), sortedIndices.end(), materialCompare);
+            break;
 
-        if (policy == SchedulingPolicy::TextureAware)
-        {
-            tbb::parallel_sort(sortedIndices.begin(), sortedIndices.end(),
-                               [this](int a, int b)
-                               {
-                                   if (materialIDs[a] != materialIDs[b])
-                                       return materialIDs[a] < materialIDs[b];
+        case SchedulingPolicy::MaterialAwareParallel:
+            tbb::parallel_sort(sortedIndices.begin(), sortedIndices.end(), materialCompare);
+            break;
 
-                                   return textureIDs[a] < textureIDs[b];
-                               });
+        case SchedulingPolicy::TextureAware:
+            tbb::parallel_sort(sortedIndices.begin(), sortedIndices.end(), textureCompare);
+            break;
 
-            return;
+        default:
+            break;
         }
     }
 
@@ -118,6 +120,7 @@ struct ShadingQueue
         HitRecord record;
         record.point = Point3(hitPointsX[i], hitPointsY[i], hitPointsZ[i]);
         record.normal = Vec3(hitNormalsX[i], hitNormalsY[i], hitNormalsZ[i]);
+        record.distance = hitDistances[i];
         record.materialID = materialIDs[i];
         record.textureID = textureIDs[i];
 
@@ -151,6 +154,11 @@ struct ShadingQueue
         return depths[sortedIndices[sortedPos]];
     }
 
+    float getPdf(int sortedPos) const
+    {
+        return pdfs[sortedIndices[sortedPos]];
+    }
+
     void clear()
     {
         hitPointsX.clear();
@@ -159,6 +167,7 @@ struct ShadingQueue
         hitNormalsX.clear();
         hitNormalsY.clear();
         hitNormalsZ.clear();
+        hitDistances.clear();
         materialIDs.clear();
         textureIDs.clear();
         originsX.clear();
@@ -172,6 +181,7 @@ struct ShadingQueue
         throughputsB.clear();
         pixelIndices.clear();
         depths.clear();
+        pdfs.clear();
         sortedIndices.clear();
     }
 
@@ -207,6 +217,7 @@ struct ShadingQueue
         permuteArray(hitNormalsX);
         permuteArray(hitNormalsY);
         permuteArray(hitNormalsZ);
+        permuteArray(hitDistances);
         permuteArray(materialIDs);
         permuteArray(textureIDs);
         permuteArray(originsX);
@@ -220,6 +231,7 @@ struct ShadingQueue
         permuteArray(throughputsB);
         permuteArray(pixelIndices);
         permuteArray(depths);
+        permuteArray(pdfs);
 
         // Data will now be physically sorted
         for (int position = 0; position < rayCount; ++position)

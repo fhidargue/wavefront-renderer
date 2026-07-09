@@ -58,6 +58,9 @@ void Scene::buildAccelerator()
         if (materials[meshes[i].materialID].type == MaterialType::Emissive)
             emissiveMeshIndices.push_back(i);
 
+    // Run the total emissive area cache before multi threading
+    totalEmissiveArea();
+
     accelerator.build(*this);
     accelerator.printStats();
     acceleratorBuilt = true;
@@ -110,6 +113,36 @@ bool Scene::hit(const Ray& ray, float minDistance, float maxDistance, HitRecord&
     return hitAnything;
 }
 
+float Scene::totalEmissiveArea() const
+{
+    if (cachedTotalEmissiveArea >= 0.0f)
+        return cachedTotalEmissiveArea;
+
+    float total = 0.0f;
+
+    for (int meshIndex : emissiveMeshIndices)
+    {
+        const Mesh& mesh = meshes[meshIndex];
+        int triangleCount = mesh.triangleCount();
+
+        for (int t = 0; t < triangleCount; ++t)
+        {
+            Point3 vertex0 = mesh.vertexPositions[mesh.triangleIndices[t * 3 + 0]];
+            Point3 vertex1 = mesh.vertexPositions[mesh.triangleIndices[t * 3 + 1]];
+            Point3 vertex2 = mesh.vertexPositions[mesh.triangleIndices[t * 3 + 2]];
+
+            Vec3 edge1 = vertex1 - vertex0;
+            Vec3 edge2 = vertex2 - vertex0;
+            total += edge1.cross(edge2).length() * 0.5f;
+        }
+    }
+
+    // Cached on first use before parallel rendering, so no atomic is required
+    const_cast<Scene*>(this)->cachedTotalEmissiveArea = total;
+
+    return total;
+}
+
 LightSample Scene::sampleLight() const
 {
     // Use pre-cached emissive mesh indices
@@ -122,6 +155,10 @@ LightSample Scene::sampleLight() const
 
     const Mesh& mesh = meshes[meshIndex];
     int triangleCount = mesh.triangleCount();
+
+    if (triangleCount <= 0)
+        return {};
+
     int triangleIndex = static_cast<int>(randomFloat() * triangleCount) % triangleCount;
 
     Point3 vertex0 = mesh.vertexPositions[mesh.triangleIndices[triangleIndex * 3 + 0]];
@@ -145,12 +182,10 @@ LightSample Scene::sampleLight() const
     Vec3 edge2 = vertex2 - vertex0;
     Vec3 cross = edge1.cross(edge2);
 
-    float triArea = cross.length() * 0.5f;
-    float totalArea = triArea * static_cast<float>(triangleCount) *
-                      static_cast<float>(emissiveMeshIndices.size());
-
     Vec3 normal = cross.normalized();
     Color emission = materials[mesh.materialID].emitted();
+
+    float totalArea = totalEmissiveArea();
 
     return {point, normal, emission, totalArea, true};
 }

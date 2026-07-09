@@ -89,7 +89,7 @@ TEST(RayQueueTest, GetRayReturnsCorrectOriginAndDirection)
 TEST(RayQueueTest, GetThroughputReturnsCorrectValues)
 {
     RayQueue queue;
-    queue.add(makeRay(), Color(0.5f, 0.3f, 0.1f), Color(0.0f, 0.0f, 0.0f), 0, 1, true);
+    queue.add(makeRay(), Color(0.5f, 0.3f, 0.1f), Color(0.0f, 0.0f, 0.0f), 0, 1, true, 1.0f);
     Color throughput = queue.getThroughput(0);
 
     EXPECT_FLOAT_EQ(throughput.x, 0.5f);

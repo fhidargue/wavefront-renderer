@@ -29,7 +29,7 @@ struct Material
     Color getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const;
 
     bool scatter(const Ray& incoming, const HitRecord& record, const std::vector<Texture>& textures,
-                 Color& attenuation, Ray& scattered) const;
+                 Color& attenuation, Ray& scattered, float& outPdf) const;
 
     Color emitted() const;
 };
