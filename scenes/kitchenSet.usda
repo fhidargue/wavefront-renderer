@@ -24,8 +24,10 @@ def Xform "World"
             {
                 uniform token info:id = "UsdPreviewSurface"
                 color3f inputs:diffuseColor = (1.0, 0.85, 0.6)
-                color3f inputs:emissiveColor = (150.0, 120.0, 80.0)
+                color3f inputs:emissiveColor = (260.0, 205.0, 135.0)
                 float inputs:roughness = 1.0
+                float inputs:spotOuterAngle = 120
+                float inputs:spotFalloffAngle = 90
                 token outputs:surface
             }
         }

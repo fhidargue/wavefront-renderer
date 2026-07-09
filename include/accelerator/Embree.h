@@ -22,8 +22,6 @@ class EmbreeAccelerator
     EmbreeAccelerator& operator=(EmbreeAccelerator&& other) noexcept;
 
     void build(const Scene& scene);
-    void printStats() const;
-
     int intersect4(const RayQueue& queue, int startIndex, int count, HitRecord* hitRecords) const;
     bool intersect(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const;
     bool occluded(const Point3& origin, const Vec3& direction, float maxDistance) const;
@@ -31,13 +29,13 @@ class EmbreeAccelerator
     const Scene* m_sourceScene = nullptr;
     bool m_built = false;
 
-  private:
-    RTCDevice m_device;
-    RTCScene m_scene;
-
     // Stats recorded during build
     int m_meshCount;
     int m_totalTriangles;
     int m_totalVertices;
     double m_buildTimeMs;
+
+  private:
+    RTCDevice m_device;
+    RTCScene m_scene;
 };

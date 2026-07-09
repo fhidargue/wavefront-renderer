@@ -18,12 +18,14 @@ class WavefrontRenderer
     int samplesPerPixel;
     int maxDepth;
     int rrMinDepth = 3;
-    bool useCostAwareRR = true;
     const float PI = 3.14159265f;
     SchedulingPolicy policy;
 
+    // CLI flags
     // Set an empty environment map variable in case we want an HDRI
     std::string environmentMapPath;
+    bool enableSampleLogging = true;
+    bool useCostAwareRR = true;
 
     WavefrontRenderer(int samples, int maxDepth, SchedulingPolicy policy, int rrMinDepth = 3)
         : samplesPerPixel(samples), maxDepth(maxDepth), policy(policy)

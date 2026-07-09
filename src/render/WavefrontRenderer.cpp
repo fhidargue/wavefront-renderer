@@ -1,4 +1,7 @@
 #include <render/WavefrontRenderer.h>
+#include <render/MaterialCostTracker.h>
+#include <core/PrintUtils.h>
+#include <shading/MIS.h>
 #include <math/Random.h>
 #include <chrono>
 #include <cstdio>
@@ -17,6 +20,7 @@ using std::endl;
 using std::min;
 using std::signal;
 using std::string;
+using std::to_string;
 using std::vector;
 
 static char previewPathBuffer[4096];
@@ -34,6 +38,29 @@ static void removePreviewImage(const string& previewPath)
     previewPathBuffer[sizeof(previewPathBuffer) - 1] = '\0';
     signal(SIGTERM, onSignal);
     signal(SIGINT, onSignal);
+}
+
+static void logMaterialCostStats(const MaterialCostTracker& tracker, const Scene& scene)
+{
+    std::vector<std::string> costLines;
+
+    for (size_t i = 0; i < tracker.averageCostNanoseconds.size(); ++i)
+    {
+        std::string name = (i < scene.materials.size()) ? scene.materials[i].uuid : "unknown";
+
+        if (!tracker.initialized[i])
+        {
+            costLines.push_back("Material " + to_string(i) + " (" + name + ") : no samples yet");
+            continue;
+        }
+
+        costLines.push_back("Material " + to_string(i) + " (" + name + ")" +
+                            " | avg cost: " + to_string(tracker.averageCostNanoseconds[i]) + "ns" +
+                            " | relative: " + to_string(tracker.relativeCost(static_cast<int>(i))) +
+                            " | samples: " + to_string(tracker.sampleCount[i]));
+    }
+
+    printStatsBlock("Material Cost Tracker Stats", costLines);
 }
 
 double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,
@@ -102,9 +129,10 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
             for (int i = 0; i < pixelCount; ++i)
                 image.pixels[i] = accumulator[i] / static_cast<float>(samplesCompleted);
 
-            image.write(previewPath);
+            image.write(previewPath, enableSampleLogging);
 
-            cout << "Sample: " << samplesCompleted << "/" << samplesPerPixel << endl;
+            if (!enableSampleLogging)
+                cout << "Sample: " << samplesCompleted << "/" << samplesPerPixel << endl;
 
             if (progressCallback)
                 progressCallback(samplesCompleted, samplesPerPixel);
@@ -116,7 +144,7 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
         image.pixels[i] = accumulator[i] / static_cast<float>(samplesPerPixel);
 
     // Print material cost stats
-    materialCostTracker.printStats(scene.materials);
+    logMaterialCostStats(materialCostTracker, scene);
 
     // Delete preview file once the render is complete
     if (!previewPath.empty())
@@ -176,6 +204,7 @@ void WavefrontRenderer::generatePrimaryRays(const Camera& camera, int width, int
             append(outputQueue.pixelIndices, local.pixelIndices);
             append(outputQueue.depths, local.depths);
             append(outputQueue.alive, local.alive);
+            append(outputQueue.pdfs, local.pdfs);
         });
 }
 
@@ -211,7 +240,7 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
                         localMisses.add(inputQueue.getRay(i + j), inputQueue.getThroughput(i + j),
                                         inputQueue.getAccumLight(i + j),
                                         inputQueue.pixelIndices[i + j], inputQueue.depths[i + j],
-                                        true);
+                                        true, inputQueue.pdfs[i + j]);
                 }
 
                 i += 4;
@@ -227,7 +256,8 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
                     localHits.add(inputQueue, i, record);
                 else
                     localMisses.add(ray, inputQueue.getThroughput(i), inputQueue.getAccumLight(i),
-                                    inputQueue.pixelIndices[i], inputQueue.depths[i], true);
+                                    inputQueue.pixelIndices[i], inputQueue.depths[i], true,
+                                    inputQueue.pdfs[i]);
                 ++i;
             }
         });
@@ -244,6 +274,7 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
             append(outputShadingQueue.hitNormalsX, local.hitNormalsX);
             append(outputShadingQueue.hitNormalsY, local.hitNormalsY);
             append(outputShadingQueue.hitNormalsZ, local.hitNormalsZ);
+            append(outputShadingQueue.hitDistances, local.hitDistances);
             append(outputShadingQueue.materialIDs, local.materialIDs);
             append(outputShadingQueue.textureIDs, local.textureIDs);
             append(outputShadingQueue.originsX, local.originsX);
@@ -257,6 +288,7 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
             append(outputShadingQueue.throughputsB, local.throughputsB);
             append(outputShadingQueue.pixelIndices, local.pixelIndices);
             append(outputShadingQueue.depths, local.depths);
+            append(outputShadingQueue.pdfs, local.pdfs);
         });
 
     threadLocalMisses.combine_each(
@@ -279,6 +311,7 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
             append(outputMissQueue.pixelIndices, local.pixelIndices);
             append(outputMissQueue.depths, local.depths);
             append(outputMissQueue.alive, local.alive);
+            append(outputMissQueue.pdfs, local.pdfs);
         });
 }
 
@@ -313,25 +346,45 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 Color throughput = shadingQueue.getThroughput(i);
                 int pixelIndex = shadingQueue.getPixelIndex(i);
                 int depth = shadingQueue.getDepth(i);
+                float incomingPdf = shadingQueue.getPdf(i);
 
                 const Material& material = scene.getMaterial(record);
 
                 // Accumulate emitted light
-                Color emitted = material.emitted();
+                Color emitted = material.emitted(record.normal, incomingRay.direction * -1.0f);
+
                 if (emitted.x > 0.0f || emitted.y > 0.0f || emitted.z > 0.0f)
                 {
+                    // Calculate the weight of MIS
+                    float misWeight = 1.0f;
+
+                    if (depth > 0 && incomingPdf > 0.0f)
+                    {
+                        float cosAtLight =
+                            std::max(0.0f, (incomingRay.direction * -1.0f).dot(record.normal));
+
+                        if (cosAtLight > 0.0f)
+                        {
+                            float lightPdfArea = lightAreaPdf(scene);
+                            float lightPdfSolidAngle =
+                                areaToAngleProbability(lightPdfArea, record.distance, cosAtLight);
+
+                            misWeight = misBalance(incomingPdf, lightPdfSolidAngle);
+                        }
+                    }
+
                     // Prevent firefly pixels
                     emitted.x = min(emitted.x, fireflyThreshold);
                     emitted.y = min(emitted.y, fireflyThreshold);
                     emitted.z = min(emitted.z, fireflyThreshold);
 
-                    localAccumContribs.push_back({pixelIndex, throughput * emitted});
+                    localAccumContribs.push_back({pixelIndex, throughput * emitted * misWeight});
                 }
 
                 // NEE direct light sample
-                if (material.type == MaterialType::Diffuse || material.type == MaterialType::Metal)
+                if (material.type == MaterialType::Diffuse)
                 {
-                    LightSample light = scene.sampleLight();
+                    LightSample light = scene.sampleLight(record.point);
 
                     if (light.valid)
                     {
@@ -354,9 +407,16 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                                                  (distanceToLight * distanceToLight);
                                 Color brdf = material.albedo * (1.0f / PI);
 
-                                // NEE contribution
-                                Color direct =
-                                    throughput * brdf * light.emission * geometry * light.area;
+                                float lightPdfArea = lightAreaPdf(scene);
+                                float lightPdfSolidAngle = areaToAngleProbability(
+                                    lightPdfArea, distanceToLight, cosAtLight);
+                                float bsdfPdfSolidAngle = cosAtSurface / PI;
+
+                                float misWeight = misBalance(lightPdfSolidAngle, bsdfPdfSolidAngle);
+
+                                // NEE contribution, weighted by MIS
+                                Color direct = throughput * brdf * light.emission * geometry *
+                                               light.area * misWeight;
 
                                 // Prevent firefly pixels
                                 direct.x = min(direct.x, fireflyThreshold);
@@ -398,15 +458,16 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 // Scatter the ray for the next bounce
                 Color attenuation;
                 Ray scattered;
-                bool didScatter;
 
                 const bool shouldTimeThisRay = (randomFloat() < 0.25f);
+                bool didScatter;
+                float scatterPdf;
 
                 if (shouldTimeThisRay)
                 {
                     auto scatterStart = std::chrono::high_resolution_clock::now();
                     didScatter = material.scatter(incomingRay, record, scene.textures, attenuation,
-                                                  scattered);
+                                                  scattered, scatterPdf);
                     auto scatterEnd = std::chrono::high_resolution_clock::now();
 
                     double scatterCostNs =
@@ -418,7 +479,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 else
                 {
                     didScatter = material.scatter(incomingRay, record, scene.textures, attenuation,
-                                                  scattered);
+                                                  scattered, scatterPdf);
                 }
 
                 if (didScatter)
@@ -451,7 +512,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                     }
 
                     localNextRays.add(scattered, nextThroughput, Color(0.0f, 0.0f, 0.0f),
-                                      pixelIndex, depth + 1, true);
+                                      pixelIndex, depth + 1, true, scatterPdf);
                 }
             }
         });
@@ -509,6 +570,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
             append(outputNextQueue.pixelIndices, local.pixelIndices);
             append(outputNextQueue.depths, local.depths);
             append(outputNextQueue.alive, local.alive);
+            append(outputNextQueue.pdfs, local.pdfs);
         });
 }
 

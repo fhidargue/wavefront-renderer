@@ -28,8 +28,11 @@ struct RayQueue
     std::vector<int> depths;
     std::vector<bool> alive;
 
+    // PDF the ray direction that was sampled
+    std::vector<float> pdfs;
+
     void add(const Ray& ray, const Color& throughput, const Color& accumLight, int pixelIndex,
-             int depth, bool isAlive)
+             int depth, bool isAlive, float pdf)
     {
         originsX.push_back(ray.origin.x);
         originsY.push_back(ray.origin.y);
@@ -46,11 +49,12 @@ struct RayQueue
         pixelIndices.push_back(pixelIndex);
         depths.push_back(depth);
         alive.push_back(isAlive);
+        pdfs.push_back(pdf);
     }
 
     void addPrimary(const Ray& ray, int pixelIndex)
     {
-        add(ray, Color(1.0f, 1.0f, 1.0f), Color(0.0f, 0.0f, 0.0f), pixelIndex, 0, true);
+        add(ray, Color(1.0f, 1.0f, 1.0f), Color(0.0f, 0.0f, 0.0f), pixelIndex, 0, true, -1.0f);
     }
 
     Ray getRay(int i) const
@@ -86,6 +90,7 @@ struct RayQueue
         pixelIndices.clear();
         depths.clear();
         alive.clear();
+        pdfs.clear();
     }
 
     int size() const

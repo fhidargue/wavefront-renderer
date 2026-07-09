@@ -1,4 +1,5 @@
 #include <scene/CameraLoader.h>
+#include <core/PrintUtils.h>
 #include <iostream>
 
 #ifdef ENABLE_USD
@@ -13,6 +14,7 @@ using std::cerr;
 using std::cout;
 using std::endl;
 using std::string;
+using std::to_string;
 
 Camera CameraLoader::defaultCornellBox(int imageWidth, int imageHeight)
 {
@@ -79,10 +81,15 @@ Camera CameraLoader::load(const string& cameraFilePath, int imageWidth, int imag
     GfVec3f up = readVec3("custom:up", GfVec3f(0, 1, 0));
     float fov = readFloat("custom:fov", 53.0f);
 
-    cout << "Camera loaded: " << cameraFilePath << endl;
-    cout << " eye    : (" << eye[0] << ", " << eye[1] << ", " << eye[2] << ")" << endl;
-    cout << " target : (" << target[0] << ", " << target[1] << ", " << target[2] << ")" << endl;
-    cout << " fov    : " << fov << endl;
+    printStatsBlock("Camera Information ",
+                    {
+                        "Camera : " + cameraFilePath,
+                        "Eye    : (" + to_string(eye[0]) + ", " + to_string(eye[1]) + ", " +
+                            to_string(eye[2]) + ")",
+                        "Target : (" + to_string(target[0]) + ", " + to_string(target[1]) + ", " +
+                            to_string(target[2]) + ")",
+                        "FOV    : " + to_string(fov),
+                    });
 
     return Camera(Point3(eye[0], eye[1], eye[2]), Point3(target[0], target[1], target[2]),
                   Vec3(up[0], up[1], up[2]), fov, imageWidth, imageHeight);

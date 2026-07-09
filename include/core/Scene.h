@@ -74,6 +74,9 @@ struct Scene
     std::vector<Material> materials;
     std::vector<Texture> textures;
     std::vector<int> emissiveMeshIndices;
+    float cachedTotalEmissiveArea = -1.0f;
+
+    float totalEmissiveArea() const;
 
     SceneGeometry geometry;
 
@@ -95,5 +98,5 @@ struct Scene
     bool hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const;
 
     // NEE sample for a random point on emissive mesh
-    LightSample sampleLight() const;
+    LightSample sampleLight(const Point3& shadingPoint) const;
 };

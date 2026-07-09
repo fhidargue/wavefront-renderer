@@ -77,6 +77,21 @@ Material Material::makeEmissive(const Color& albedo, float strength)
     return material;
 }
 
+Material Material::makeSpotLight(const Color& albedo, float strength, float spotOuterAngleDeg,
+                                 float spotFalloffAngleDeg)
+{
+    Material material;
+    material.type = MaterialType::SpotLight;
+    material.albedo = albedo;
+    material.roughness = 0.0f;
+    material.emission = strength;
+    material.textureID = -1;
+    material.spotOuterAngle = spotOuterAngleDeg;
+    material.spotFalloffAngle = spotFalloffAngleDeg;
+
+    return material;
+}
+
 Color Material::getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const
 {
     if (textureID >= 0 && textureID < static_cast<int>(textures.size()))
@@ -86,44 +101,82 @@ Color Material::getSurfaceColor(const HitRecord& record, const std::vector<Textu
 }
 
 bool Material::scatter(const Ray& incoming, const HitRecord& record,
-                       const std::vector<Texture>& textures, Color& attenuation,
-                       Ray& scattered) const
+                       const std::vector<Texture>& textures, Color& attenuation, Ray& scattered,
+                       float& outPdf) const
 {
     Color surfaceColor = getSurfaceColor(record, textures);
 
-    if (type == MaterialType::Diffuse)
+    switch (type)
+    {
+    case MaterialType::Diffuse:
     {
         Vec3 scatterDirection = cosineSampleHemisphere(record.normal);
         scattered = Ray(record.point, scatterDirection);
         attenuation = surfaceColor;
 
+        float cosAtSurface = std::max(0.0f, record.normal.dot(scatterDirection));
+        outPdf = cosAtSurface / PI;
+
         return true;
     }
 
-    if (type == MaterialType::Metal)
+    case MaterialType::Metal:
     {
         Vec3 reflected = reflect(incoming.direction, record.normal);
         Vec3 fuzz = randomInUnitSphere() * roughness;
         scattered = Ray(record.point, (reflected + fuzz).normalized());
         attenuation = surfaceColor;
 
+        // Metal has no clean PDF
+        outPdf = -1.0f;
+
         return scattered.direction.dot(record.normal) > 0.0f;
     }
 
-    if (type == MaterialType::Emissive)
+    case MaterialType::Emissive:
+    case MaterialType::SpotLight:
     {
         attenuation = surfaceColor * emission;
+        outPdf = -1.0f;
 
         return false;
     }
 
-    return false;
+    default:
+    {
+        outPdf = -1.0f;
+        return false;
+    }
+    }
 }
 
-Color Material::emitted() const
+Color Material::emitted(const Vec3& lightNormal, const Vec3& directionFromLight) const
 {
     if (type == MaterialType::Emissive)
         return albedo * emission;
+
+    if (type == MaterialType::SpotLight)
+    {
+        Color radiance = albedo * emission;
+
+        float cosAngle = lightNormal.dot(directionFromLight);
+        float angleDeg = std::acos(std::max(-1.0f, std::min(1.0f, cosAngle))) * (180.0f / PI);
+
+        if (angleDeg >= spotOuterAngle)
+            return Color(0.0f, 0.0f, 0.0f);
+
+        if (angleDeg > spotFalloffAngle)
+        {
+            float t = (angleDeg - spotFalloffAngle) / (spotOuterAngle - spotFalloffAngle);
+            float falloff = 1.0f - t;
+
+            // Logic for the smoothstep
+            falloff = falloff * falloff * (3.0f - 2.0f * falloff);
+            radiance = radiance * falloff;
+        }
+
+        return radiance;
+    }
 
     return Color(0.0f, 0.0f, 0.0f);
 }

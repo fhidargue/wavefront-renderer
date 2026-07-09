@@ -2,21 +2,21 @@
 (
     defaultPrim = "Camera"
     upAxis = "Y"
-    doc = "First scene camera - matches firstScene.usda"
+    doc = "First scene camera"
 )
 
 def Camera "Camera"
 {
-    float3 xformOp:translate = (4, 2.2, 4.5)
+    float3 xformOp:translate = (0, 2.5, 7.5)
     float3 xformOp:rotateXYZ = (0, 0, 0)
     uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
 
-    float focalLength = 35
+    float focalLength = 24
     float horizontalAperture = 36
     float verticalAperture = 24
 
-    custom float3 custom:eye = (4, 2.2, 4.5)
-    custom float3 custom:target = (0, 0.7, 0)
+    custom float3 custom:eye = (0, 2.5, 7.5)
+    custom float3 custom:target = (0, 1.0, -0.5)
     custom float3 custom:up = (0, 1, 0)
-    custom float custom:fov = 45
+    custom float custom:fov = 55
 }

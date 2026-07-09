@@ -31,13 +31,16 @@ static string derivePreviewPath(const string& outputPath)
 
 int main(int argc, char* argv[])
 {
-    const int samplesPerPixel = 512;
+    const int samplesPerPixel = 256;
     const int maxBounceDepth = 8;
     const int progressInterval = 4;
     int imageWidth = 600;
     int imageHeight = 600;
+
+    // CLI flags
     bool denoiseEnabled = false;
     bool useCostAwareRR = true;
+    bool quiet = false;
     string environmentMapPath;
 
     // Separate size flags from positional args
@@ -54,6 +57,8 @@ int main(int argc, char* argv[])
             denoiseEnabled = true;
         else if (arg == "--no-cost-rr")
             useCostAwareRR = false;
+        else if (arg == "--quiet")
+            quiet = true;
         else if (arg == "--env" && i + 1 < argc)
             environmentMapPath = argv[++i];
         else
@@ -102,15 +107,16 @@ int main(int argc, char* argv[])
     Image image(imageWidth, imageHeight);
     string previewPath = derivePreviewPath(outputPath);
 
-    cout << "Rendering: " << imageWidth << "x" << imageHeight << " | " << samplesPerPixel
-         << " samples" << " | depth " << maxBounceDepth << endl;
-
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::MaterialAware);
     renderer.useCostAwareRR = useCostAwareRR;
     renderer.environmentMapPath = environmentMapPath;
+    renderer.enableSampleLogging = quiet;
 
     double shadingTimeMs =
         renderer.renderScene(scene, camera, image, previewPath, progressInterval);
+
+    cout << "Rendered: " << imageWidth << "x" << imageHeight << " | " << samplesPerPixel
+         << " samples" << " | depth " << maxBounceDepth << endl;
 
     cout << "Shading time: " << shadingTimeMs << "ms" << endl;
 
@@ -120,7 +126,7 @@ int main(int argc, char* argv[])
             cout << "Denoise failed, writing noisy image instead." << endl;
     }
 
-    image.write(outputPath);
+    image.write(outputPath, quiet);
 
     return 0;
 }
