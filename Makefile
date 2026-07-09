@@ -40,25 +40,20 @@ test: build
 cornell: build
 	@./$(BUILD_DIR)/renderer scenes/cornellBox.usda output/cornellBox.exr \
 		scenes/cameras/cornellBoxCamera.usda \
-		--width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
 
 kitchen: build
 	@PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) ./$(BUILD_DIR)/renderer scenes/kitchenSet.usda \
 		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda \
-		--width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
-
-first: build
-	@./$(BUILD_DIR)/renderer scenes/firstScene.usda output/firstScene.exr \
-		scenes/cameras/firstSceneCamera.usda \
-		--width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
 
 preview: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr \
-		scenes/cameras/cornellBoxCamera.usda --denoise $(ENV_FLAG)
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
 
 preview-kitchen: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) uv run python3 -m gui.main scenes/kitchenSet.usda \
-		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda --denoise $(ENV_FLAG)
+		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda --quiet --denoise $(ENV_FLAG)
 
 format:
 	@find . -name "*.cpp" -o -name "*.h" | grep -v "/build/" | xargs clang-format -i

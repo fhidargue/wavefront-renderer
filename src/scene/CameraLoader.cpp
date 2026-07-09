@@ -84,10 +84,10 @@ Camera CameraLoader::load(const string& cameraFilePath, int imageWidth, int imag
     printStatsBlock("Camera Information ",
                     {
                         "Camera : " + cameraFilePath,
-                        "Eye    : (" + to_string(eye[0]) + ", " + to_string(eye[1]) +
-                            ", " + to_string(eye[2]) + ")",
-                        "Target : (" + to_string(target[0]) + ", " +
-                            to_string(target[1]) + ", " + to_string(target[2]) + ")",
+                        "Eye    : (" + to_string(eye[0]) + ", " + to_string(eye[1]) + ", " +
+                            to_string(eye[2]) + ")",
+                        "Target : (" + to_string(target[0]) + ", " + to_string(target[1]) + ", " +
+                            to_string(target[2]) + ")",
                         "FOV    : " + to_string(fov),
                     });
 

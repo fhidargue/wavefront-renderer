@@ -11,7 +11,7 @@ using std::endl;
 using std::string;
 using std::vector;
 
-void Image::write(const string& filePath, bool applyColorTransform) const
+void Image::write(const string& filePath, bool enableSampleLogging) const
 {
     vector<float> buffer(width * height * 3);
 
@@ -38,5 +38,6 @@ void Image::write(const string& filePath, bool applyColorTransform) const
     out->write_image(OIIO::TypeDesc::FLOAT, buffer.data());
     out->close();
 
-    cout << "Image written: " << filePath << " (" << width << "x" << height << ")" << endl;
+    if (!enableSampleLogging)
+        cout << "Image written: " << filePath << " (" << width << "x" << height << ")" << endl;
 }

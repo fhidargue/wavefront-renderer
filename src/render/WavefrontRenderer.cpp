@@ -20,8 +20,8 @@ using std::endl;
 using std::min;
 using std::signal;
 using std::string;
-using std::vector;
 using std::to_string;
+using std::vector;
 
 static char previewPathBuffer[4096];
 
@@ -50,16 +50,14 @@ static void logMaterialCostStats(const MaterialCostTracker& tracker, const Scene
 
         if (!tracker.initialized[i])
         {
-            costLines.push_back("Material " + to_string(i) + " (" + name +
-                                ") : no samples yet");
+            costLines.push_back("Material " + to_string(i) + " (" + name + ") : no samples yet");
             continue;
         }
 
-        costLines.push_back(
-            "Material " + to_string(i) + " (" + name + ")" +
-            " | avg cost: " + to_string(tracker.averageCostNanoseconds[i]) + "ns" +
-            " | relative: " + to_string(tracker.relativeCost(static_cast<int>(i))) +
-            " | samples: " + to_string(tracker.sampleCount[i]));
+        costLines.push_back("Material " + to_string(i) + " (" + name + ")" +
+                            " | avg cost: " + to_string(tracker.averageCostNanoseconds[i]) + "ns" +
+                            " | relative: " + to_string(tracker.relativeCost(static_cast<int>(i))) +
+                            " | samples: " + to_string(tracker.sampleCount[i]));
     }
 
     printStatsBlock("Material Cost Tracker Stats", costLines);
@@ -131,9 +129,10 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
             for (int i = 0; i < pixelCount; ++i)
                 image.pixels[i] = accumulator[i] / static_cast<float>(samplesCompleted);
 
-            image.write(previewPath);
+            image.write(previewPath, enableSampleLogging);
 
-            cout << "Sample: " << samplesCompleted << "/" << samplesPerPixel << endl;
+            if (!enableSampleLogging)
+                cout << "Sample: " << samplesCompleted << "/" << samplesPerPixel << endl;
 
             if (progressCallback)
                 progressCallback(samplesCompleted, samplesPerPixel);
