@@ -98,5 +98,5 @@ struct Scene
     bool hit(const Ray& ray, float minDistance, float maxDistance, HitRecord& record) const;
 
     // NEE sample for a random point on emissive mesh
-    LightSample sampleLight() const;
+    LightSample sampleLight(const Point3& shadingPoint) const;
 };

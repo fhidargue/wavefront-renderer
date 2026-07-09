@@ -370,7 +370,12 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         Color diffuse(0.8f, 0.8f, 0.8f);
         Color emissiveColor(0.0f, 0.0f, 0.0f);
         float roughness = 1.0f;
+
+        // Light source variables
         bool isEmissive = false;
+        bool isSpotLight = false;
+        float spotOuterAngle = 180.0f;
+        float spotFalloffAngle = 180.0f;
 
         for (const UsdShadeOutput& output : material.GetOutputs())
         {
@@ -413,11 +418,28 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
                     isEmissive = (emission[0] + emission[1] + emission[2]) > 0.0f;
                 }
             }
+
+            // Spotlight
+            UsdShadeInput spotOuterInput = shader.GetInput(TfToken("spotOuterAngle"));
+
+            if (spotOuterInput)
+                isSpotLight = spotOuterInput.Get(&spotOuterAngle, UsdTimeCode::Default());
+
+            UsdShadeInput spotFalloffInput = shader.GetInput(TfToken("spotFalloffAngle"));
+
+            if (spotFalloffInput)
+                spotFalloffInput.Get(&spotFalloffAngle, UsdTimeCode::Default());
         }
 
         // Set UUID from prim path before adding to scene
-        Material mat = isEmissive ? Material::makeEmissive(emissiveColor, 1.0f)
-                                  : Material::makeDiffuse(diffuse);
+        Material mat;
+
+        if (isEmissive && isSpotLight)
+            mat = Material::makeSpotLight(emissiveColor, 1.0f, spotOuterAngle, spotFalloffAngle);
+        else if (isEmissive)
+            mat = Material::makeEmissive(emissiveColor, 1.0f);
+        else
+            mat = Material::makeDiffuse(diffuse);
 
         mat.uuid = materialPath;
 

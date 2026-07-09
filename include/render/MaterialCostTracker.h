@@ -56,37 +56,11 @@ class MaterialCostTracker
         return averageCostNanoseconds[materialID] / globalAverage;
     }
 
-    void printStats(const std::vector<Material>& materials) const
-    {
-        std::cout << "\n========================================" << std::endl;
-        std::cout << "  Material Cost Tracker Stats" << std::endl;
-        std::cout << "========================================" << std::endl;
-
-        for (size_t i = 0; i < averageCostNanoseconds.size(); ++i)
-        {
-            std::string materialName = (i < materials.size()) ? materials[i].uuid : "unknown";
-
-            if (!initialized[i])
-            {
-                std::cout << "  Material " << i << " (" << materialName << ") : no samples yet"
-                          << std::endl;
-                continue;
-            }
-
-            std::cout << "  Material " << i << " (" << materialName << ")"
-                      << " | avg cost: " << averageCostNanoseconds[i] << "ns"
-                      << " | relative: " << relativeCost(static_cast<int>(i))
-                      << " | samples: " << sampleCount[i] << std::endl;
-        }
-
-        std::cout << "========================================\n" << std::endl;
-    }
+    std::vector<double> averageCostNanoseconds;
+    std::vector<bool> initialized;
+    std::vector<int> sampleCount;
 
   private:
     double cachedTotalCost = 0.0;
     int trackedMaterialCount = 0;
-
-    std::vector<double> averageCostNanoseconds;
-    std::vector<bool> initialized;
-    std::vector<int> sampleCount;
 };

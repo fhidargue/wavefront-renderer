@@ -77,6 +77,21 @@ Material Material::makeEmissive(const Color& albedo, float strength)
     return material;
 }
 
+Material Material::makeSpotLight(const Color& albedo, float strength, float spotOuterAngleDeg,
+                                 float spotFalloffAngleDeg)
+{
+    Material material;
+    material.type = MaterialType::SpotLight;
+    material.albedo = albedo;
+    material.roughness = 0.0f;
+    material.emission = strength;
+    material.textureID = -1;
+    material.spotOuterAngle = spotOuterAngleDeg;
+    material.spotFalloffAngle = spotFalloffAngleDeg;
+
+    return material;
+}
+
 Color Material::getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const
 {
     if (textureID >= 0 && textureID < static_cast<int>(textures.size()))
@@ -119,6 +134,7 @@ bool Material::scatter(const Ray& incoming, const HitRecord& record,
     }
 
     case MaterialType::Emissive:
+    case MaterialType::SpotLight:
     {
         attenuation = surfaceColor * emission;
         outPdf = -1.0f;
@@ -134,10 +150,33 @@ bool Material::scatter(const Ray& incoming, const HitRecord& record,
     }
 }
 
-Color Material::emitted() const
+Color Material::emitted(const Vec3& lightNormal, const Vec3& directionFromLight) const
 {
     if (type == MaterialType::Emissive)
         return albedo * emission;
+
+    if (type == MaterialType::SpotLight)
+    {
+        Color radiance = albedo * emission;
+
+        float cosAngle = lightNormal.dot(directionFromLight);
+        float angleDeg = std::acos(std::max(-1.0f, std::min(1.0f, cosAngle))) * (180.0f / PI);
+
+        if (angleDeg >= spotOuterAngle)
+            return Color(0.0f, 0.0f, 0.0f);
+
+        if (angleDeg > spotFalloffAngle)
+        {
+            float t = (angleDeg - spotFalloffAngle) / (spotOuterAngle - spotFalloffAngle);
+            float falloff = 1.0f - t;
+
+            // Logic for the smoothstep
+            falloff = falloff * falloff * (3.0f - 2.0f * falloff);
+            radiance = radiance * falloff;
+        }
+
+        return radiance;
+    }
 
     return Color(0.0f, 0.0f, 0.0f);
 }

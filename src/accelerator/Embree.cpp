@@ -118,18 +118,6 @@ void EmbreeAccelerator::build(const Scene& scene)
     m_buildTimeMs = std::chrono::duration<double, std::milli>(buildEnd - buildStart).count();
 }
 
-void EmbreeAccelerator::printStats() const
-{
-    cout << "========================================" << endl;
-    cout << "  Embree BVH Stats" << endl;
-    cout << "========================================" << endl;
-    cout << "  Meshes registered : " << m_meshCount << endl;
-    cout << "  Total triangles   : " << m_totalTriangles << endl;
-    cout << "  Total vertices    : " << m_totalVertices << endl;
-    cout << "  BVH build time    : " << m_buildTimeMs << "ms" << endl;
-    cout << "========================================\n" << endl;
-}
-
 // Trace one ray against the BVH
 bool EmbreeAccelerator::intersect(const Ray& ray, float minDistance, float maxDistance,
                                   HitRecord& record) const

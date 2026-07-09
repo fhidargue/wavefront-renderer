@@ -1,5 +1,8 @@
 #include <core/Scene.h>
+#include <core/PrintUtils.h>
 #include <math/Random.h>
+
+using std::to_string;
 
 int Scene::addMaterial(const Material& material)
 {
@@ -55,14 +58,26 @@ void Scene::buildAccelerator()
     emissiveMeshIndices.clear();
 
     for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
-        if (materials[meshes[i].materialID].type == MaterialType::Emissive)
+    {
+        MaterialType materialType = materials[meshes[i].materialID].type;
+
+        if (materialType == MaterialType::Emissive || materialType == MaterialType::SpotLight)
             emissiveMeshIndices.push_back(i);
+    }
 
     // Run the total emissive area cache before multi threading
     totalEmissiveArea();
 
     accelerator.build(*this);
-    accelerator.printStats();
+
+    printStatsBlock("Embree BVH Stats",
+                    {
+                        "Meshes registered : " + to_string(accelerator.m_meshCount),
+                        "Total triangles   : " + to_string(accelerator.m_totalTriangles),
+                        "Total vertices    : " + to_string(accelerator.m_totalVertices),
+                        "BVH build time    : " + to_string(accelerator.m_buildTimeMs) + "ms",
+                    });
+
     acceleratorBuilt = true;
 }
 
@@ -143,7 +158,7 @@ float Scene::totalEmissiveArea() const
     return total;
 }
 
-LightSample Scene::sampleLight() const
+LightSample Scene::sampleLight(const Point3& shadingPoint) const
 {
     // Use pre-cached emissive mesh indices
     if (emissiveMeshIndices.empty())
@@ -183,7 +198,8 @@ LightSample Scene::sampleLight() const
     Vec3 cross = edge1.cross(edge2);
 
     Vec3 normal = cross.normalized();
-    Color emission = materials[mesh.materialID].emitted();
+    Vec3 directionFromLight = (shadingPoint - point).normalized();
+    Color emission = materials[mesh.materialID].emitted(normal, directionFromLight);
 
     float totalArea = totalEmissiveArea();
 

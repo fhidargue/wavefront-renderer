@@ -1,4 +1,6 @@
 #include <render/WavefrontRenderer.h>
+#include <render/MaterialCostTracker.h>
+#include <core/PrintUtils.h>
 #include <shading/MIS.h>
 #include <math/Random.h>
 #include <chrono>
@@ -19,6 +21,7 @@ using std::min;
 using std::signal;
 using std::string;
 using std::vector;
+using std::to_string;
 
 static char previewPathBuffer[4096];
 
@@ -35,6 +38,31 @@ static void removePreviewImage(const string& previewPath)
     previewPathBuffer[sizeof(previewPathBuffer) - 1] = '\0';
     signal(SIGTERM, onSignal);
     signal(SIGINT, onSignal);
+}
+
+static void logMaterialCostStats(const MaterialCostTracker& tracker, const Scene& scene)
+{
+    std::vector<std::string> costLines;
+
+    for (size_t i = 0; i < tracker.averageCostNanoseconds.size(); ++i)
+    {
+        std::string name = (i < scene.materials.size()) ? scene.materials[i].uuid : "unknown";
+
+        if (!tracker.initialized[i])
+        {
+            costLines.push_back("Material " + to_string(i) + " (" + name +
+                                ") : no samples yet");
+            continue;
+        }
+
+        costLines.push_back(
+            "Material " + to_string(i) + " (" + name + ")" +
+            " | avg cost: " + to_string(tracker.averageCostNanoseconds[i]) + "ns" +
+            " | relative: " + to_string(tracker.relativeCost(static_cast<int>(i))) +
+            " | samples: " + to_string(tracker.sampleCount[i]));
+    }
+
+    printStatsBlock("Material Cost Tracker Stats", costLines);
 }
 
 double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,
@@ -117,7 +145,7 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
         image.pixels[i] = accumulator[i] / static_cast<float>(samplesPerPixel);
 
     // Print material cost stats
-    materialCostTracker.printStats(scene.materials);
+    logMaterialCostStats(materialCostTracker, scene);
 
     // Delete preview file once the render is complete
     if (!previewPath.empty())
@@ -324,7 +352,8 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 const Material& material = scene.getMaterial(record);
 
                 // Accumulate emitted light
-                Color emitted = material.emitted();
+                Color emitted = material.emitted(record.normal, incomingRay.direction * -1.0f);
+
                 if (emitted.x > 0.0f || emitted.y > 0.0f || emitted.z > 0.0f)
                 {
                     // Calculate the weight of MIS
@@ -353,10 +382,10 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                     localAccumContribs.push_back({pixelIndex, throughput * emitted * misWeight});
                 }
 
-                // NEE direct light sample (Diffuse only)
+                // NEE direct light sample
                 if (material.type == MaterialType::Diffuse)
                 {
-                    LightSample light = scene.sampleLight();
+                    LightSample light = scene.sampleLight(record.point);
 
                     if (light.valid)
                     {
