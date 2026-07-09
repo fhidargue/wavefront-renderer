@@ -31,7 +31,7 @@ static string derivePreviewPath(const string& outputPath)
 
 int main(int argc, char* argv[])
 {
-    const int samplesPerPixel = 512;
+    const int samplesPerPixel = 256;
     const int maxBounceDepth = 8;
     const int progressInterval = 4;
     int imageWidth = 600;
