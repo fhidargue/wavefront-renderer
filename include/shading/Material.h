@@ -12,7 +12,8 @@ enum class MaterialType
     Metal,
     Emissive,
     SpotLight,
-    Glass
+    Glass,
+    Plastic
 };
 
 struct Material
@@ -41,6 +42,7 @@ struct Material
     static Material makeSpotLight(const Color& albedo, float strength, float spotOuterAngleDeg,
                                   float spotFalloffAngleDeg);
     static Material makeGlass(float ior);
+    static Material makePlastic(const Color& albedo, float roughness, int textureID = -1);
 
     Color getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const;
 

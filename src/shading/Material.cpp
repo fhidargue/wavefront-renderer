@@ -128,6 +128,18 @@ Material Material::makeGlass(float ior)
     return material;
 }
 
+Material Material::makePlastic(const Color& albedo, float roughness, int textureID)
+{
+    Material material;
+    material.type = MaterialType::Plastic;
+    material.albedo = albedo;
+    material.roughness = roughness;
+    material.emission = 0.0f;
+    material.textureID = textureID;
+
+    return material;
+}
+
 Color Material::getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const
 {
     if (useSpatialChecker && textureID >= 0 && textureID < static_cast<int>(textures.size()))
@@ -216,6 +228,31 @@ bool Material::scatter(const Ray& incoming, const HitRecord& record,
             scatterDirection = refract(incidentDirection, record.normal, relativeRefractiveIndex);
 
         scattered = Ray(record.point, scatterDirection);
+
+        return true;
+    }
+    case MaterialType::Plastic:
+    {
+        float cosineIncidentAngle = std::max(0.0f, (incoming.direction * -1.0f).dot(record.normal));
+        float reflectance = schlickReflectance(cosineIncidentAngle, 1.5f);
+
+        if (randomFloat() < reflectance)
+        {
+            Vec3 reflected = reflect(incoming.direction.normalized(), record.normal);
+            Vec3 fuzz = randomInUnitSphere() * roughness;
+            scattered = Ray(record.point, (reflected + fuzz).normalized());
+            attenuation = Color(1.0f, 1.0f, 1.0f);
+            outPdf = -1.0f;
+        }
+        else
+        {
+            Vec3 scatterDirection = cosineSampleHemisphere(record.normal);
+            scattered = Ray(record.point, scatterDirection);
+            attenuation = surfaceColor;
+
+            float cosAtSurface = std::max(0.0f, record.normal.dot(scatterDirection));
+            outPdf = cosAtSurface / PI;
+        }
 
         return true;
     }

@@ -410,7 +410,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 }
 
                 // NEE direct light sample
-                if (material.type == MaterialType::Diffuse)
+                if (material.type == MaterialType::Diffuse || material.type == MaterialType::Plastic)
                 {
                     LightSample light = scene.sampleLight(record.point);
 

@@ -415,6 +415,13 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         bool isGlass = false;
         float indexOfRefraction = 1.5f;
 
+        // Metal source variables
+        bool isMetal = false;
+        float metallic = 0.0f;
+
+        // Plastic
+        bool isPlastic = false;
+
         // Checker texture
         bool wantsSpatialChecker = false;
         float spatialCheckerCellSize = 1.0f;
@@ -478,6 +485,21 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
             if (iorInput)
                 isGlass = iorInput.Get(&indexOfRefraction, UsdTimeCode::Default());
+            
+            // Metal
+            UsdShadeInput metallicInput = shader.GetInput(TfToken("metallic"));
+
+            if (metallicInput)
+            {
+                metallicInput.Get(&metallic, UsdTimeCode::Default());
+                isMetal = metallic > 0.5f;
+            }
+
+            // Plastic
+            UsdShadeInput plasticInput = shader.GetInput(TfToken("plastic"));
+
+            if (plasticInput)
+                plasticInput.Get(&isPlastic, UsdTimeCode::Default());
 
             // Checker texture
             UsdShadeInput spatialCheckerInput = shader.GetInput(TfToken("spatialChecker"));
@@ -509,6 +531,14 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         else if (isGlass)
         {
             mat = Material::makeGlass(indexOfRefraction);
+        }
+        else if (isMetal)
+        {
+            mat = Material::makeMetal(diffuse, roughness);
+        }
+        else if (isPlastic)
+        {
+            mat = Material::makePlastic(diffuse, roughness);
         }
         else
         {
