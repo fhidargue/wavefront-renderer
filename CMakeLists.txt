@@ -108,7 +108,8 @@ add_executable(tests
     tests/shading/MaterialTest.cpp
     tests/accelerator/EmbreeTest.cpp
     tests/render/WavefrontRendererTest.cpp
-    tests/render/MaterialCostTrackerTest.cpp
+    tests/render/CostTrackerTest.cpp
+    tests/shading/MaterialFeaturesTest.cpp
     ${RENDERER_SOURCES}
 )
 

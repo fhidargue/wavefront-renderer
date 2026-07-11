@@ -23,6 +23,7 @@ class RenderWindow(QMainWindow):
         renderer_path: str,
         scene_path: str,
         output_path: str,
+        camera_path: str,
         width: int = 600,
         height: int = 600,
         denoise: bool = False,
@@ -33,6 +34,7 @@ class RenderWindow(QMainWindow):
         self.renderer_path = renderer_path
         self.scene_path = scene_path
         self.output_path = output_path
+        self.camera_path = camera_path
         self.width = width
         self.height = height
         self.denoise = denoise
@@ -121,6 +123,7 @@ class RenderWindow(QMainWindow):
             renderer_path=self.renderer_path,
             scene_path=self.scene_path,
             output_path=self.output_path,
+            camera_path=self.camera_path,
             width=self.width,
             height=self.height,
             denoise=self.denoise,

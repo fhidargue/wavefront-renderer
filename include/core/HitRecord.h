@@ -10,6 +10,7 @@ struct HitRecord
     float distance;
     int materialID;
     int textureID;
+    int triangleIndex = -1;
     float u, v;
     bool frontFace;
 

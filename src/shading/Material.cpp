@@ -1,4 +1,5 @@
 #include <shading/Material.h>
+#include <math/SpatialHash.h>
 #include <math/Random.h>
 #include <cmath>
 
@@ -20,6 +21,28 @@ Vec3 randomInUnitSphere()
 Vec3 reflect(const Vec3& incoming, const Vec3& normal)
 {
     return incoming - normal * 2.0f * incoming.dot(normal);
+}
+
+Vec3 refract(const Vec3& incidentDirection, const Vec3& surfaceNormal,
+             float relativeRefractiveIndex)
+{
+    float cosineIncidentAngle = std::min(1.0f, (incidentDirection * -1.0f).dot(surfaceNormal));
+    Vec3 refractedPerpendicular =
+        (incidentDirection + surfaceNormal * cosineIncidentAngle) * relativeRefractiveIndex;
+    Vec3 refractedParallel =
+        surfaceNormal *
+        -std::sqrt(std::abs(1.0f - refractedPerpendicular.dot(refractedPerpendicular)));
+
+    return refractedPerpendicular + refractedParallel;
+}
+
+float schlickReflectance(float cosineIncidentAngle, float relativeRefractiveIndex)
+{
+    float baseReflectance = (1.0f - relativeRefractiveIndex) / (1.0f + relativeRefractiveIndex);
+    baseReflectance = baseReflectance * baseReflectance;
+
+    return baseReflectance +
+           (1.0f - baseReflectance) * std::pow((1.0f - cosineIncidentAngle), 5.0f);
 }
 
 Vec3 cosineSampleHemisphere(const Vec3& normal)
@@ -92,8 +115,47 @@ Material Material::makeSpotLight(const Color& albedo, float strength, float spot
     return material;
 }
 
+Material Material::makeGlass(float ior)
+{
+    Material material;
+    material.type = MaterialType::Glass;
+    material.albedo = Color(1.0f, 1.0f, 1.0f);
+    material.roughness = 0.0f;
+    material.emission = 0.0f;
+    material.textureID = -1;
+    material.indexOfRefraction = ior;
+
+    return material;
+}
+
+Material Material::makePlastic(const Color& albedo, float roughness, int textureID)
+{
+    Material material;
+    material.type = MaterialType::Plastic;
+    material.albedo = albedo;
+    material.roughness = roughness;
+    material.emission = 0.0f;
+    material.textureID = textureID;
+
+    return material;
+}
+
 Color Material::getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const
 {
+    if (useSpatialChecker && textureID >= 0 && textureID < static_cast<int>(textures.size()))
+    {
+        int cellX = static_cast<int>(std::floor(record.point.x / spatialCheckerCellSize));
+        int cellY = static_cast<int>(std::floor(record.point.y / spatialCheckerCellSize));
+        int cellZ = static_cast<int>(std::floor(record.point.z / spatialCheckerCellSize));
+
+        unsigned int hash = hashGridCell(cellX, cellY, cellZ);
+
+        float pseudoU, pseudoV;
+        hashToUV(hash, pseudoU, pseudoV);
+
+        return textures[textureID].sample(pseudoU, pseudoV);
+    }
+
     if (textureID >= 0 && textureID < static_cast<int>(textures.size()))
         return textures[textureID].sample(record.u, record.v);
 
@@ -140,6 +202,59 @@ bool Material::scatter(const Ray& incoming, const HitRecord& record,
         outPdf = -1.0f;
 
         return false;
+    }
+
+    case MaterialType::Glass:
+    {
+        attenuation = surfaceColor;
+
+        // Glass has no clean PDF
+        outPdf = -1.0f;
+
+        float relativeRefractiveIndex =
+            record.frontFace ? (1.0f / indexOfRefraction) : indexOfRefraction;
+        Vec3 incidentDirection = incoming.direction.normalized();
+
+        float cosineIncidentAngle = std::min(1.0f, (incidentDirection * -1.0f).dot(record.normal));
+        float sineIncidentAngle = std::sqrt(1.0f - cosineIncidentAngle * cosineIncidentAngle);
+
+        bool totalInternalReflection = relativeRefractiveIndex * sineIncidentAngle > 1.0f;
+        Vec3 scatterDirection;
+
+        if (totalInternalReflection ||
+            schlickReflectance(cosineIncidentAngle, relativeRefractiveIndex) > randomFloat())
+            scatterDirection = reflect(incidentDirection, record.normal);
+        else
+            scatterDirection = refract(incidentDirection, record.normal, relativeRefractiveIndex);
+
+        scattered = Ray(record.point, scatterDirection);
+
+        return true;
+    }
+    case MaterialType::Plastic:
+    {
+        float cosineIncidentAngle = std::max(0.0f, (incoming.direction * -1.0f).dot(record.normal));
+        float reflectance = schlickReflectance(cosineIncidentAngle, 1.5f);
+
+        if (randomFloat() < reflectance)
+        {
+            Vec3 reflected = reflect(incoming.direction.normalized(), record.normal);
+            Vec3 fuzz = randomInUnitSphere() * roughness;
+            scattered = Ray(record.point, (reflected + fuzz).normalized());
+            attenuation = Color(1.0f, 1.0f, 1.0f);
+            outPdf = -1.0f;
+        }
+        else
+        {
+            Vec3 scatterDirection = cosineSampleHemisphere(record.normal);
+            scattered = Ray(record.point, scatterDirection);
+            attenuation = surfaceColor;
+
+            float cosAtSurface = std::max(0.0f, record.normal.dot(scatterDirection));
+            outPdf = cosAtSurface / PI;
+        }
+
+        return true;
     }
 
     default:

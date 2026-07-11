@@ -164,8 +164,8 @@ bool EmbreeAccelerator::intersect(const Ray& ray, float minDistance, float maxDi
     record.distance = rayHit.ray.tfar;
     record.point = ray.at(rayHit.ray.tfar);
     record.materialID = mesh.materialID;
-    record.u = rayHit.hit.u;
-    record.v = rayHit.hit.v;
+    record.triangleIndex = static_cast<int>(rayHit.hit.primID);
+    mesh.interpolateUV(rayHit.hit.primID, rayHit.hit.u, rayHit.hit.v, record.u, record.v);
 
     // Recompute the geometry normal from the triangle edges
     Vec3 edge1 = vertex1 - vertex0;
@@ -240,9 +240,11 @@ int EmbreeAccelerator::intersect4(const RayQueue& queue, int startIndex, int cou
         hitRecords[i].distance = rayHit4.ray.tfar[i];
         hitRecords[i].point = ray.at(rayHit4.ray.tfar[i]);
         hitRecords[i].materialID = mesh.materialID;
+        hitRecords[i].triangleIndex = static_cast<int>(rayHit4.hit.primID[i]);
         hitRecords[i].textureID = m_sourceScene->materials[mesh.materialID].textureID;
-        hitRecords[i].u = rayHit4.hit.u[i];
-        hitRecords[i].v = rayHit4.hit.v[i];
+
+        mesh.interpolateUV(rayHit4.hit.primID[i], rayHit4.hit.u[i], rayHit4.hit.v[i],
+                           hitRecords[i].u, hitRecords[i].v);
 
         Vec3 edge1 = vertex1 - vertex0;
         Vec3 edge2 = vertex2 - vertex0;

@@ -19,7 +19,7 @@ else
 ENV_FLAG =
 endif
 
-.PHONY: all build clean rebuild test cornell kitchen first second third preview preview-kitchen format
+.PHONY: all build clean rebuild test cornell kitchen cornell-dragon preview preview-cornell-dragon preview-kitchen format
 
 all: build
 
@@ -42,6 +42,11 @@ cornell: build
 		scenes/cameras/cornellBoxCamera.usda \
 		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
 
+cornell-dragon: build
+	@./$(BUILD_DIR)/renderer scenes/cornellBoxDragon.usda output/cornellBoxDragon.exr \
+		scenes/cameras/cornellBoxCamera.usda \
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+
 kitchen: build
 	@PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) ./$(BUILD_DIR)/renderer scenes/kitchenSet.usda \
 		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda \
@@ -49,6 +54,10 @@ kitchen: build
 
 preview: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr \
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
+
+preview-cornell-dragon: build
+	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/cornellBoxDragon.usda output/cornellBoxDragon.exr \
 		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
 
 preview-kitchen: build

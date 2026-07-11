@@ -28,6 +28,7 @@ def resolve_paths(argv: list[str]) -> tuple[str, str, str, int, int]:
     output_path = (
         argv[2] if len(argv) > 2 else str(project_root / "output" / "preview.exr")
     )
+    camera_path = argv[3] if len(argv) > 3 else ""
 
     # Denoise flag
     width = int(os.environ.get("WIDTH", 600))
@@ -41,7 +42,16 @@ def resolve_paths(argv: list[str]) -> tuple[str, str, str, int, int]:
         if env_index + 1 < len(argv):
             env_path = argv[env_index + 1]
 
-    return renderer_path, scene_path, output_path, width, height, denoise, env_path
+    return (
+        renderer_path,
+        scene_path,
+        output_path,
+        camera_path,
+        width,
+        height,
+        denoise,
+        env_path,
+    )
 
 
 def main():
@@ -51,14 +61,22 @@ def main():
     app.setApplicationName("Wavefront Renderer")
     app.setOrganizationName("Bournemouth University")
 
-    renderer_path, scene_path, output_path, width, height, denoise, env_path = (
-        resolve_paths(sys.argv)
-    )
+    (
+        renderer_path,
+        scene_path,
+        output_path,
+        camera_path,
+        width,
+        height,
+        denoise,
+        env_path,
+    ) = resolve_paths(sys.argv)
 
     window = RenderWindow(
         renderer_path=renderer_path,
         scene_path=scene_path,
         output_path=output_path,
+        camera_path=camera_path,
         width=width,
         height=height,
         denoise=denoise,

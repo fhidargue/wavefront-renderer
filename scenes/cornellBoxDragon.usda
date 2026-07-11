@@ -1,0 +1,208 @@
+#usda 1.0
+(
+    defaultPrim = "CornellBoxDragon"
+    upAxis = "Y"
+    doc = "Cornell Box variant: dragon replaces the tall box, teapot on the short box, glass window in the green wall."
+)
+
+def Xform "CornellBoxDragon"
+{
+    def "CornellBox" (
+        prepend references = @cornellBox.usda@
+    )
+    {
+
+        # Remove the six tall-box wall meshes
+        over "TallBox_Bottom" (active = false) {}
+        over "TallBox_Top" (active = false) {}
+        over "TallBox_Front" (active = false) {}
+        over "TallBox_Back" (active = false) {}
+        over "TallBox_Left" (active = false) {}
+        over "TallBox_Right" (active = false) {}
+
+        # Lower the ceiling light intensity
+        over "Materials"
+        {
+            over "LightMaterial"
+            {
+                over "Shader"
+                {
+                    color3f inputs:emissiveColor = (18.0, 18.0, 18.0)
+                }
+            }
+        }
+
+        # Modify the small-box dimensions
+        over "ShortBox_Bottom" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
+        }
+
+        over "ShortBox_Top" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
+        }
+
+        over "ShortBox_Front" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
+        }
+
+        over "ShortBox_Back" (apiSchemas = ["MaterialBindingAPI"])
+        { 
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
+        }
+
+        over "ShortBox_Left" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
+        }
+
+        over "ShortBox_Right" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
+        }
+    }
+
+    def Xform "Dragon" (
+        prepend references = @scenes/objects/dragon_uv.usda@
+    )
+    {
+        double3 xformOp:translate = (-0.8, 0, 2.3)
+        double3 xformOp:scale = (0.05, 0.05, 0.05)
+        float xformOp:rotateY = 140
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale", "xformOp:rotateY"]
+
+        over "Dragon" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            rel material:binding = </CornellBoxDragon/Materials/DragonChecker>
+        }
+    }
+
+    def Xform "Teapot" (
+        prepend references = @scenes/objects/teapot.usda@
+    )
+    {
+        double3 xformOp:translate = (2.60885, 4.8, -1.0)
+        double3 xformOp:scale = (0.5, 0.5, 0.5)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        
+        over "Teapot" (apiSchemas = ["MaterialBindingAPI"]) {
+            rel material:binding = </CornellBoxDragon/Materials/Glass>
+        }
+    }
+
+    def Scope "Materials"
+    {
+        def Material "AccentLightBlack"
+        {
+            token outputs:surface.connect = </CornellBoxDragon/Materials/AccentLightBlack/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.02, 0.02, 0.02)
+                float inputs:roughness = 1.0
+                token outputs:surface
+            }
+        }
+
+        def Material "AccentLight"
+        {
+            token outputs:surface.connect = </CornellBoxDragon/Materials/AccentLight/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                color3f inputs:emissiveColor = (2.5, 2.3, 3.0)
+                float inputs:roughness = 1.0
+                token outputs:surface
+            }
+        }
+
+        def Material "Glass"
+        {
+            token outputs:surface.connect = </CornellBoxDragon/Materials/Glass/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                float inputs:ior = 1.5
+                token outputs:surface
+            }
+        }
+
+        def Material "DragonChecker"
+        {
+            token outputs:surface.connect = </CornellBoxDragon/Materials/DragonChecker/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                float inputs:roughness = 0.7
+                bool inputs:spatialChecker = true
+                float inputs:spatialCheckerCellSize = 0.5
+                float inputs:spatialCheckerReduceContrast = 0.25
+                token outputs:surface
+            }
+        }
+
+        def Material "YellowMetal"
+        {
+            token outputs:surface.connect = </CornellBoxDragon/Materials/YellowMetal/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.75, 0.6, 0.15)
+                float inputs:roughness = 0.9
+                float inputs:metallic = 1.0
+                token outputs:surface
+            }
+        }
+    }
+
+    def Mesh "AccentLightBacking" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [
+            (3.7711, 0.0990, 4.3443),
+            (4.0097, 0.5862, 4.4835),
+            (4.2515, 0.5862, 4.0688),
+            (4.0129, 0.0990, 3.9297)
+        ]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </CornellBoxDragon/Materials/AccentLightBlack>
+    }
+
+    def Mesh "AccentLight" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [
+            (3.7970, 0.1412, 4.3131),
+            (4.0015, 0.5588, 4.4324),
+            (4.2030, 0.5588, 4.0869),
+            (3.9985, 0.1412, 3.9676)
+        ]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </CornellBoxDragon/Materials/AccentLight>
+    }
+}

@@ -70,8 +70,10 @@ Camera CameraLoader::load(const string& cameraFilePath, int imageWidth, int imag
         if (!attribute.IsValid())
             return fallback;
 
-        float value;
-        attribute.Get(&value);
+        float value = fallback;
+
+        if (!attribute.Get(&value))
+            return fallback;
 
         return value;
     };
