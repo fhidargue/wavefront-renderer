@@ -275,6 +275,7 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
     int emissiveCount = 0;
     int spotLightCount = 0;
     int glassCount = 0;
+    int plasticCount = 0;
 
     for (const auto& material : scene.materials)
     {
@@ -295,6 +296,9 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
         case MaterialType::Glass:
             glassCount++;
             break;
+        case MaterialType::Plastic:
+            plasticCount++;
+            break;
         }
     }
 
@@ -305,7 +309,7 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
     cout << "  upAxis     : " << (isZUp ? "Z (corrected to Y)" : "Y") << endl;
     cout << "  Materials  : " << scene.materials.size() << " (" << diffuseCount << " diffuse, "
          << metalCount << " metal, " << emissiveCount << " emissive, " << spotLightCount
-         << " spotlight, " << glassCount << " glass)" << endl;
+         << " spotlight, " << glassCount << " glass, " << plasticCount << " plastic)" << endl;
     cout << "  Textures   : " << scene.textures.size() << endl;
     cout << "  Meshes     : " << scene.meshes.size() << endl;
     cout << "  Triangles  : " << totalTriangles << endl;

@@ -69,8 +69,8 @@ def Xform "CornellBox"
             {
                 uniform token info:id = "UsdPreviewSurface"
                 color3f inputs:diffuseColor = (0.2, 0.3, 0.8)
-                float inputs:roughness = 0.05
-                float inputs:metallic = 1.0
+                float inputs:roughness = 0.8
+                float inputs:metallic = 0.0
                 token outputs:surface
             }
         }

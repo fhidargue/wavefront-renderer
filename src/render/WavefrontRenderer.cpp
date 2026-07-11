@@ -157,8 +157,11 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
         textureNames.push_back(name.empty() ? ("Texture " + to_string(i)) : name);
     }
 
-    logCostStats(materialCostTracker, "Material Cost Tracker Stats", materialNames);
-    logCostStats(textureCostTracker, "Texture Cost Tracker Stats", textureNames);
+    if (!materialNames.empty())
+        logCostStats(materialCostTracker, "Material Cost Tracker Stats", materialNames);
+
+    if (!textureNames.empty())
+        logCostStats(textureCostTracker, "Texture Cost Tracker Stats", textureNames);
 
     // Delete preview file once the render is complete
     if (!previewPath.empty())
