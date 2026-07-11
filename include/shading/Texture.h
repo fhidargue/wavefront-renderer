@@ -3,8 +3,10 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <math/Vec3.h>
 #include <math/Random.h>
+#include <math/SpatialHash.h>
 
 using std::floor;
 using std::min;
@@ -15,6 +17,7 @@ struct Texture
     int width;
     int height;
     vector<Color> pixels;
+    std::string name;
 
     Texture(int width, int height)
         : width(width), height(height), pixels(width * height, Color(1.0f, 1.0f, 1.0f))
@@ -54,6 +57,22 @@ struct TextureGenerator
             {
                 Color randomColor(randomFloat(), randomFloat(), randomFloat());
                 texture.setTexel(x, y, randomColor);
+            }
+        }
+
+        return texture;
+    }
+
+    static Texture generateSpatialPalette(int size, float reduceContrast)
+    {
+        Texture texture(size, size);
+
+        for (int y = 0; y < size; ++y)
+        {
+            for (int x = 0; x < size; ++x)
+            {
+                unsigned int hash = hashGridCell(x, y, 0);
+                texture.setTexel(x, y, colorFromHash(hash, reduceContrast));
             }
         }
 

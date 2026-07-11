@@ -271,17 +271,31 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
                               bool isZUp)
 {
     int diffuseCount = 0;
+    int metalCount = 0;
     int emissiveCount = 0;
-    int spatialChecker = 0;
+    int spotLightCount = 0;
+    int glassCount = 0;
 
     for (const auto& material : scene.materials)
     {
-        if (material.type == MaterialType::Diffuse)
+        switch (material.type)
+        {
+        case MaterialType::Diffuse:
             diffuseCount++;
-        if (material.type == MaterialType::Emissive)
+            break;
+        case MaterialType::Metal:
+            metalCount++;
+            break;
+        case MaterialType::Emissive:
             emissiveCount++;
-        if (material.useSpatialChecker)
-            spatialChecker++;
+            break;
+        case MaterialType::SpotLight:
+            spotLightCount++;
+            break;
+        case MaterialType::Glass:
+            glassCount++;
+            break;
+        }
     }
 
     cout << "\n========================================" << endl;
@@ -290,8 +304,9 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
     cout << "  File       : " << usdFilePath << endl;
     cout << "  upAxis     : " << (isZUp ? "Z (corrected to Y)" : "Y") << endl;
     cout << "  Materials  : " << scene.materials.size() << " (" << diffuseCount << " diffuse, "
-         << emissiveCount << " emissive)" << endl;
-    cout << "  Textures   : " << scene.textures.size() + spatialChecker << endl;
+         << metalCount << " metal, " << emissiveCount << " emissive, " << spotLightCount
+         << " spotlight, " << glassCount << " glass)" << endl;
+    cout << "  Textures   : " << scene.textures.size() << endl;
     cout << "  Meshes     : " << scene.meshes.size() << endl;
     cout << "  Triangles  : " << totalTriangles << endl;
     cout << "========================================\n" << endl;
@@ -474,11 +489,6 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
             if (cellSizeInput)
                 cellSizeInput.Get(&spatialCheckerCellSize, UsdTimeCode::Default());
-            
-            UsdShadeInput reduceContrastInput = shader.GetInput(TfToken("spatialCheckerReduceContrast"));
-
-            if (reduceContrastInput)
-                reduceContrastInput.Get(&spatialCheckerReduceContrast, UsdTimeCode::Default());
         }
 
         // Set UUID from prim path before adding to scene
@@ -509,7 +519,12 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         {
             mat.useSpatialChecker = true;
             mat.spatialCheckerCellSize = spatialCheckerCellSize;
-            mat.spatialCheckerReduceContrast = spatialCheckerReduceContrast;
+
+            Texture checkerPalette =
+                TextureGenerator::generateSpatialPalette(512, spatialCheckerReduceContrast);
+            checkerPalette.name = materialPath + " (Checker Palette)";
+
+            mat.textureID = scene.addTexture(checkerPalette);
         }
 
         mat.uuid = materialPath;

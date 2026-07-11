@@ -1,5 +1,5 @@
 #include <render/WavefrontRenderer.h>
-#include <render/MaterialCostTracker.h>
+#include <render/CostTracker.h>
 #include <core/PrintUtils.h>
 #include <shading/MIS.h>
 #include <math/Random.h>
@@ -40,27 +40,28 @@ static void removePreviewImage(const string& previewPath)
     signal(SIGINT, onSignal);
 }
 
-static void logMaterialCostStats(const MaterialCostTracker& tracker, const Scene& scene)
+static void logCostStats(const CostTracker& tracker, const string& title,
+                         const std::vector<string>& names)
 {
     std::vector<std::string> costLines;
 
     for (size_t i = 0; i < tracker.averageCostNanoseconds.size(); ++i)
     {
-        std::string name = (i < scene.materials.size()) ? scene.materials[i].uuid : "unknown";
+        std::string name = (i < names.size()) ? names[i] : ("item " + to_string(i));
 
         if (!tracker.initialized[i])
         {
-            costLines.push_back("Material " + to_string(i) + " (" + name + ") : no samples yet");
+            costLines.push_back(name + " : no samples yet");
             continue;
         }
 
-        costLines.push_back("Material " + to_string(i) + " (" + name + ")" +
-                            " | avg cost: " + to_string(tracker.averageCostNanoseconds[i]) + "ns" +
+        costLines.push_back(name + " | avg cost: " + to_string(tracker.averageCostNanoseconds[i]) +
+                            "ns" +
                             " | relative: " + to_string(tracker.relativeCost(static_cast<int>(i))) +
                             " | samples: " + to_string(tracker.sampleCount[i]));
     }
 
-    printStatsBlock("Material Cost Tracker Stats", costLines);
+    printStatsBlock(title, costLines);
 }
 
 double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,
@@ -70,7 +71,8 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     // Delete the preview image is the process is terminated
     removePreviewImage(previewPath);
 
-    materialCostTracker = MaterialCostTracker(static_cast<int>(scene.materials.size()));
+    materialCostTracker = CostTracker(static_cast<int>(scene.materials.size()));
+    textureCostTracker = CostTracker(static_cast<int>(scene.textures.size()));
 
     if (!environmentMapPath.empty())
         environmentMap.load(environmentMapPath);
@@ -143,8 +145,20 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     for (int i = 0; i < pixelCount; ++i)
         image.pixels[i] = accumulator[i] / static_cast<float>(samplesPerPixel);
 
-    // Print material cost stats
-    logMaterialCostStats(materialCostTracker, scene);
+    // Print material and texture cost stats
+    vector<string> materialNames;
+    for (const auto& material : scene.materials)
+        materialNames.push_back(material.uuid);
+
+    vector<string> textureNames;
+    for (size_t i = 0; i < scene.textures.size(); ++i)
+    {
+        string name = scene.textures[i].name;
+        textureNames.push_back(name.empty() ? ("Texture " + to_string(i)) : name);
+    }
+
+    logCostStats(materialCostTracker, "Material Cost Tracker Stats", materialNames);
+    logCostStats(textureCostTracker, "Texture Cost Tracker Stats", textureNames);
 
     // Delete preview file once the render is complete
     if (!previewPath.empty())
@@ -324,14 +338,22 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
     const float fireflyThreshold = 10.0f;
     const int workCount = shadingQueue.size();
     const int materialCount = static_cast<int>(scene.materials.size());
+    const int textureCount = static_cast<int>(scene.textures.size());
 
     tbb::combinable<RayQueue> threadLocalNextRays;
     tbb::combinable<vector<std::pair<int, Color>>> threadLocalAccumContribs;
 
+    // Material cost threads
     tbb::combinable<vector<double>> threadLocalCostSum(
         [materialCount] { return vector<double>(materialCount, 0.0); });
     tbb::combinable<vector<int>> threadLocalCostCount([materialCount]
                                                       { return vector<int>(materialCount, 0); });
+
+    // Texture cost threads
+    tbb::combinable<vector<double>> threadLocalTextureCostSum(
+        [textureCount] { return vector<double>(textureCount, 0.0); });
+    tbb::combinable<vector<int>> threadLocalTextureCostCount(
+        [textureCount] { return vector<int>(textureCount, 0); });
 
     tbb::parallel_for(
         tbb::blocked_range<int>(0, workCount),
@@ -341,6 +363,8 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
             auto& localAccumContribs = threadLocalAccumContribs.local();
             auto& localCostSum = threadLocalCostSum.local();
             auto& localCostCount = threadLocalCostCount.local();
+            auto& localTextureCostSum = threadLocalTextureCostSum.local();
+            auto& localTextureCostCount = threadLocalTextureCostCount.local();
 
             for (int i = range.begin(); i < range.end(); ++i)
             {
@@ -352,6 +376,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 float incomingPdf = shadingQueue.getPdf(i);
 
                 const Material& material = scene.getMaterial(record);
+                const bool shouldTimeThisRay = (randomFloat() < 0.25f);
 
                 // Accumulate emitted light
                 Color emitted = material.emitted(record.normal, incomingRay.direction * -1.0f);
@@ -406,9 +431,28 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 
                             if (!shadowed)
                             {
+                                Color surfaceColor;
                                 float geometry = (cosAtSurface * cosAtLight) /
                                                  (distanceToLight * distanceToLight);
-                                Color surfaceColor = material.getSurfaceColor(record, scene.textures);
+
+                                if (shouldTimeThisRay && material.textureID >= 0)
+                                {
+                                    auto textureStart = std::chrono::high_resolution_clock::now();
+                                    surfaceColor = material.getSurfaceColor(record, scene.textures);
+                                    auto textureEnd = std::chrono::high_resolution_clock::now();
+
+                                    double textureCostNs = std::chrono::duration<double, std::nano>(
+                                                               textureEnd - textureStart)
+                                                               .count();
+
+                                    localTextureCostSum[material.textureID] += textureCostNs;
+                                    localTextureCostCount[material.textureID] += 1;
+                                }
+                                else
+                                {
+                                    surfaceColor = material.getSurfaceColor(record, scene.textures);
+                                }
+
                                 Color brdf = surfaceColor * (1.0f / PI);
 
                                 float lightPdfArea = lightAreaPdf(scene);
@@ -464,7 +508,6 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 Color attenuation;
                 Ray scattered;
 
-                const bool shouldTimeThisRay = (randomFloat() < 0.25f);
                 bool didScatter;
                 float scatterPdf;
 
@@ -522,9 +565,11 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
             }
         });
 
-    // Merge material shading cost samples into the tracker
+    // Merge material and texture shading cost samples into the tracker
     vector<double> totalCostSum(materialCount, 0.0);
     vector<int> totalCostCount(materialCount, 0);
+    vector<double> totalTextureCostSum(textureCount, 0.0);
+    vector<int> totalTextureCostCount(textureCount, 0);
 
     threadLocalCostSum.combine_each(
         [&](const vector<double>& local)
@@ -540,10 +585,30 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 totalCostCount[i] += local[i];
         });
 
+    threadLocalTextureCostSum.combine_each(
+        [&](const vector<double>& local)
+        {
+            for (int i = 0; i < textureCount; ++i)
+                totalTextureCostSum[i] += local[i];
+        });
+
+    threadLocalTextureCostCount.combine_each(
+        [&](const vector<int>& local)
+        {
+            for (int i = 0; i < textureCount; ++i)
+                totalTextureCostCount[i] += local[i];
+        });
+
     for (int i = 0; i < materialCount; ++i)
     {
         if (totalCostCount[i] > 0)
             materialCostTracker.record(i, totalCostSum[i] / totalCostCount[i]);
+    }
+
+    for (int i = 0; i < textureCount; ++i)
+    {
+        if (totalTextureCostCount[i] > 0)
+            textureCostTracker.record(i, totalTextureCostSum[i] / totalTextureCostCount[i]);
     }
 
     // Merge accumulator contributions

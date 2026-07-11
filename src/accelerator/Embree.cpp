@@ -242,7 +242,7 @@ int EmbreeAccelerator::intersect4(const RayQueue& queue, int startIndex, int cou
         hitRecords[i].materialID = mesh.materialID;
         hitRecords[i].triangleIndex = static_cast<int>(rayHit4.hit.primID[i]);
         hitRecords[i].textureID = m_sourceScene->materials[mesh.materialID].textureID;
-        
+
         mesh.interpolateUV(rayHit4.hit.primID[i], rayHit4.hit.u[i], rayHit4.hit.v[i],
                            hitRecords[i].u, hitRecords[i].v);
 

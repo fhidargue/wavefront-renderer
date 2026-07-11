@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
-#include <render/MaterialCostTracker.h>
+#include <render/CostTracker.h>
 
-TEST(MaterialCostTrackerTest, RelativeCostIsNeutralWithNoSamples)
+TEST(CostTrackerTest, RelativeCostIsNeutralWithNoSamples)
 {
-    MaterialCostTracker tracker(3);
+    CostTracker tracker(3);
 
     EXPECT_NEAR(tracker.relativeCost(0), 1.0, 0.0001);
 }
 
-TEST(MaterialCostTrackerTest, RelativeCostIsNeutralBelowSampleThreshold)
+TEST(CostTrackerTest, RelativeCostIsNeutralBelowSampleThreshold)
 {
-    MaterialCostTracker tracker(2);
+    CostTracker tracker(2);
 
     for (int i = 0; i < 10; ++i)
         tracker.record(0, 100.0);
@@ -19,9 +19,9 @@ TEST(MaterialCostTrackerTest, RelativeCostIsNeutralBelowSampleThreshold)
     EXPECT_NEAR(tracker.relativeCost(0), 1.0, 0.0001);
 }
 
-TEST(MaterialCostTrackerTest, ExpensiveMaterialHasRelativeCostAboveOne)
+TEST(CostTrackerTest, ExpensiveMaterialHasRelativeCostAboveOne)
 {
-    MaterialCostTracker tracker(2);
+    CostTracker tracker(2);
 
     for (int i = 0; i < 60; ++i)
     {
@@ -33,9 +33,9 @@ TEST(MaterialCostTrackerTest, ExpensiveMaterialHasRelativeCostAboveOne)
     EXPECT_LT(tracker.relativeCost(0), 1.0);
 }
 
-TEST(MaterialCostTrackerTest, EqualCostMaterialsHaveRelativeCostNearOne)
+TEST(CostTrackerTest, EqualCostMaterialsHaveRelativeCostNearOne)
 {
-    MaterialCostTracker tracker(2);
+    CostTracker tracker(2);
 
     for (int i = 0; i < 60; ++i)
     {

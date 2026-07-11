@@ -194,7 +194,6 @@ def Xform "CornellBoxDragon"
 
     def Mesh "ExteriorLight" (apiSchemas = ["MaterialBindingAPI"])
     {
-        # Light at (11,13,-3), aimed at new window center (5,5,0)
         point3f[] points = [
             (11.0000, 13.0000, -3.0000),
             (10.7317, 13.0000, -3.5367), (10.5195, 13.2726, -3.2341),

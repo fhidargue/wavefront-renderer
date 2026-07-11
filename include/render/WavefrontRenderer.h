@@ -7,7 +7,7 @@
 #include <core/EnvironmentMap.h>
 #include <scheduling/RayQueue.h>
 #include <scheduling/ShadingQueue.h>
-#include <render/MaterialCostTracker.h>
+#include <render/CostTracker.h>
 
 // Called every N samples during rendering with current progress
 using ProgressCallback = std::function<void(int currentSample, int totalSamples)>;
@@ -37,7 +37,8 @@ class WavefrontRenderer
                        ProgressCallback progressCallback = nullptr);
 
   private:
-    MaterialCostTracker materialCostTracker{0};
+    CostTracker materialCostTracker{0};
+    CostTracker textureCostTracker{0};
     EnvironmentMap environmentMap;
 
     void generatePrimaryRays(const Camera& camera, int width, int height, RayQueue& queue);

@@ -64,17 +64,6 @@ Vec3 cosineSampleHemisphere(const Vec3& normal)
     return (tangent * directionX + normal * directionY + bitangent * directionZ).normalized();
 }
 
-Color get3DCheckerColor(const Point3& point, float cellSize, float reduceContrast)
-{
-    int cellX = static_cast<int>(std::floor(point.x / cellSize));
-    int cellY = static_cast<int>(std::floor(point.y / cellSize));
-    int cellZ = static_cast<int>(std::floor(point.z / cellSize));
-
-    unsigned int hash = hashGridCell(cellX, cellY, cellZ);
-
-    return colorFromHash(hash, reduceContrast);
-}
-
 Material Material::makeDiffuse(const Color& albedo, int textureID)
 {
     Material material;
@@ -141,8 +130,19 @@ Material Material::makeGlass(float ior)
 
 Color Material::getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const
 {
-    if (useSpatialChecker)
-        return get3DCheckerColor(record.point, spatialCheckerCellSize, spatialCheckerReduceContrast);
+    if (useSpatialChecker && textureID >= 0 && textureID < static_cast<int>(textures.size()))
+    {
+        int cellX = static_cast<int>(std::floor(record.point.x / spatialCheckerCellSize));
+        int cellY = static_cast<int>(std::floor(record.point.y / spatialCheckerCellSize));
+        int cellZ = static_cast<int>(std::floor(record.point.z / spatialCheckerCellSize));
+
+        unsigned int hash = hashGridCell(cellX, cellY, cellZ);
+
+        float pseudoU, pseudoV;
+        hashToUV(hash, pseudoU, pseudoV);
+
+        return textures[textureID].sample(pseudoU, pseudoV);
+    }
 
     if (textureID >= 0 && textureID < static_cast<int>(textures.size()))
         return textures[textureID].sample(record.u, record.v);

@@ -34,7 +34,6 @@ struct Material
     // Checker
     bool useSpatialChecker = false;
     float spatialCheckerCellSize = 1.0f;
-    float spatialCheckerReduceContrast = 0.25f;
 
     static Material makeDiffuse(const Color& albedo, int textureID = -1);
     static Material makeMetal(const Color& albedo, float roughness, int textureID = -1);
