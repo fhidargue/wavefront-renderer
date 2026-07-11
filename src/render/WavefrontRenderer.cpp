@@ -410,7 +410,8 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 }
 
                 // NEE direct light sample
-                if (material.type == MaterialType::Diffuse || material.type == MaterialType::Plastic)
+                if (material.type == MaterialType::Diffuse ||
+                    material.type == MaterialType::Plastic)
                 {
                     LightSample light = scene.sampleLight(record.point);
 
@@ -650,8 +651,8 @@ Color WavefrontRenderer::getSkyColor(const Ray& ray) const
         return environmentMap.sample(ray.direction);
 
     float blendFactor = 0.5f * (ray.direction.normalized().y + 1.0f);
-    Color darkSky(0.0f, 0.0f, 0.0f);
-    Color horizon(0.0f, 0.0f, 0.0f);
+    Color darkSky(0.02f, 0.02f, 0.05f);
+    Color horizon(0.05f, 0.04f, 0.03f);
 
     return horizon * (1.0f - blendFactor) + darkSky * blendFactor;
 }

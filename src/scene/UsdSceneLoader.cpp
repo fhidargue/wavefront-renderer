@@ -485,7 +485,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
             if (iorInput)
                 isGlass = iorInput.Get(&indexOfRefraction, UsdTimeCode::Default());
-            
+
             // Metal
             UsdShadeInput metallicInput = shader.GetInput(TfToken("metallic"));
 
