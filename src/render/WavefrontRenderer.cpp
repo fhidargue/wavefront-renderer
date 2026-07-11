@@ -275,6 +275,9 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
             append(outputShadingQueue.hitNormalsY, local.hitNormalsY);
             append(outputShadingQueue.hitNormalsZ, local.hitNormalsZ);
             append(outputShadingQueue.hitDistances, local.hitDistances);
+            append(outputShadingQueue.hitU, local.hitU);
+            append(outputShadingQueue.hitV, local.hitV);
+            append(outputShadingQueue.hitTriangleIndex, local.hitTriangleIndex);
             append(outputShadingQueue.materialIDs, local.materialIDs);
             append(outputShadingQueue.textureIDs, local.textureIDs);
             append(outputShadingQueue.originsX, local.originsX);
@@ -405,7 +408,8 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                             {
                                 float geometry = (cosAtSurface * cosAtLight) /
                                                  (distanceToLight * distanceToLight);
-                                Color brdf = material.albedo * (1.0f / PI);
+                                Color surfaceColor = material.getSurfaceColor(record, scene.textures);
+                                Color brdf = surfaceColor * (1.0f / PI);
 
                                 float lightPdfArea = lightAreaPdf(scene);
                                 float lightPdfSolidAngle = areaToAngleProbability(
@@ -442,7 +446,8 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 
                         if (!shadowed)
                         {
-                            Color brdf = material.albedo * (1.0f / PI);
+                            Color surfaceColor = material.getSurfaceColor(record, scene.textures);
+                            Color brdf = surfaceColor * (1.0f / PI);
                             Color direct = throughput * brdf * scene.directionalLight.color *
                                            scene.directionalLight.intensity * cosAtSurface;
 
@@ -580,8 +585,8 @@ Color WavefrontRenderer::getSkyColor(const Ray& ray) const
         return environmentMap.sample(ray.direction);
 
     float blendFactor = 0.5f * (ray.direction.normalized().y + 1.0f);
-    Color darkSky(0.02f, 0.02f, 0.05f);
-    Color horizon(0.05f, 0.04f, 0.03f);
+    Color darkSky(0.0f, 0.0f, 0.0f);
+    Color horizon(0.0f, 0.0f, 0.0f);
 
     return horizon * (1.0f - blendFactor) + darkSky * blendFactor;
 }

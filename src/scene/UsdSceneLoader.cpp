@@ -2,6 +2,7 @@
 #include <geometry/Mesh.h>
 #include <shading/Material.h>
 #include <math/Vec3.h>
+#include <shading/Texture.h>
 
 #include <iostream>
 #include <unordered_map>
@@ -61,6 +62,20 @@ static void triangulateFace(const VtIntArray& indices, int startIndex, int verte
         outIndices.push_back(indices[startIndex]);
         outIndices.push_back(indices[startIndex + i]);
         outIndices.push_back(indices[startIndex + i + 1]);
+    }
+}
+
+static void triangulateFaceUVs(const VtVec2fArray& faceUVs, int startIndex, int vertexCount,
+                               vector<float>& outU, vector<float>& outV)
+{
+    for (int i = 1; i < vertexCount - 1; ++i)
+    {
+        outU.push_back(faceUVs[startIndex][0]);
+        outV.push_back(faceUVs[startIndex][1]);
+        outU.push_back(faceUVs[startIndex + i][0]);
+        outV.push_back(faceUVs[startIndex + i][1]);
+        outU.push_back(faceUVs[startIndex + i + 1][0]);
+        outV.push_back(faceUVs[startIndex + i + 1][1]);
     }
 }
 
@@ -257,6 +272,7 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
 {
     int diffuseCount = 0;
     int emissiveCount = 0;
+    int spatialChecker = 0;
 
     for (const auto& material : scene.materials)
     {
@@ -264,6 +280,8 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
             diffuseCount++;
         if (material.type == MaterialType::Emissive)
             emissiveCount++;
+        if (material.useSpatialChecker)
+            spatialChecker++;
     }
 
     cout << "\n========================================" << endl;
@@ -273,6 +291,7 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
     cout << "  upAxis     : " << (isZUp ? "Z (corrected to Y)" : "Y") << endl;
     cout << "  Materials  : " << scene.materials.size() << " (" << diffuseCount << " diffuse, "
          << emissiveCount << " emissive)" << endl;
+    cout << "  Textures   : " << scene.textures.size() + spatialChecker << endl;
     cout << "  Meshes     : " << scene.meshes.size() << endl;
     cout << "  Triangles  : " << totalTriangles << endl;
     cout << "========================================\n" << endl;
@@ -377,6 +396,15 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         float spotOuterAngle = 180.0f;
         float spotFalloffAngle = 180.0f;
 
+        // Glass source variables
+        bool isGlass = false;
+        float indexOfRefraction = 1.5f;
+
+        // Checker texture
+        bool wantsSpatialChecker = false;
+        float spatialCheckerCellSize = 1.0f;
+        float spatialCheckerReduceContrast = 0.25f;
+
         for (const UsdShadeOutput& output : material.GetOutputs())
         {
             UsdShadeConnectableAPI source;
@@ -429,17 +457,60 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
             if (spotFalloffInput)
                 spotFalloffInput.Get(&spotFalloffAngle, UsdTimeCode::Default());
+
+            // Glass
+            UsdShadeInput iorInput = shader.GetInput(TfToken("ior"));
+
+            if (iorInput)
+                isGlass = iorInput.Get(&indexOfRefraction, UsdTimeCode::Default());
+
+            // Checker texture
+            UsdShadeInput spatialCheckerInput = shader.GetInput(TfToken("spatialChecker"));
+
+            if (spatialCheckerInput)
+                spatialCheckerInput.Get(&wantsSpatialChecker, UsdTimeCode::Default());
+
+            UsdShadeInput cellSizeInput = shader.GetInput(TfToken("spatialCheckerCellSize"));
+
+            if (cellSizeInput)
+                cellSizeInput.Get(&spatialCheckerCellSize, UsdTimeCode::Default());
+            
+            UsdShadeInput reduceContrastInput = shader.GetInput(TfToken("spatialCheckerReduceContrast"));
+
+            if (reduceContrastInput)
+                reduceContrastInput.Get(&spatialCheckerReduceContrast, UsdTimeCode::Default());
         }
 
         // Set UUID from prim path before adding to scene
         Material mat;
 
-        if (isEmissive && isSpotLight)
-            mat = Material::makeSpotLight(emissiveColor, 1.0f, spotOuterAngle, spotFalloffAngle);
-        else if (isEmissive)
-            mat = Material::makeEmissive(emissiveColor, 1.0f);
+        if (isEmissive)
+        {
+            if (isSpotLight)
+            {
+                mat =
+                    Material::makeSpotLight(emissiveColor, 1.0f, spotOuterAngle, spotFalloffAngle);
+            }
+            else
+            {
+                mat = Material::makeEmissive(emissiveColor, 1.0f);
+            }
+        }
+        else if (isGlass)
+        {
+            mat = Material::makeGlass(indexOfRefraction);
+        }
         else
+        {
             mat = Material::makeDiffuse(diffuse);
+        }
+
+        if (wantsSpatialChecker)
+        {
+            mat.useSpatialChecker = true;
+            mat.spatialCheckerCellSize = spatialCheckerCellSize;
+            mat.spatialCheckerReduceContrast = spatialCheckerReduceContrast;
+        }
 
         mat.uuid = materialPath;
 
@@ -475,6 +546,8 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         VtVec3fArray points;
         VtIntArray faceVertexIndices;
         VtIntArray faceVertexCounts;
+        VtVec2fArray faceVaryingUVs;
+        bool hasUVs = false;
 
         if (isMesh)
         {
@@ -506,6 +579,21 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
             faceVertexIndices = faceIndicesVal.Get<VtIntArray>();
             faceVertexCounts = faceCountsVal.Get<VtIntArray>();
+
+            // Logic to read UV faces
+            UsdGeomPrimvar stPrimvar = UsdGeomPrimvarsAPI(prim).GetPrimvar(TfToken("st"));
+
+            if (stPrimvar.IsDefined())
+            {
+                VtValue stValue;
+                stPrimvar.Get(&stValue, UsdTimeCode::Default());
+
+                if (stValue.IsHolding<VtVec2fArray>())
+                {
+                    faceVaryingUVs = stValue.UncheckedGet<VtVec2fArray>();
+                    hasUVs = (faceVaryingUVs.size() == faceVertexIndices.size());
+                }
+            }
         }
         else if (isCube)
         {
@@ -594,6 +682,11 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         for (int count : faceVertexCounts)
         {
             triangulateFace(faceVertexIndices, indexPos, count, mesh.triangleIndices);
+
+            if (hasUVs)
+                triangulateFaceUVs(faceVaryingUVs, indexPos, count, mesh.triangleUVsU,
+                                   mesh.triangleUVsV);
+
             indexPos += count;
         }
 

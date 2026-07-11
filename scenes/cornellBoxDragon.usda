@@ -1,0 +1,219 @@
+#usda 1.0
+(
+    defaultPrim = "CornellBoxDragon"
+    upAxis = "Y"
+    doc = "Cornell Box variant: dragon replaces the tall box, teapot on the short box, glass window in the green wall."
+)
+
+def Xform "CornellBoxDragon"
+{
+    def "CornellBox" (
+        prepend references = @cornellBox.usda@
+    )
+    {
+        # Remove the six tall-box wall meshes
+        over "TallBox_Bottom" (active = false) {}
+        over "TallBox_Top" (active = false) {}
+        over "TallBox_Front" (active = false) {}
+        over "TallBox_Back" (active = false) {}
+        over "TallBox_Left" (active = false) {}
+        over "TallBox_Right" (active = false) {}
+
+        # Lower the ceiling light intensity
+        over "Materials"
+        {
+            over "LightMaterial"
+            {
+                over "Shader"
+                {
+                    color3f inputs:emissiveColor = (12.0, 12.0, 12.0)
+                }
+            }
+        }
+
+        # Modify the small-box dimensions
+        over "ShortBox_Bottom"
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        over "ShortBox_Top"
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        over "ShortBox_Front"
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        over "ShortBox_Back"
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        over "ShortBox_Left"
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        over "ShortBox_Right"
+        {
+            double3 xformOp:translate = (1.6, 0, -0.14)
+            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        }
+
+        # Cut a window into the green wall
+        over "RightWall" (active = false) {}
+
+        def Mesh "RightWall_Top" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            point3f[] points = [(5, 7, -10), (5, 10, -10), (5, 10, 5), (5, 7, 5)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            uniform token orientation = "rightHanded"
+            rel material:binding = </CornellBoxDragon/CornellBox/Materials/GreenMaterial>
+        }
+
+        def Mesh "RightWall_Bottom" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            point3f[] points = [(5, 0, -10), (5, 3, -10), (5, 3, 5), (5, 0, 5)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            uniform token orientation = "rightHanded"
+            rel material:binding = </CornellBoxDragon/CornellBox/Materials/GreenMaterial>
+        }
+
+        def Mesh "RightWall_Left" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            point3f[] points = [(5, 3, -10), (5, 7, -10), (5, 7, -2), (5, 3, -2)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            uniform token orientation = "rightHanded"
+            rel material:binding = </CornellBoxDragon/CornellBox/Materials/GreenMaterial>
+        }
+
+        def Mesh "RightWall_Right" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            point3f[] points = [(5, 3, 2), (5, 7, 2), (5, 7, 5), (5, 3, 5)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            uniform token orientation = "rightHanded"
+            rel material:binding = </CornellBoxDragon/CornellBox/Materials/GreenMaterial>
+        }
+    }
+
+    def Xform "Dragon" (
+        prepend references = @scenes/objects/dragon_uv.usda@
+    )
+    {
+        double3 xformOp:translate = (-0.8, 0, 2.3)
+        double3 xformOp:scale = (0.05, 0.05, 0.05)
+        float xformOp:rotateY = 140
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale", "xformOp:rotateY"]
+
+        over "Dragon" (apiSchemas = ["MaterialBindingAPI"])
+        {
+            rel material:binding = </CornellBoxDragon/Materials/DragonChecker>
+        }
+    }
+
+    def Xform "Teapot" (
+        prepend references = @scenes/objects/teapot.usda@
+    )
+    {
+        double3 xformOp:translate = (2.60885, 4.8, -1.0)
+        double3 xformOp:scale = (0.5, 0.5, 0.5)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+    }
+
+    def Scope "Materials"
+    {
+        def Material "WindowGlass"
+        {
+            token outputs:surface.connect = </CornellBoxDragon/Materials/WindowGlass/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                float inputs:ior = 1.5
+                token outputs:surface
+            }
+        }
+
+        def Material "ExteriorLight"
+        {
+            token outputs:surface.connect = </CornellBoxDragon/Materials/ExteriorLight/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                color3f inputs:emissiveColor = (400.0, 400.0, 420.0)
+                float inputs:roughness = 1.0
+                float inputs:spotOuterAngle = 45
+                float inputs:spotFalloffAngle = 30
+                token outputs:surface
+            }
+        }
+
+        def Material "DragonChecker"
+        {
+            token outputs:surface.connect = </CornellBoxDragon/Materials/DragonChecker/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                float inputs:roughness = 0.7
+                bool inputs:spatialChecker = true
+                float inputs:spatialCheckerCellSize = 0.5
+                float inputs:spatialCheckerReduceContrast = 0.25
+                token outputs:surface
+            }
+        }
+    }
+
+    def Mesh "WindowPane" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(5, 3, -2), (5, 7, -2), (5, 7, 2), (5, 3, 2)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </CornellBoxDragon/Materials/WindowGlass>
+    }
+
+    def Mesh "ExteriorLight" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        # Light at (11,13,-3), aimed at new window center (5,5,0)
+        point3f[] points = [
+            (11.0000, 13.0000, -3.0000),
+            (10.7317, 13.0000, -3.5367), (10.5195, 13.2726, -3.2341),
+            (10.5888, 13.3855, -2.7944), (10.8990, 13.2726, -2.4751),
+            (11.2683, 13.0000, -2.4633), (11.4805, 12.7274, -2.7659),
+            (11.4112, 12.6145, -3.2056), (11.1010, 12.7274, -3.5249)
+        ]
+        int[] faceVertexCounts = [3, 3, 3, 3, 3, 3, 3, 3]
+        int[] faceVertexIndices = [
+            0, 2, 1,
+            0, 3, 2,
+            0, 4, 3,
+            0, 5, 4,
+            0, 6, 5,
+            0, 7, 6,
+            0, 8, 7,
+            0, 1, 8
+        ]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </CornellBoxDragon/Materials/ExteriorLight>
+    }
+}

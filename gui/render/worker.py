@@ -22,6 +22,7 @@ class RenderWorker(QThread):
         renderer_path: str,
         scene_path: str,
         output_path: str,
+        camera_path: str,
         width: int = 600,
         height: int = 600,
         denoise: bool = False,
@@ -32,6 +33,7 @@ class RenderWorker(QThread):
         self.renderer_path = Path(renderer_path)
         self.scene_path = scene_path
         self.output_path = output_path
+        self.camera_path = camera_path
         self.width = width
         self.height = height
         self.denoise = denoise
@@ -75,6 +77,9 @@ class RenderWorker(QThread):
             "--height",
             str(self.height),
         ]
+
+        if self.camera_path:
+            cmd.append(self.camera_path)
 
         if self.denoise:
             cmd.append("--denoise")

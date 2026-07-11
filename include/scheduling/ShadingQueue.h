@@ -27,6 +27,9 @@ struct ShadingQueue
     std::vector<float> hitNormalsY;
     std::vector<float> hitNormalsZ;
     std::vector<float> hitDistances;
+    std::vector<float> hitU;
+    std::vector<float> hitV;
+    std::vector<int> hitTriangleIndex;
 
     std::vector<int> materialIDs;
     std::vector<int> textureIDs;
@@ -57,6 +60,9 @@ struct ShadingQueue
         hitNormalsY.push_back(hit.normal.y);
         hitNormalsZ.push_back(hit.normal.z);
         hitDistances.push_back(hit.distance);
+        hitU.push_back(hit.u);
+        hitV.push_back(hit.v);
+        hitTriangleIndex.push_back(hit.triangleIndex);
         materialIDs.push_back(hit.materialID);
         textureIDs.push_back(hit.textureID);
 
@@ -121,6 +127,9 @@ struct ShadingQueue
         record.point = Point3(hitPointsX[i], hitPointsY[i], hitPointsZ[i]);
         record.normal = Vec3(hitNormalsX[i], hitNormalsY[i], hitNormalsZ[i]);
         record.distance = hitDistances[i];
+        record.u = hitU[i];
+        record.v = hitV[i];
+        record.triangleIndex = hitTriangleIndex[i];
         record.materialID = materialIDs[i];
         record.textureID = textureIDs[i];
 
@@ -168,6 +177,9 @@ struct ShadingQueue
         hitNormalsY.clear();
         hitNormalsZ.clear();
         hitDistances.clear();
+        hitU.clear();
+        hitV.clear();
+        hitTriangleIndex.clear();
         materialIDs.clear();
         textureIDs.clear();
         originsX.clear();
@@ -218,6 +230,9 @@ struct ShadingQueue
         permuteArray(hitNormalsY);
         permuteArray(hitNormalsZ);
         permuteArray(hitDistances);
+        permuteArray(hitU);
+        permuteArray(hitV);
+        permuteArray(hitTriangleIndex);
         permuteArray(materialIDs);
         permuteArray(textureIDs);
         permuteArray(originsX);

@@ -11,7 +11,8 @@ enum class MaterialType
     Diffuse,
     Metal,
     Emissive,
-    SpotLight
+    SpotLight,
+    Glass
 };
 
 struct Material
@@ -27,11 +28,20 @@ struct Material
     float spotOuterAngle;
     float spotFalloffAngle;
 
+    // Glass ior
+    float indexOfRefraction = 1.5f;
+
+    // Checker
+    bool useSpatialChecker = false;
+    float spatialCheckerCellSize = 1.0f;
+    float spatialCheckerReduceContrast = 0.25f;
+
     static Material makeDiffuse(const Color& albedo, int textureID = -1);
     static Material makeMetal(const Color& albedo, float roughness, int textureID = -1);
     static Material makeEmissive(const Color& albedo, float strength);
     static Material makeSpotLight(const Color& albedo, float strength, float spotOuterAngleDeg,
                                   float spotFalloffAngleDeg);
+    static Material makeGlass(float ior);
 
     Color getSurfaceColor(const HitRecord& record, const std::vector<Texture>& textures) const;
 
