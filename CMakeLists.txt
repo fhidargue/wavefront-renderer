@@ -56,24 +56,25 @@ endif()
 # Main packages
 find_package(embree 4 REQUIRED)
 
-if(APPLE)
-    find_package(GTest REQUIRED)
-    find_package(OpenImageIO REQUIRED)
-    find_package(OpenImageDenoise REQUIRED)
-else()
-    find_package(GTest REQUIRED
-        HINTS $ENV{HOME}/deps/lib64/cmake/GTest
-        NO_DEFAULT_PATH
-    )
-    find_package(OpenImageIO REQUIRED
-        HINTS $ENV{HOME}/deps/lib64/cmake/OpenImageIO
-        NO_DEFAULT_PATH
-    )
-    find_package(OpenImageDenoise REQUIRED
-        HINTS $ENV{HOME}/deps
-        NO_DEFAULT_PATH
-    )
+if(NOT APPLE)
+    # Force these to the lab machine's from-source builds, bypassing any
+    # inherited/injected search paths (e.g. shared vcpkg) that keep winning
+    # over CMAKE_PREFIX_PATH ordering. Guarded by EXISTS so CI (no ~/deps)
+    # falls through to its own normal find_package search untouched.
+    if(EXISTS "$ENV{HOME}/deps/lib64/cmake/GTest")
+        set(GTest_DIR "$ENV{HOME}/deps/lib64/cmake/GTest" CACHE PATH "" FORCE)
+    endif()
+    if(EXISTS "$ENV{HOME}/deps/lib64/cmake/OpenImageIO")
+        set(OpenImageIO_DIR "$ENV{HOME}/deps/lib64/cmake/OpenImageIO" CACHE PATH "" FORCE)
+    endif()
+    if(EXISTS "$ENV{HOME}/deps/lib64/cmake/OpenImageDenoise")
+        set(OpenImageDenoise_DIR "$ENV{HOME}/deps/lib64/cmake/OpenImageDenoise" CACHE PATH "" FORCE)
+    endif()
 endif()
+
+find_package(GTest REQUIRED)
+find_package(OpenImageIO REQUIRED)
+find_package(OpenImageDenoise REQUIRED)
 
 if(TARGET GTest::gtest)
     set(GTEST_LIBS GTest::gtest GTest::gtest_main)
