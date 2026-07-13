@@ -57,10 +57,6 @@ endif()
 find_package(embree 4 REQUIRED)
 
 if(NOT APPLE)
-    # Force these to the lab machine's from-source builds, bypassing any
-    # inherited/injected search paths (e.g. shared vcpkg) that keep winning
-    # over CMAKE_PREFIX_PATH ordering. Guarded by EXISTS so CI (no ~/deps)
-    # falls through to its own normal find_package search untouched.
     if(EXISTS "$ENV{HOME}/deps/lib64/cmake/GTest")
         set(GTest_DIR "$ENV{HOME}/deps/lib64/cmake/GTest" CACHE PATH "" FORCE)
     endif()
