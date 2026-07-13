@@ -53,10 +53,27 @@ else()
     set(USD_LIBS "")
 endif()
 
+# Main packages
 find_package(embree 4 REQUIRED)
-find_package(GTest REQUIRED)
-find_package(OpenImageIO REQUIRED)
-find_package(OpenImageDenoise REQUIRED)
+
+if(APPLE)
+    find_package(GTest REQUIRED)
+    find_package(OpenImageIO REQUIRED)
+    find_package(OpenImageDenoise REQUIRED)
+else()
+    find_package(GTest REQUIRED
+        HINTS $ENV{HOME}/deps/lib64/cmake/GTest
+        NO_DEFAULT_PATH
+    )
+    find_package(OpenImageIO REQUIRED
+        HINTS $ENV{HOME}/deps/lib64/cmake/OpenImageIO
+        NO_DEFAULT_PATH
+    )
+    find_package(OpenImageDenoise REQUIRED
+        HINTS $ENV{HOME}/deps
+        NO_DEFAULT_PATH
+    )
+endif()
 
 if(TARGET GTest::gtest)
     set(GTEST_LIBS GTest::gtest GTest::gtest_main)
