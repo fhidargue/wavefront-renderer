@@ -79,23 +79,67 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
 
     const int pixelCount = image.width * image.height;
     double totalShadeOnlyMs = 0.0;
+    double totalRaySortMs = 0.0;
+    double totalIntersectMs = 0.0;
 
     vector<Color> accumulator(pixelCount, Color(0.0f, 0.0f, 0.0f));
+    vector<Color> accumulatorBeforeSample(pixelCount, Color(0.0f, 0.0f, 0.0f));
+    AdaptiveSampler adaptiveSampler(pixelCount, adaptiveSamplingThreshold);
+
+    // Writes each pixel as its own accumulated total divided by its own sample count
+    auto writeAveragedImage = [&](int samplesCompleted)
+    {
+        for (int i = 0; i < pixelCount; ++i)
+        {
+            int sampleCountForPixel =
+                enableAdaptiveSampling ? adaptiveSampler.getSampleCount(i) : samplesCompleted;
+            sampleCountForPixel = std::max(sampleCountForPixel, 1);
+
+            image.pixels[i] = accumulator[i] / static_cast<float>(sampleCountForPixel);
+        }
+    };
+
+    int samplesActuallyRun = samplesPerPixel;
 
     for (int sample = 0; sample < samplesPerPixel; ++sample)
     {
+        if (enableAdaptiveSampling)
+            accumulatorBeforeSample = accumulator;
+
         RayQueue currentQueue;
-        generatePrimaryRays(camera, image.width, image.height, currentQueue);
+
+        if (enableAdaptiveSampling)
+            generatePrimaryRays(camera, image.width, image.height, currentQueue,
+                                &adaptiveSampler.pixelActive);
+        else
+            generatePrimaryRays(camera, image.width, image.height, currentQueue);
 
         for (int depth = 0; depth < maxDepth; ++depth)
         {
             if (currentQueue.empty())
                 break;
 
+            if (enableRaySort)
+            {
+                auto raySortStart = std::chrono::high_resolution_clock::now();
+                currentQueue.schedule(scene.boundsMin, scene.boundsMax);
+                currentQueue.materialize();
+                auto raySortEnd = std::chrono::high_resolution_clock::now();
+
+                totalRaySortMs +=
+                    std::chrono::duration<double, std::milli>(raySortEnd - raySortStart).count();
+            }
+
             ShadingQueue shadingQueue(policy);
             RayQueue missQueue;
 
+            auto intersectStart = std::chrono::high_resolution_clock::now();
             intersectAll(currentQueue, scene, shadingQueue, missQueue);
+            auto intersectEnd = std::chrono::high_resolution_clock::now();
+
+            totalIntersectMs +=
+                std::chrono::duration<double, std::milli>(intersectEnd - intersectStart).count();
+
             shadingQueue.schedule();
             shadingQueue.materialize();
 
@@ -121,16 +165,40 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
             currentQueue = nextQueue;
         }
 
+        if (enableAdaptiveSampling)
+        {
+            for (int pixelIndex = 0; pixelIndex < pixelCount; ++pixelIndex)
+            {
+                if (!adaptiveSampler.isActive(pixelIndex))
+                    continue;
+
+                Color sampleContribution =
+                    accumulator[pixelIndex] - accumulatorBeforeSample[pixelIndex];
+                adaptiveSampler.addSample(pixelIndex, luminance(sampleContribution));
+            }
+
+            bool isCheckSample =
+                (sample + 1) % AdaptiveSamplingConstants::convergenceCheckInterval == 0;
+
+            if (isCheckSample)
+            {
+                adaptiveSampler.updateConvergence();
+
+                if (adaptiveSampler.activePixelCount() == 0)
+                {
+                    samplesActuallyRun = sample + 1;
+                    break;
+                }
+            }
+        }
+
         // Write preview EXR every progressInterval samples
         // Python UI polls this file and updates the display
         if (!previewPath.empty() && progressInterval > 0 && (sample + 1) % progressInterval == 0)
         {
             int samplesCompleted = sample + 1;
 
-            // Average accumulator into image pixels
-            for (int i = 0; i < pixelCount; ++i)
-                image.pixels[i] = accumulator[i] / static_cast<float>(samplesCompleted);
-
+            writeAveragedImage(samplesCompleted);
             image.write(previewPath, enableSampleLogging);
 
             if (!enableSampleLogging)
@@ -142,8 +210,33 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     }
 
     // Final image write with gamma correction
-    for (int i = 0; i < pixelCount; ++i)
-        image.pixels[i] = accumulator[i] / static_cast<float>(samplesPerPixel);
+    writeAveragedImage(samplesActuallyRun);
+
+    double totalPipelineMs = totalRaySortMs + totalIntersectMs + totalShadeOnlyMs;
+    double sortOverheadPercent =
+        (totalPipelineMs > 0.0) ? (totalRaySortMs / totalPipelineMs) * 100.0 : 0.0;
+
+    if (enableRaySort)
+    {
+        printStatsBlock("Ray Sort Stats",
+                        {
+                            "Total ray sort time (ms)  : " + to_string(totalRaySortMs),
+                            "Total intersect time (ms) : " + to_string(totalIntersectMs),
+                            "Total shade time (ms)     : " + to_string(totalShadeOnlyMs),
+                            "Sort overhead (% of pipeline) : " + to_string(sortOverheadPercent),
+                        });
+    }
+
+    if (enableAdaptiveSampling)
+    {
+        printStatsBlock(
+            "Adaptive Sampling Stats",
+            {
+                "Samples budgeted           : " + to_string(samplesPerPixel),
+                "Samples actually run       : " + to_string(samplesActuallyRun),
+                "Pixels still active at end : " + to_string(adaptiveSampler.activePixelCount()),
+            });
+    }
 
     // Print material and texture cost stats
     vector<string> materialNames;
@@ -174,7 +267,8 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
 }
 
 void WavefrontRenderer::generatePrimaryRays(const Camera& camera, int width, int height,
-                                            RayQueue& outputQueue)
+                                            RayQueue& outputQueue,
+                                            const std::vector<bool>* activePixels)
 {
     // Thread local ray buffer creation
     tbb::combinable<RayQueue> threadLocalQueues;
@@ -188,12 +282,17 @@ void WavefrontRenderer::generatePrimaryRays(const Camera& camera, int width, int
                           {
                               for (int x = 0; x < width; ++x)
                               {
+                                  int pixelIndex = y * width + x;
+
+                                  if (activePixels && !(*activePixels)[pixelIndex])
+                                      continue;
+
                                   float u = (static_cast<float>(x) + randomFloat()) / (width - 1);
                                   float v =
                                       1.0f - (static_cast<float>(y) + randomFloat()) / (height - 1);
 
                                   Ray ray = camera.getRay(u, v);
-                                  local.addPrimary(ray, y * width + x);
+                                  local.addPrimary(ray, pixelIndex);
                               }
                           }
                       });
@@ -547,7 +646,7 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 
                         float survivalProbability = baseSurvivalProbability;
 
-                        if (useCostAwareRR)
+                        if (enableCostAwareRR)
                         {
                             float relativeCost = static_cast<float>(
                                 materialCostTracker.relativeCost(record.materialID));

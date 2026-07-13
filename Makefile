@@ -1,4 +1,5 @@
 BUILD_DIR = build
+VENV_DIR = .venv
 WIDTH ?= 600
 HEIGHT ?= 600
 COST_RR ?= 1
@@ -35,7 +36,7 @@ build:
 	@ninja -C $(BUILD_DIR)
 
 clean:
-	@rm -rf $(BUILD_DIR)
+	@rm -rf $(BUILD_DIR) $(VENV_DIR)
 
 rebuild: clean build
 
@@ -79,5 +80,5 @@ golden-render: build
 		scenes/cameras/cornellBoxCamera.usda \
 		--quiet --width $(WIDTH) --height $(HEIGHT) \
 		--samples $(GOLDEN_SAMPLES) --max-depth $(GOLDEN_MAX_DEPTH) \
-		--policy none --no-cost-rr \
+		--policy none --no-cost-rr --no-ray-sort \
 		--progress-interval $(GOLDEN_PROGRESS_INTERVAL)

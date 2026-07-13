@@ -303,3 +303,78 @@ TEST(WavefrontRendererTest, RussianRouletteDoesNotFireBeforeMinDepth)
     // With RR disabled all pixels should receive some light
     EXPECT_EQ(litPixels, width * height);
 }
+
+// Ray sorting
+
+TEST(WavefrontRendererTest, EnableRaySortDefaultsToTrue)
+{
+    WavefrontRenderer renderer(16, 4, SchedulingPolicy::None);
+
+    EXPECT_TRUE(renderer.enableRaySort);
+}
+
+TEST(WavefrontRendererTest, DisablingRaySortStillProducesValidRender)
+{
+    const int width = 16;
+    const int height = 16;
+
+    Scene scene = buildTestScene();
+    Camera camera = buildTestCamera(width, height);
+    Image image(width, height);
+
+    std::srand(42);
+    WavefrontRenderer renderer(2, 2, SchedulingPolicy::None);
+    renderer.enableRaySort = false;
+    renderer.renderScene(scene, camera, image);
+
+    int blackPixelCount = 0;
+    for (int y = 0; y < height; ++y)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            Color pixel = image.pixels[y * width + x];
+
+            if (pixel.x == 0.0f && pixel.y == 0.0f && pixel.z == 0.0f)
+                ++blackPixelCount;
+        }
+    }
+
+    EXPECT_LT(blackPixelCount, (width * height) / 2);
+}
+
+TEST(WavefrontRendererTest, RaySortDoesNotChangeImageBrightnessSignificantly)
+{
+    const int width = 16;
+    const int height = 16;
+
+    Scene scene = buildTestScene();
+    Camera camera = buildTestCamera(width, height);
+
+    Image imageSorted(width, height);
+    Image imageUnsorted(width, height);
+
+    WavefrontRenderer sortedRenderer(256, 4, SchedulingPolicy::None);
+    sortedRenderer.renderScene(scene, camera, imageSorted);
+
+    WavefrontRenderer unsortedRenderer(256, 4, SchedulingPolicy::None);
+    unsortedRenderer.enableRaySort = false;
+    unsortedRenderer.renderScene(scene, camera, imageUnsorted);
+
+    float sortedBrightness = 0.0f;
+    float unsortedBrightness = 0.0f;
+
+    for (int i = 0; i < width * height; ++i)
+    {
+        sortedBrightness +=
+            (imageSorted.pixels[i].x + imageSorted.pixels[i].y + imageSorted.pixels[i].z) / 3.0f;
+
+        unsortedBrightness +=
+            (imageUnsorted.pixels[i].x + imageUnsorted.pixels[i].y + imageUnsorted.pixels[i].z) /
+            3.0f;
+    }
+
+    sortedBrightness /= static_cast<float>(width * height);
+    unsortedBrightness /= static_cast<float>(width * height);
+
+    EXPECT_NEAR(sortedBrightness, unsortedBrightness, sortedBrightness * 0.15f);
+}

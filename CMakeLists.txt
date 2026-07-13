@@ -115,6 +115,7 @@ add_executable(tests
     tests/math/Vec3Test.cpp
     tests/core/RayTest.cpp
     tests/core/EnvironmentMapTest.cpp
+    tests/core/SceneTest.cpp
     tests/geometry/TriangleTest.cpp
     tests/geometry/SphereTest.cpp
     tests/scheduling/RayQueueTest.cpp
@@ -123,6 +124,7 @@ add_executable(tests
     tests/accelerator/EmbreeTest.cpp
     tests/render/WavefrontRendererTest.cpp
     tests/render/CostTrackerTest.cpp
+    tests/render/AdaptiveSamplerTest.cpp
     tests/shading/MaterialFeaturesTest.cpp
     ${RENDERER_SOURCES}
 )

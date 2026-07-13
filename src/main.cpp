@@ -41,7 +41,14 @@ int main(int argc, char* argv[])
     int imageHeight = -1;
     float fireflyThresholdOverride = -1.0f;
     bool denoiseEnabled = false;
-    bool useCostAwareRR = true;
+    bool enableCostAwareRR = true;
+
+    // Adaptive sampling
+    bool enableAdaptiveSampling = true;
+    float adaptiveThresholdOverride = -1.0f;
+
+    // TODO: turn on on havier scene
+    bool enableRaySort = false;
     bool quiet = false;
     string policyName;
     string environmentMapPath;
@@ -62,7 +69,11 @@ int main(int argc, char* argv[])
         else if (arg == "--denoise")
             denoiseEnabled = true;
         else if (arg == "--no-cost-rr")
-            useCostAwareRR = false;
+            enableCostAwareRR = false;
+        else if (arg == "--no-ray-sort")
+            enableRaySort = false;
+        else if (arg == "--no-adaptive")
+            enableAdaptiveSampling = false;
         else if (arg == "--quiet")
             quiet = true;
         else if (arg == "--env" && hasValue())
@@ -145,9 +156,14 @@ int main(int argc, char* argv[])
     string previewPath = derivePreviewPath(outputPath);
 
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, policy);
-    renderer.useCostAwareRR = useCostAwareRR;
+    renderer.enableCostAwareRR = enableCostAwareRR;
+    renderer.enableRaySort = enableRaySort;
+    renderer.enableAdaptiveSampling = enableAdaptiveSampling;
     renderer.environmentMapPath = environmentMapPath;
     renderer.enableSampleLogging = quiet;
+
+    if (adaptiveThresholdOverride > 0.0f)
+        renderer.adaptiveSamplingThreshold = adaptiveThresholdOverride;
 
     if (fireflyThresholdOverride > 0.0f)
         renderer.fireflyThreshold = fireflyThresholdOverride;

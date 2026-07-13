@@ -8,6 +8,7 @@
 #include <scheduling/RayQueue.h>
 #include <scheduling/ShadingQueue.h>
 #include <render/CostTracker.h>
+#include <render/AdaptiveSampler.h>
 
 // Called every N samples during rendering with current progress
 using ProgressCallback = std::function<void(int currentSample, int totalSamples)>;
@@ -25,7 +26,10 @@ class WavefrontRenderer
     // Set an empty environment map variable in case we want an HDRI
     std::string environmentMapPath;
     bool enableSampleLogging = true;
-    bool useCostAwareRR = true;
+    bool enableCostAwareRR = true;
+    bool enableRaySort = true;
+    bool enableAdaptiveSampling = true;
+    float adaptiveSamplingThreshold = AdaptiveSamplingConstants::defaultRelativeThreshold;
     float fireflyThreshold = 10.0f;
 
     WavefrontRenderer(int samples, int maxDepth, SchedulingPolicy policy, int rrMinDepth = 3)
@@ -42,7 +46,8 @@ class WavefrontRenderer
     CostTracker textureCostTracker{0};
     EnvironmentMap environmentMap;
 
-    void generatePrimaryRays(const Camera& camera, int width, int height, RayQueue& queue);
+    void generatePrimaryRays(const Camera& camera, int width, int height, RayQueue& queue,
+                             const std::vector<bool>* activePixels = nullptr);
     void intersectAll(const RayQueue& inputQueue, const Scene& scene,
                       ShadingQueue& outputShadingQueue, RayQueue& outputMissQueue);
     void shadeAll(ShadingQueue& shadingQueue, const Scene& scene, std::vector<Color>& accumulator,

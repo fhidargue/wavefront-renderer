@@ -83,6 +83,10 @@ struct Scene
     EmbreeAccelerator accelerator;
     bool acceleratorBuilt = false;
 
+    // Used to quantize ray origins for RayQueue's sort
+    Point3 boundsMin;
+    Point3 boundsMax;
+
     EnvironmentMap environmentMap;
     DirectionalLight directionalLight;
 
@@ -92,6 +96,7 @@ struct Scene
     void addMesh(const Mesh& mesh);
 
     void buildAccelerator();
+    void computeBounds();
 
     const Material& getMaterial(const HitRecord& record) const;
 
