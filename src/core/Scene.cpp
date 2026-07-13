@@ -1,7 +1,11 @@
 #include <core/Scene.h>
 #include <core/PrintUtils.h>
 #include <math/Random.h>
+#include <limits>
 
+using std::max;
+using std::min;
+using std::numeric_limits;
 using std::to_string;
 
 int Scene::addMaterial(const Material& material)
@@ -52,6 +56,26 @@ void Scene::addMesh(const Mesh& mesh)
     geometry.meshUUIDs.push_back(mesh.uuid);
 }
 
+void Scene::computeBounds()
+{
+    boundsMin = Point3(numeric_limits<float>::max(), numeric_limits<float>::max(),
+                       numeric_limits<float>::max());
+    boundsMax = Point3(numeric_limits<float>::lowest(), numeric_limits<float>::lowest(),
+                       numeric_limits<float>::lowest());
+
+    for (int i = 0; i < geometry.totalVertexCount(); ++i)
+    {
+        Point3 vertex = geometry.getVertex(i);
+
+        boundsMin.x = min(boundsMin.x, vertex.x);
+        boundsMin.y = min(boundsMin.y, vertex.y);
+        boundsMin.z = min(boundsMin.z, vertex.z);
+        boundsMax.x = max(boundsMax.x, vertex.x);
+        boundsMax.y = max(boundsMax.y, vertex.y);
+        boundsMax.z = max(boundsMax.z, vertex.z);
+    }
+}
+
 void Scene::buildAccelerator()
 {
     // Cache emissive mesh indices for fast NEE sampling
@@ -68,6 +92,9 @@ void Scene::buildAccelerator()
     // Run the total emissive area cache before multi threading
     totalEmissiveArea();
 
+    // Determine the Embree scene bounds
+    computeBounds();
+
     accelerator.build(*this);
 
     printStatsBlock("Embree BVH Stats",
@@ -76,6 +103,10 @@ void Scene::buildAccelerator()
                         "Total triangles   : " + to_string(accelerator.m_totalTriangles),
                         "Total vertices    : " + to_string(accelerator.m_totalVertices),
                         "BVH build time    : " + to_string(accelerator.m_buildTimeMs) + "ms",
+                        "Bounds min        : (" + to_string(boundsMin.x) + ", " +
+                            to_string(boundsMin.y) + ", " + to_string(boundsMin.z) + ")",
+                        "Bounds max        : (" + to_string(boundsMax.x) + ", " +
+                            to_string(boundsMax.y) + ", " + to_string(boundsMax.z) + ")",
                     });
 
     acceleratorBuilt = true;
