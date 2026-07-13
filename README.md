@@ -12,7 +12,7 @@
 A CPU-based wavefront path tracer investigating adaptive scheduling for coherent shading, built for the MSc thesis _"Adaptive Scheduling for Coherent Wavefront Rendering"_ (NCCA, Bournemouth University).
 
 <p align="center">
-  <img src="./output/cornellBoxDragon.png" width="600"><br>
+  <img src="./output/video/cornellDragon.gif" width="600"><br>
   <em>Cornell box dragon, 256spp</em>
 </p>
 
