@@ -5,6 +5,11 @@ COST_RR ?= 1
 ENV ?=
 KITCHEN_SET_PATH=$(HOME)/Downloads/Kitchen_set
 
+# Golden render settings
+GOLDEN_SAMPLES ?= 500000
+GOLDEN_MAX_DEPTH ?= 64
+GOLDEN_PROGRESS_INTERVAL ?= 5000
+
 export PXR_AR_DEFAULT_SEARCH_PATH := $(KITCHEN_SET_PATH)
 
 ifeq ($(COST_RR),0)
@@ -19,7 +24,7 @@ else
 ENV_FLAG =
 endif
 
-.PHONY: all build clean rebuild test cornell kitchen cornell-dragon preview preview-cornell-dragon preview-kitchen format
+.PHONY: all build clean rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format
 
 all: build
 
@@ -67,3 +72,12 @@ preview-kitchen: build
 format:
 	@find . -name "*.cpp" -o -name "*.h" | grep -v "/build/" | xargs clang-format -i
 	@ruff format .
+
+golden-render: build
+	@echo "Starting golden render: $(GOLDEN_SAMPLES) samples, depth $(GOLDEN_MAX_DEPTH), no scheduling, no cost-aware RR"
+	@./$(BUILD_DIR)/renderer scenes/cornellBoxDragon.usda output/cornellBoxDragon_golden.exr \
+		scenes/cameras/cornellBoxCamera.usda \
+		--quiet --width $(WIDTH) --height $(HEIGHT) \
+		--samples $(GOLDEN_SAMPLES) --max-depth $(GOLDEN_MAX_DEPTH) \
+		--policy none --no-cost-rr \
+		--progress-interval $(GOLDEN_PROGRESS_INTERVAL)

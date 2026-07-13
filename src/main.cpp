@@ -14,10 +14,12 @@
 #include <scene/UsdSceneLoader.h>
 #endif
 
+using std::cerr;
 using std::cout;
 using std::endl;
 using std::stoi;
 using std::string;
+using std::vector;
 
 static string derivePreviewPath(const string& outputPath)
 {
@@ -31,27 +33,31 @@ static string derivePreviewPath(const string& outputPath)
 
 int main(int argc, char* argv[])
 {
-    const int samplesPerPixel = 256;
-    const int maxBounceDepth = 8;
-    const int progressInterval = 4;
-    int imageWidth = 600;
-    int imageHeight = 600;
-
     // CLI flags
+    int samplesPerPixelOverride = -1;
+    int maxDepthOverride = -1;
+    int progressIntervalOverride = -1;
+    int imageWidth = -1;
+    int imageHeight = -1;
+    float fireflyThresholdOverride = -1.0f;
     bool denoiseEnabled = false;
     bool useCostAwareRR = true;
     bool quiet = false;
+    string policyName;
     string environmentMapPath;
 
     // Separate size flags from positional args
-    std::vector<string> positional;
+    vector<string> positional;
 
     for (int i = 1; i < argc; ++i)
     {
-        string arg = argv[i];
-        if (arg == "--width" && i + 1 < argc)
+        std::string_view arg = argv[i];
+
+        auto hasValue = [&]() { return i + 1 < argc; };
+
+        if (arg == "--width" && hasValue())
             imageWidth = std::stoi(argv[++i]);
-        else if (arg == "--height" && i + 1 < argc)
+        else if (arg == "--height" && hasValue())
             imageHeight = std::stoi(argv[++i]);
         else if (arg == "--denoise")
             denoiseEnabled = true;
@@ -59,17 +65,48 @@ int main(int argc, char* argv[])
             useCostAwareRR = false;
         else if (arg == "--quiet")
             quiet = true;
-        else if (arg == "--env" && i + 1 < argc)
+        else if (arg == "--env" && hasValue())
             environmentMapPath = argv[++i];
+        else if (arg == "--samples" && hasValue())
+            samplesPerPixelOverride = std::stoi(argv[++i]);
+        else if (arg == "--max-depth" && hasValue())
+            maxDepthOverride = std::stoi(argv[++i]);
+        else if (arg == "--policy" && hasValue())
+            policyName = argv[++i];
+        else if (arg == "--progress-interval" && hasValue())
+            progressIntervalOverride = std::stoi(argv[++i]);
+        else if (arg == "--firefly-threshold" && hasValue())
+            fireflyThresholdOverride = std::stof(argv[++i]);
         else
-            positional.push_back(arg);
+            positional.emplace_back(arg);
     }
+
+    // Rendering variables
+    int samplesPerPixel = (samplesPerPixelOverride > 0) ? samplesPerPixelOverride : 256;
+    int maxBounceDepth = (maxDepthOverride > 0) ? maxDepthOverride : 8;
+    int progressInterval = (progressIntervalOverride >= 0) ? progressIntervalOverride : 4;
+    imageWidth = (imageWidth > 0) ? imageWidth : 600;
+    imageHeight = (imageHeight > 0) ? imageHeight : 600;
 
     string usdFilePath = (positional.size() >= 1) ? positional[0] : "";
     string outputPath = (positional.size() >= 2) ? positional[1] : "output/cornellBox.exr";
     string cameraFile = (positional.size() >= 3) ? positional[2] : "";
 
     Scene scene;
+
+    // Scheduling policy selection
+    SchedulingPolicy policy = SchedulingPolicy::MaterialAware;
+
+    if (policyName == "none")
+        policy = SchedulingPolicy::None;
+    else if (policyName == "material")
+        policy = SchedulingPolicy::MaterialAware;
+    else if (policyName == "material-parallel")
+        policy = SchedulingPolicy::MaterialAwareParallel;
+    else if (policyName == "texture")
+        policy = SchedulingPolicy::TextureAware;
+    else if (!policyName.empty())
+        cerr << "WARNING: unknown --policy '" << policyName << "', using default" << endl;
 
     if (!usdFilePath.empty())
     {
@@ -107,10 +144,13 @@ int main(int argc, char* argv[])
     Image image(imageWidth, imageHeight);
     string previewPath = derivePreviewPath(outputPath);
 
-    WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, SchedulingPolicy::MaterialAware);
+    WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, policy);
     renderer.useCostAwareRR = useCostAwareRR;
     renderer.environmentMapPath = environmentMapPath;
     renderer.enableSampleLogging = quiet;
+
+    if (fireflyThresholdOverride > 0.0f)
+        renderer.fireflyThreshold = fireflyThresholdOverride;
 
     double shadingTimeMs =
         renderer.renderScene(scene, camera, image, previewPath, progressInterval);

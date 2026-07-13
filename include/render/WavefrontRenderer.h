@@ -26,6 +26,7 @@ class WavefrontRenderer
     std::string environmentMapPath;
     bool enableSampleLogging = true;
     bool useCostAwareRR = true;
+    float fireflyThreshold = 10.0f;
 
     WavefrontRenderer(int samples, int maxDepth, SchedulingPolicy policy, int rrMinDepth = 3)
         : samplesPerPixel(samples), maxDepth(maxDepth), policy(policy)

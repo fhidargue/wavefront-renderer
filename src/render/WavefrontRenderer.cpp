@@ -338,7 +338,6 @@ void WavefrontRenderer::intersectAll(const RayQueue& inputQueue, const Scene& sc
 void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                                  vector<Color>& accumulator, RayQueue& outputNextQueue)
 {
-    const float fireflyThreshold = 10.0f;
     const int workCount = shadingQueue.size();
     const int materialCount = static_cast<int>(scene.materials.size());
     const int textureCount = static_cast<int>(scene.textures.size());
