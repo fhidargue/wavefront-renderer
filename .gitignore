@@ -69,7 +69,6 @@ Testing/
 
 # render output
 output/*.ppm
-output/*.png
 output/*.exr
 build/
 
