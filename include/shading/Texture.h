@@ -14,10 +14,12 @@ using std::vector;
 
 struct Texture
 {
-    int width;
-    int height;
+    int width = 0;
+    int height = 0;
     vector<Color> pixels;
     std::string name;
+
+    Texture() = default;
 
     Texture(int width, int height)
         : width(width), height(height), pixels(width * height, Color(1.0f, 1.0f, 1.0f))
@@ -42,6 +44,9 @@ struct Texture
 
         return pixels[y * width + x];
     }
+
+    // Loads an image file
+    bool load(const std::string& filePath);
 };
 
 // Generates random noise textures for benchmarking

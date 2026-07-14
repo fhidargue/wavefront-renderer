@@ -1,4 +1,5 @@
 #include <core/EnvironmentMap.h>
+#include <core/ImageFileLoader.h>
 
 #include <cmath>
 #include <iostream>
@@ -12,28 +13,14 @@ using std::string;
 
 bool EnvironmentMap::load(const string& filePath)
 {
-    auto input = OIIO::ImageInput::open(filePath);
+    LoadedImageRGB image;
 
-    if (!input)
-    {
-        cerr << "WARNING: Could not open environment map: " << filePath << endl;
+    if (!loadImageRGB(filePath, image, "environment map"))
         return false;
-    }
 
-    const OIIO::ImageSpec& specification = input->spec();
-    width = specification.width;
-    height = specification.height;
-
-    // Read the RGB, no matter the source channel count or format
-    pixels.resize(static_cast<size_t>(width) * height * 3);
-    bool ok = input->read_image(0, 0, 0, 3, OIIO::TypeDesc::FLOAT, pixels.data());
-    input->close();
-
-    if (!ok)
-    {
-        cerr << "WARNING: Failed to read environment map pixels: " << filePath << endl;
-        return false;
-    }
+    width = image.width;
+    height = image.height;
+    pixels = std::move(image.pixels);
 
     loaded = true;
     cout << "Environment map loaded: " << filePath << " (" << width << "x" << height << ")" << endl;

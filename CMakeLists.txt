@@ -85,8 +85,10 @@ set(RENDERER_SOURCES
     src/core/Image.cpp
     src/core/Denoiser.cpp
     src/core/EnvironmentMap.cpp
+    src/core/ImageFileLoader.cpp
     src/geometry/Mesh.cpp
     src/shading/Material.cpp
+    src/shading/Texture.cpp
     src/render/WavefrontRenderer.cpp
     src/scene/CornellBox.cpp
     src/scene/CameraLoader.cpp
@@ -116,11 +118,13 @@ add_executable(tests
     tests/core/RayTest.cpp
     tests/core/EnvironmentMapTest.cpp
     tests/core/SceneTest.cpp
+    tests/core/ImageFileLoaderTest.cpp
     tests/geometry/TriangleTest.cpp
     tests/geometry/SphereTest.cpp
     tests/scheduling/RayQueueTest.cpp
     tests/scheduling/ShadingQueueTest.cpp
     tests/shading/MaterialTest.cpp
+    tests/shading/TextureTest.cpp
     tests/accelerator/EmbreeTest.cpp
     tests/render/WavefrontRendererTest.cpp
     tests/render/CostTrackerTest.cpp
