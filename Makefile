@@ -25,7 +25,7 @@ else
 ENV_FLAG =
 endif
 
-.PHONY: all build clean rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format
+.PHONY: all build clean clean-all rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format
 
 all: build
 
@@ -36,6 +36,9 @@ build:
 	@ninja -C $(BUILD_DIR)
 
 clean:
+	@rm -rf $(BUILD_DIR)
+
+clean-all:
 	@rm -rf $(BUILD_DIR) $(VENV_DIR)
 
 rebuild: clean build

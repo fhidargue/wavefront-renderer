@@ -3,6 +3,7 @@
 #include <shading/Material.h>
 #include <math/Vec3.h>
 #include <shading/Texture.h>
+#include <core/PrintUtils.h>
 
 #include <iostream>
 #include <unordered_map>
@@ -302,18 +303,17 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
         }
     }
 
-    cout << "\n========================================" << endl;
-    cout << "  Scene Summary" << endl;
-    cout << "========================================" << endl;
-    cout << "  File       : " << usdFilePath << endl;
-    cout << "  upAxis     : " << (isZUp ? "Z (corrected to Y)" : "Y") << endl;
-    cout << "  Materials  : " << scene.materials.size() << " (" << diffuseCount << " diffuse, "
-         << metalCount << " metal, " << emissiveCount << " emissive, " << spotLightCount
-         << " spotlight, " << glassCount << " glass, " << plasticCount << " plastic)" << endl;
-    cout << "  Textures   : " << scene.textures.size() << endl;
-    cout << "  Meshes     : " << scene.meshes.size() << endl;
-    cout << "  Triangles  : " << totalTriangles << endl;
-    cout << "========================================\n" << endl;
+    printStatsBlock("Scene Summary",
+                    {"File       : " + usdFilePath,
+                     "upAxis     : " + string(isZUp ? "Z (corrected to Y)" : "Y"),
+                     "Materials  : " + to_string(scene.materials.size()) + " (" +
+                         to_string(diffuseCount) + " diffuse, " + to_string(metalCount) +
+                         " metal, " + to_string(emissiveCount) + " emissive, " +
+                         to_string(spotLightCount) + " spotlight, " + to_string(glassCount) +
+                         " glass, " + to_string(plasticCount) + " plastic)",
+                     "Textures   : " + to_string(scene.textures.size()),
+                     "Meshes     : " + to_string(scene.meshes.size()),
+                     "Triangles  : " + to_string(totalTriangles)});
 }
 
 Scene UsdSceneLoader::load(const string& usdFilePath)
@@ -408,6 +408,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         Color diffuse(0.8f, 0.8f, 0.8f);
         Color emissiveColor(0.0f, 0.0f, 0.0f);
         float roughness = 1.0f;
+        int diffuseTextureID = -1;
 
         // Light source variables
         bool isEmissive = false;
@@ -454,6 +455,42 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
                 GfVec3f color;
                 if (diffuseInput.Get(&color, UsdTimeCode::Default()))
                     diffuse = Color(color[0], color[1], color[2]);
+
+                // Texture configuration for diffuse
+                UsdShadeConnectableAPI textureSource;
+                TfToken textureSourceName;
+                UsdShadeAttributeType textureSourceType;
+
+                if (UsdShadeConnectableAPI::GetConnectedSource(
+                        diffuseInput, &textureSource, &textureSourceName, &textureSourceType))
+                {
+                    UsdShadeShader textureShader(textureSource.GetPrim());
+                    TfToken textureShaderId;
+                    textureShader.GetIdAttr().Get(&textureShaderId, UsdTimeCode::Default());
+
+                    if (textureShaderId == TfToken("UsdUVTexture"))
+                    {
+                        UsdShadeInput fileInput = textureShader.GetInput(TfToken("file"));
+                        SdfAssetPath textureAsset;
+
+                        if (fileInput && fileInput.Get(&textureAsset, UsdTimeCode::Default()))
+                        {
+                            string resolvedTexturePath = textureAsset.GetResolvedPath();
+
+                            if (resolvedTexturePath.empty())
+                                resolvedTexturePath = textureAsset.GetAssetPath();
+
+                            Texture diffuseTexture;
+
+                            if (!resolvedTexturePath.empty() &&
+                                diffuseTexture.load(resolvedTexturePath))
+                            {
+                                diffuseTexture.name = materialPath + " (Diffuse Texture)";
+                                diffuseTextureID = scene.addTexture(diffuseTexture);
+                            }
+                        }
+                    }
+                }
             }
 
             UsdShadeInput roughnessInput = shader.GetInput(TfToken("roughness"));
@@ -538,15 +575,15 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         }
         else if (isMetal)
         {
-            mat = Material::makeMetal(diffuse, roughness);
+            mat = Material::makeMetal(diffuse, roughness, diffuseTextureID);
         }
         else if (isPlastic)
         {
-            mat = Material::makePlastic(diffuse, roughness);
+            mat = Material::makePlastic(diffuse, roughness, diffuseTextureID);
         }
         else
         {
-            mat = Material::makeDiffuse(diffuse);
+            mat = Material::makeDiffuse(diffuse, diffuseTextureID);
         }
 
         if (wantsSpatialChecker)
