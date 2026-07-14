@@ -73,6 +73,12 @@ output/*.png
 output/*.exr
 build/
 
+# textures
+scenes/textures/generated
+
+# stress scenes
+scenes/stress*.usda
+
 # debug symbols
 *.dSYM/
 

@@ -25,7 +25,7 @@ else
 ENV_FLAG =
 endif
 
-.PHONY: all build clean clean-all rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format
+.PHONY: all build clean clean-all rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-teapots stress-mixed preview-stress-teapots preview-stress-mixed
 
 all: build
 
@@ -85,3 +85,24 @@ golden-render: build
 		--samples $(GOLDEN_SAMPLES) --max-depth $(GOLDEN_MAX_DEPTH) \
 		--policy none --no-cost-rr --no-ray-sort \
 		--progress-interval $(GOLDEN_PROGRESS_INTERVAL)
+
+generate-stress-scenes:
+	@uv run scripts/generate_stress_scenes.py
+
+stress-teapots: build
+	@./$(BUILD_DIR)/renderer scenes/stressTestTeapots.usda output/stressTestTeapots.exr \
+		scenes/cameras/cornellBoxCamera.usda \
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+
+stress-mixed: build
+	@./$(BUILD_DIR)/renderer scenes/stressTestMixed.usda output/stressTestMixed.exr \
+		scenes/cameras/cornellBoxCamera.usda \
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+
+preview-stress-teapots: build
+	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestTeapots.usda output/stressTestTeapots.exr \
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
+
+preview-stress-mixed: build
+	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestMixed.usda output/stressTestMixed.exr \
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
