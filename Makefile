@@ -25,7 +25,7 @@ else
 ENV_FLAG =
 endif
 
-.PHONY: all build clean clean-all rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-teapots stress-mixed preview-stress-teapots preview-stress-mixed
+.PHONY: all build clean clean-all rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-dragons stress-mixed preview-stress-dragons preview-stress-mixed
 
 all: build
 
