@@ -17,7 +17,7 @@ FRACTAL_NOISE_BASE_GRID_SIZE = 4
 
 def _generate_fractal_noise_channel(size: int, rng: random.Random) -> np.ndarray:
     """
-    Generates a single-channel fractal (multi-octave) noise array by summing bicubic-upsampled 
+    Generates a single-channel fractal (multi-octave) noise array by summing bicubic-upsampled
     random lattices at decreasing amplitude.
 
     Args:
@@ -136,7 +136,7 @@ def generate_checker_texture(size: int, rng: random.Random) -> Image.Image:
 
 def generate_fractal_noise_texture(size: int, rng: random.Random) -> Image.Image:
     """
-    Generates a square RGB image by independently generating fractal noise for each 
+    Generates a square RGB image by independently generating fractal noise for each
     color channel and merging them.
 
     Args:
@@ -162,7 +162,7 @@ TEXTURE_GENERATORS = [
 
 def generate_unique_material_texture(material_name: str, rng: random.Random) -> str:
     """
-    Produces a texture for the given material, either by reusing an existing texture at random or by 
+    Produces a texture for the given material, either by reusing an existing texture at random or by
     generating a new one with a randomly chosen generator and size, and returns its relative path.
 
     Args:

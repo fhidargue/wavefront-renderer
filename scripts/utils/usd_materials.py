@@ -9,7 +9,7 @@ def add_materials_scope(
     stage: Usd.Stage, scope_path: str, materials: list[MaterialRecipe]
 ) -> dict:
     """
-    Defines a Scope of UsdPreviewSurface materials from the given recipes, wiring up textures 
+    Defines a Scope of UsdPreviewSurface materials from the given recipes, wiring up textures
     and kind-specific inputs (metallic, roughness, ior, checker), and returns a mapping from material name to its prim path.
 
     Args:

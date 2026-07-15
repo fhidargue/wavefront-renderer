@@ -33,7 +33,7 @@ class MaterialRecipe:
 
 def random_color(rng: random.Random) -> tuple:
     """
-    Generates a random RGB color tuple with each channel drawn uniformly 
+    Generates a random RGB color tuple with each channel drawn uniformly
     from COLOR_CHANNEL_RANGE.
 
     Args:
@@ -45,7 +45,7 @@ def random_color(rng: random.Random) -> tuple:
 
 def build_material_kind_sequence(count: int, rng: random.Random) -> list[str]:
     """
-    Builds a shuffled list of `count` material kind labels proportioned according 
+    Builds a shuffled list of `count` material kind labels proportioned according
     to MATERIAL_KIND_WEIGHTS.
 
     Args:
@@ -69,7 +69,7 @@ def build_material_kind_sequence(count: int, rng: random.Random) -> list[str]:
 
 def build_material_pool(count: int, rng: random.Random) -> list[MaterialRecipe]:
     """
-    Builds a pool of `count` MaterialRecipe instances spanning diffuse, metal, plastic, 
+    Builds a pool of `count` MaterialRecipe instances spanning diffuse, metal, plastic,
     glass, and checker kinds, generating textures for textured variants and reporting progress as it goes.
 
     Args:
