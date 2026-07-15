@@ -83,7 +83,7 @@ def Xform "CornellBoxDragon"
     }
 
     def Xform "Dragon" (
-        prepend references = @scenes/objects/dragon_uv.usda@
+        prepend references = @scenes/objects/dragon.usda@
     )
     {
         double3 xformOp:translate = (-0.8, 0, 2.3)

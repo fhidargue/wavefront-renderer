@@ -23,7 +23,6 @@ bool EnvironmentMap::load(const string& filePath)
     pixels = std::move(image.pixels);
 
     loaded = true;
-    cout << "Environment map loaded: " << filePath << " (" << width << "x" << height << ")" << endl;
 
     return true;
 }

@@ -25,7 +25,7 @@ else
 ENV_FLAG =
 endif
 
-.PHONY: all build clean clean-all rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format
+.PHONY: all build clean clean-all rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-dragons stress-mixed preview-stress-dragons preview-stress-mixed
 
 all: build
 
@@ -70,7 +70,7 @@ preview-cornell-dragon: build
 		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
 
 preview-kitchen: build
-	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) uv run python3 -m gui.main scenes/kitchenSet.usda \
+	@WIDTH=900 HEIGHT=700 PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) uv run python3 -m gui.main scenes/kitchenSet.usda \
 		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda --quiet --denoise $(ENV_FLAG)
 
 format:
@@ -85,3 +85,25 @@ golden-render: build
 		--samples $(GOLDEN_SAMPLES) --max-depth $(GOLDEN_MAX_DEPTH) \
 		--policy none --no-cost-rr --no-ray-sort \
 		--progress-interval $(GOLDEN_PROGRESS_INTERVAL)
+
+generate-stress-scenes:
+	@rm -rf scenes/textures/generated 
+	@uv run scripts/generate_stress_scenes.py
+
+stress-dragons: build
+	@./$(BUILD_DIR)/renderer scenes/stressTestDragons.usda output/stressTestDragons.exr \
+		scenes/cameras/cornellBoxCamera.usda \
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+
+stress-mixed: build
+	@./$(BUILD_DIR)/renderer scenes/stressTestMixed.usda output/stressTestMixed.exr \
+		scenes/cameras/cornellBoxCamera.usda \
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+
+preview-stress-dragons: build
+	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestDragons.usda output/stressTestDragons.exr \
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
+
+preview-stress-mixed: build
+	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestMixed.usda output/stressTestMixed.exr \
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
