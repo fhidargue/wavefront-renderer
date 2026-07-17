@@ -183,11 +183,6 @@ class RenderDisplay(QOpenGLWidget):
         self.has_image = True
         self.update()
 
-    def linear_to_srgb(pixels: np.ndarray) -> np.ndarray:
-        pixels = np.clip(pixels, 0.0, 1.0)
-
-        return np.power(pixels, 1.0 / 2.2).astype(np.float32)
-
     def _upload_pixels(self, pixels: np.ndarray):
         """
         Upload numpy array to GPU texture
@@ -213,6 +208,13 @@ class RenderDisplay(QOpenGLWidget):
             pixels.flatten(),
         )
         self.doneCurrent()
+
+    def clear(self):
+        """
+        Resets to a blank/black state
+        """
+        self.has_image = False
+        self.update()
 
     def paintGL(self):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)

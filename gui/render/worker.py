@@ -116,6 +116,14 @@ class RenderWorker(QThread):
                     continue
 
                 print(line)
+
+                # Strip the log noise
+                stripped = line.strip()
+                is_border_line = stripped and set(stripped) == {"="}
+
+                if is_border_line:
+                    continue
+
                 self.statusUpdate.emit(line)
 
             process.wait()

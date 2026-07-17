@@ -316,6 +316,28 @@ static void printSceneSummary(const string& usdFilePath, const Scene& scene, int
                      "Triangles  : " + to_string(totalTriangles)});
 }
 
+static string extractTextureSourceLabel(const string& path)
+{
+    size_t slash = path.find_last_of("/\\");
+    string filename = (slash == string::npos) ? path : path.substr(slash + 1);
+    size_t dot = filename.find_last_of('.');
+    if (dot != string::npos)
+        filename = filename.substr(0, dot);
+
+    // Filename has the texture label
+    if (filename == "wood" || filename == "fabric" || filename == "metal")
+        return filename;
+
+    // Name the generated textures
+    for (const string& pattern : {"noise", "checker", "stripe", "gradient", "fractalnoise"})
+    {
+        if (filename.find(pattern) != string::npos)
+            return "generated-" + pattern;
+    }
+
+    return "generated";
+}
+
 Scene UsdSceneLoader::load(const string& usdFilePath)
 {
     UsdStageRefPtr stage = UsdStage::Open(usdFilePath, UsdStage::LoadAll);
@@ -396,6 +418,9 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
     }
 
     // Extract materials
+    int texturesLoadedCount = 0;
+    int texturesAttemptedCount = 0;
+
     for (const UsdPrim& prim : stage->Traverse())
     {
 
@@ -409,6 +434,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         Color emissiveColor(0.0f, 0.0f, 0.0f);
         float roughness = 1.0f;
         int diffuseTextureID = -1;
+        string diffuseTextureSourcePath;
 
         // Light source variables
         bool isEmissive = false;
@@ -481,12 +507,16 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
                                 resolvedTexturePath = textureAsset.GetAssetPath();
 
                             Texture diffuseTexture;
+                            ++texturesAttemptedCount;
 
                             if (!resolvedTexturePath.empty() &&
                                 diffuseTexture.load(resolvedTexturePath))
                             {
-                                diffuseTexture.name = materialPath + " (Diffuse Texture)";
+                                diffuseTexture.name = materialPath;
                                 diffuseTextureID = scene.addTexture(diffuseTexture);
+                                diffuseTextureSourcePath = resolvedTexturePath;
+
+                                ++texturesLoadedCount;
                             }
                         }
                     }
@@ -593,9 +623,15 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
             Texture checkerPalette =
                 TextureGenerator::generateSpatialPalette(512, spatialCheckerReduceContrast);
-            checkerPalette.name = materialPath + " (Checker Palette)";
+            checkerPalette.name = materialPath + " | checker";
 
             mat.textureID = scene.addTexture(checkerPalette);
+        }
+
+        if (diffuseTextureID >= 0)
+        {
+            string sourceLabel = extractTextureSourceLabel(diffuseTextureSourcePath);
+            scene.textures[diffuseTextureID].name = materialPath + " | " + sourceLabel;
         }
 
         mat.uuid = materialPath;
@@ -603,6 +639,10 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
         int id = scene.addMaterial(mat);
         materialIndexMap[materialPath] = id;
     }
+
+    if (texturesAttemptedCount > 0)
+        cout << "Loading USD textures: " << texturesLoadedCount << "/" << texturesAttemptedCount
+             << endl;
 
     if (scene.materials.empty())
     {

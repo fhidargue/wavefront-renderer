@@ -479,6 +479,21 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
                 const Material& material = scene.getMaterial(record);
                 const bool shouldTimeThisRay = (randomFloat() < 0.25f);
 
+                // Texture cost tracking
+                if (shouldTimeThisRay && material.textureID >= 0)
+                {
+                    auto textureStart = std::chrono::high_resolution_clock::now();
+                    material.getSurfaceColor(record,
+                                             scene.textures); // result discarded - timing only
+                    auto textureEnd = std::chrono::high_resolution_clock::now();
+
+                    double textureCostNs =
+                        std::chrono::duration<double, std::nano>(textureEnd - textureStart).count();
+
+                    localTextureCostSum[material.textureID] += textureCostNs;
+                    localTextureCostCount[material.textureID] += 1;
+                }
+
                 // Accumulate emitted light
                 Color emitted = material.emitted(record.normal, incomingRay.direction * -1.0f);
 
@@ -533,27 +548,10 @@ void WavefrontRenderer::shadeAll(ShadingQueue& shadingQueue, const Scene& scene,
 
                             if (!shadowed)
                             {
-                                Color surfaceColor;
+                                Color surfaceColor =
+                                    material.getSurfaceColor(record, scene.textures);
                                 float geometry = (cosAtSurface * cosAtLight) /
                                                  (distanceToLight * distanceToLight);
-
-                                if (shouldTimeThisRay && material.textureID >= 0)
-                                {
-                                    auto textureStart = std::chrono::high_resolution_clock::now();
-                                    surfaceColor = material.getSurfaceColor(record, scene.textures);
-                                    auto textureEnd = std::chrono::high_resolution_clock::now();
-
-                                    double textureCostNs = std::chrono::duration<double, std::nano>(
-                                                               textureEnd - textureStart)
-                                                               .count();
-
-                                    localTextureCostSum[material.textureID] += textureCostNs;
-                                    localTextureCostCount[material.textureID] += 1;
-                                }
-                                else
-                                {
-                                    surfaceColor = material.getSurfaceColor(record, scene.textures);
-                                }
 
                                 Color brdf = surfaceColor * (1.0f / PI);
 

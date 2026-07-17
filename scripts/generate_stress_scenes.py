@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pxr import Usd, UsdGeom
 
-from constants import SCENES_DIR, SCENE_RANDOM_SEED, OBJECT_COUNT
+from constants import SCENES_DIR, OBJECT_COUNT
 from utils.materials import build_material_pool, MaterialRecipe
 from utils.textures import estimate_resident_texture_bytes
 from utils.usd_materials import add_materials_scope
@@ -124,7 +124,8 @@ def main():
     Args:
         None (parameters are drawn internally from constants and a seeded RNG).
     """
-    rng = random.Random(SCENE_RANDOM_SEED)
+    seed = random.SystemRandom().randrange(2**32)
+    rng = random.Random(seed)
 
     materials = build_material_pool(OBJECT_COUNT, rng)
     material_names_by_cell = [m.name for m in materials]

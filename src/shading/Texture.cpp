@@ -55,7 +55,6 @@ bool Texture::load(const string& filePath)
     }
 
     name = filePath;
-    cout << "Texture loaded: " << filePath << " (" << width << "x" << height << ")" << endl;
 
     return true;
 }
