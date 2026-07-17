@@ -7,11 +7,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QPushButton,
-    QStatusBar,
     QLabel,
     QProgressBar,
+    QSizePolicy,
 )
 from PySide6.QtCore import QTimer, Qt
+from PySide6.QtGui import QFontMetrics
 
 from gui.render.display import RenderDisplay
 from gui.render.worker import RenderWorker
@@ -88,10 +89,24 @@ class RenderWindow(QMainWindow):
         controls.addWidget(self.scene_label)
         layout.addLayout(controls)
 
-        # Status bar
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Press Render to start")
+        # Status row
+        status_row = QHBoxLayout()
+        status_row.setSpacing(6)
+
+        self.status_label = QLabel("Press Render to start")
+        self.status_label.setStyleSheet("color: grey; font-size: 12px;")
+        self.status_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+        self.status_label.setMinimumWidth(0)
+
+        self.progress_label = QLabel("")
+        self.progress_label.setStyleSheet("color: grey; font-size: 12px;")
+        self.progress_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        status_row.addWidget(self.status_label, 1)
+        status_row.addWidget(self.progress_label)
+        layout.addLayout(status_row)
 
         self.adjustSize()
 
@@ -115,9 +130,11 @@ class RenderWindow(QMainWindow):
 
         self.start_time = time.time()
         self.progress_bar.setValue(0)
+        self.display.clear()
         self.render_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
-        self.status_bar.showMessage("Rendering...")
+        self._set_status_text("Rendering...")
+        self.progress_label.setText("")
 
         self.worker = RenderWorker(
             renderer_path=self.renderer_path,
@@ -144,13 +161,23 @@ class RenderWindow(QMainWindow):
         self.poll_timer.stop()
         self._set_idle("Stopped")
 
+    def _set_status_text(self, text: str):
+        """
+        Elides long status text with '...' instead of letting it force
+        the window wider or get silently clipped
+        """
+        metrics = QFontMetrics(self.status_label.font())
+        elided = metrics.elidedText(
+            text, Qt.TextElideMode.ElideMiddle, self.status_label.width()
+        )
+        self.status_label.setText(elided)
+
     def _on_status_update(self, line: str):
         if line.strip():
-            self.status_bar.showMessage(line.strip())
+            self._set_status_text(line.strip())
 
     def _on_render_complete(self, elapsed_ms: float, output_path: str):
         self.poll_timer.stop()
-        # Show final output (not preview) on completion
         self.display.update_from_file(output_path)
         self.progress_bar.setValue(100)
         self._set_idle(f"Done. {elapsed_ms / 1000:.1f}s | {output_path}")
@@ -163,7 +190,7 @@ class RenderWindow(QMainWindow):
     def _on_progress_update(self, current: int, total: float):
         percent = int((current / total) * 100)
         self.progress_bar.setValue(percent)
-        self.status_bar.showMessage(f"Sample {current}/{int(total)}")
+        self.progress_label.setText(f"{current}/{int(total)}")
 
     def _poll_output(self):
         """
@@ -174,10 +201,10 @@ class RenderWindow(QMainWindow):
 
             if preview.exists() and preview.stat().st_size > 0:
                 elapsed = time.time() - self.start_time
-                self.status_bar.showMessage(f"Rendering... {elapsed:.1f}s")
+                self._set_status_text(f"Rendering... {elapsed:.1f}s")
                 self.display.update_from_file(str(preview))
 
     def _set_idle(self, message: str):
         self.render_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
-        self.status_bar.showMessage(message)
+        self._set_status_text(message)

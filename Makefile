@@ -25,7 +25,7 @@ else
 ENV_FLAG =
 endif
 
-.PHONY: all build clean clean-all rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-dragons stress-mixed preview-stress-dragons preview-stress-mixed
+.PHONY: all build clean clean-all clean-scripts rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-dragons stress-mixed preview-stress-dragons preview-stress-mixed
 
 all: build
 
@@ -40,6 +40,9 @@ clean:
 
 clean-all:
 	@rm -rf $(BUILD_DIR) $(VENV_DIR)
+
+clean-scripts:
+	@rm -rf scenes/textures/generated scenes/stress*.usda
 
 rebuild: clean build
 
