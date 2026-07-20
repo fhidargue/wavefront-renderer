@@ -41,14 +41,15 @@ int main(int argc, char* argv[])
     int imageHeight = -1;
     float fireflyThresholdOverride = -1.0f;
     bool denoiseEnabled = false;
-    bool enableCostAwareRR = true;
+
+    // Ray and RR
+    int costAwareRROverride = -1;
+    int raySortOverride = -1;
 
     // Adaptive sampling
     bool enableAdaptiveSampling = true;
     float adaptiveThresholdOverride = -1.0f;
 
-    // TODO: turn on on havier scene
-    bool enableRaySort = false;
     bool quiet = false;
     string policyName;
     string environmentMapPath;
@@ -68,10 +69,10 @@ int main(int argc, char* argv[])
             imageHeight = std::stoi(argv[++i]);
         else if (arg == "--denoise")
             denoiseEnabled = true;
-        else if (arg == "--no-cost-rr")
-            enableCostAwareRR = false;
-        else if (arg == "--no-ray-sort")
-            enableRaySort = false;
+        else if (arg == "--cost-rr" && hasValue())
+            costAwareRROverride = std::stoi(argv[++i]);
+        else if (arg == "--ray-sort" && hasValue())
+            raySortOverride = std::stoi(argv[++i]);
         else if (arg == "--no-adaptive")
             enableAdaptiveSampling = false;
         else if (arg == "--quiet")
@@ -156,8 +157,13 @@ int main(int argc, char* argv[])
     string previewPath = derivePreviewPath(outputPath);
 
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, policy);
-    renderer.enableCostAwareRR = enableCostAwareRR;
-    renderer.enableRaySort = enableRaySort;
+
+    if (costAwareRROverride >= 0)
+        renderer.enableCostAwareRR = (costAwareRROverride == 1);
+
+    if (raySortOverride >= 0)
+        renderer.enableRaySort = (raySortOverride == 1);
+
     renderer.enableAdaptiveSampling = enableAdaptiveSampling;
     renderer.environmentMapPath = environmentMapPath;
     renderer.enableSampleLogging = quiet;

@@ -64,6 +64,21 @@ static void logCostStats(const CostTracker& tracker, const string& title,
     printStatsBlock(title, costLines);
 }
 
+static double computeAverageRunLength(const vector<int>& ids)
+{
+    if (ids.empty())
+        return 0.0;
+
+    int runCount = 1;
+
+    for (size_t i = 1; i < ids.size(); ++i)
+        if (ids[i] != ids[i - 1])
+            ++runCount;
+
+    // Average number of consecutive entries sharing the same ID before it changes
+    return static_cast<double>(ids.size()) / runCount;
+}
+
 double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,
                                       const string& previewPath, int progressInterval,
                                       ProgressCallback progressCallback)
@@ -81,6 +96,11 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     double totalShadeOnlyMs = 0.0;
     double totalRaySortMs = 0.0;
     double totalIntersectMs = 0.0;
+
+    // Weighted by batch size
+    double totalMaterialRunLengthWeighted = 0.0;
+    double totalTextureRunLengthWeighted = 0.0;
+    long long totalCoherenceSampleWeight = 0;
 
     vector<Color> accumulator(pixelCount, Color(0.0f, 0.0f, 0.0f));
     vector<Color> accumulatorBeforeSample(pixelCount, Color(0.0f, 0.0f, 0.0f));
@@ -142,6 +162,19 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
 
             shadingQueue.schedule();
             shadingQueue.materialize();
+
+            // Shading batch tracking
+            int shadingBatchSize = shadingQueue.size();
+
+            if (shadingBatchSize > 0)
+            {
+                double materialRunLength = computeAverageRunLength(shadingQueue.materialIDs);
+                double textureRunLength = computeAverageRunLength(shadingQueue.textureIDs);
+
+                totalMaterialRunLengthWeighted += materialRunLength * shadingBatchSize;
+                totalTextureRunLengthWeighted += textureRunLength * shadingBatchSize;
+                totalCoherenceSampleWeight += shadingBatchSize;
+            }
 
             RayQueue nextQueue;
             auto shadeStart = std::chrono::high_resolution_clock::now();
@@ -220,11 +253,26 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     {
         printStatsBlock("Ray Sort Stats",
                         {
-                            "Total ray sort time (ms)  : " + to_string(totalRaySortMs),
-                            "Total intersect time (ms) : " + to_string(totalIntersectMs),
-                            "Total shade time (ms)     : " + to_string(totalShadeOnlyMs),
+                            "Total ray sort time (ms)      : " + to_string(totalRaySortMs),
+                            "Total intersect time (ms)     : " + to_string(totalIntersectMs),
+                            "Total shade time (ms)         : " + to_string(totalShadeOnlyMs),
                             "Sort overhead (% of pipeline) : " + to_string(sortOverheadPercent),
                         });
+    }
+
+    if (totalCoherenceSampleWeight > 0)
+    {
+        double averageMaterialRunLength =
+            totalMaterialRunLengthWeighted / totalCoherenceSampleWeight;
+        double averageTextureRunLength = totalTextureRunLengthWeighted / totalCoherenceSampleWeight;
+
+        printStatsBlock(
+            "Coherence Metrics",
+            {
+                "Average material run length  : " + to_string(averageMaterialRunLength),
+                "Average texture run length   : " + to_string(averageTextureRunLength),
+                "Total shaded hits            : " + to_string(totalCoherenceSampleWeight),
+            });
     }
 
     if (enableAdaptiveSampling)

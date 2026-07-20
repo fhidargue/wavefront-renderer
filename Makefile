@@ -14,9 +14,15 @@ GOLDEN_PROGRESS_INTERVAL ?= 5000
 export PXR_AR_DEFAULT_SEARCH_PATH := $(KITCHEN_SET_PATH)
 
 ifeq ($(COST_RR),0)
-COST_RR_FLAG = --no-cost-rr
+COST_RR_FLAG = --cost-rr 0
 else
-COST_RR_FLAG =
+COST_RR_FLAG = --cost-rr 1
+endif
+
+ifeq ($(RAY_SORT),0)
+RAY_SORT_FLAG = --ray-sort 0
+else
+RAY_SORT_FLAG = --ray-sort 1
 endif
 
 ifneq ($(ENV),)
@@ -52,29 +58,29 @@ test: build
 cornell: build
 	@./$(BUILD_DIR)/renderer scenes/cornellBox.usda output/cornellBox.exr \
 		scenes/cameras/cornellBoxCamera.usda \
-		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 cornell-dragon: build
 	@./$(BUILD_DIR)/renderer scenes/cornellBoxDragon.usda output/cornellBoxDragon.exr \
 		scenes/cameras/cornellBoxCamera.usda \
-		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 kitchen: build
 	@PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) ./$(BUILD_DIR)/renderer scenes/kitchenSet.usda \
 		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda \
-		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 preview: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/cornellBox.usda output/cornellBox.exr \
-		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 preview-cornell-dragon: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/cornellBoxDragon.usda output/cornellBoxDragon.exr \
-		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 preview-kitchen: build
 	@WIDTH=900 HEIGHT=700 PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) uv run python3 -m gui.main scenes/kitchenSet.usda \
-		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda --quiet --denoise $(ENV_FLAG)
+		output/kitchen.exr scenes/cameras/kitchenSetCamera.usda --quiet --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 format:
 	@find . -name "*.cpp" -o -name "*.h" | grep -v "/build/" | xargs clang-format -i
@@ -86,7 +92,7 @@ golden-render: build
 		scenes/cameras/cornellBoxCamera.usda \
 		--quiet --width $(WIDTH) --height $(HEIGHT) \
 		--samples $(GOLDEN_SAMPLES) --max-depth $(GOLDEN_MAX_DEPTH) \
-		--policy none --no-cost-rr --no-ray-sort \
+		--policy none --cost-rr 0 --ray-sort 0 \
 		--progress-interval $(GOLDEN_PROGRESS_INTERVAL)
 
 generate-stress-scenes:
@@ -96,17 +102,17 @@ generate-stress-scenes:
 stress-dragons: build
 	@./$(BUILD_DIR)/renderer scenes/stressTestDragons.usda output/stressTestDragons.exr \
 		scenes/cameras/cornellBoxCamera.usda \
-		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 stress-mixed: build
 	@./$(BUILD_DIR)/renderer scenes/stressTestMixed.usda output/stressTestMixed.exr \
 		scenes/cameras/cornellBoxCamera.usda \
-		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 preview-stress-dragons: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestDragons.usda output/stressTestDragons.exr \
-		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 preview-stress-mixed: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestMixed.usda output/stressTestMixed.exr \
-		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(ENV_FLAG)
+		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
