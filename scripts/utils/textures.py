@@ -57,7 +57,7 @@ def generate_noise_texture(size: int, rng: random.Random) -> Image.Image:
     seed = rng.randrange(2**31)
     np_rng = np.random.default_rng(seed)
     pixel_data = np_rng.integers(0, 256, size=(size, size, 3), dtype=np.uint8)
- 
+
     return Image.fromarray(pixel_data, mode="RGB")
 
 
@@ -71,13 +71,17 @@ def generate_gradient_texture(size: int, rng: random.Random) -> Image.Image:
     """
     start_color = np.array([rng.randrange(256) for _ in range(3)], dtype=np.float32)
     end_color = np.array([rng.randrange(256) for _ in range(3)], dtype=np.float32)
- 
+
     xs = np.arange(size, dtype=np.float32)
     ys = np.arange(size, dtype=np.float32)
-    t = np.clip((xs[np.newaxis, :] + ys[:, np.newaxis]) / (2.0 * max(size - 1, 1)), 0.0, 1.0)
- 
-    pixel_data = (start_color + t[:, :, np.newaxis] * (end_color - start_color)).astype(np.uint8)
- 
+    t = np.clip(
+        (xs[np.newaxis, :] + ys[:, np.newaxis]) / (2.0 * max(size - 1, 1)), 0.0, 1.0
+    )
+
+    pixel_data = (start_color + t[:, :, np.newaxis] * (end_color - start_color)).astype(
+        np.uint8
+    )
+
     return Image.fromarray(pixel_data, mode="RGB")
 
 
@@ -93,12 +97,12 @@ def generate_stripe_texture(size: int, rng: random.Random) -> Image.Image:
     stripe_width = max(1, size // stripe_count)
     color_a = np.array([rng.randrange(256) for _ in range(3)], dtype=np.uint8)
     color_b = np.array([rng.randrange(256) for _ in range(3)], dtype=np.uint8)
- 
+
     col_indices = np.arange(size)
-    stripe_mask = (col_indices // stripe_width) % 2 
+    stripe_mask = (col_indices // stripe_width) % 2
     pixel_row = np.where(stripe_mask[:, np.newaxis], color_b, color_a)
     pixel_data = np.broadcast_to(pixel_row[np.newaxis, :, :], (size, size, 3)).copy()
- 
+
     return Image.fromarray(pixel_data, mode="RGB")
 
 
@@ -114,12 +118,12 @@ def generate_checker_texture(size: int, rng: random.Random) -> Image.Image:
     cell_size = max(1, size // cell_count)
     color_a = np.array([rng.randrange(256) for _ in range(3)], dtype=np.uint8)
     color_b = np.array([rng.randrange(256) for _ in range(3)], dtype=np.uint8)
- 
+
     xs = np.arange(size) // cell_size
     ys = np.arange(size) // cell_size
-    checker = (xs[np.newaxis, :] + ys[:, np.newaxis]) % 2 
+    checker = (xs[np.newaxis, :] + ys[:, np.newaxis]) % 2
     pixel_data = np.where(checker[:, :, np.newaxis], color_b, color_a).astype(np.uint8)
- 
+
     return Image.fromarray(pixel_data, mode="RGB")
 
 
@@ -161,12 +165,12 @@ def generate_unique_material_texture(material_name: str, rng: random.Random) -> 
     size = HIGH_RES_TEXTURE_SIZE
     generator = rng.choice(TEXTURE_GENERATORS)
     image = generator(size, rng)
- 
+
     kind = generator.__name__.replace("generate_", "").replace("_texture", "")
     filename = f"{material_name}_{kind}_{size}.png"
     GENERATED_TEXTURES_DIR.mkdir(parents=True, exist_ok=True)
     image.save(GENERATED_TEXTURES_DIR / filename)
- 
+
     return f"textures/generated/{filename}"
 
 

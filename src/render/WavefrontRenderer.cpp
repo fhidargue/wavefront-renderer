@@ -64,19 +64,31 @@ static void logCostStats(const CostTracker& tracker, const string& title,
     printStatsBlock(title, costLines);
 }
 
-static double computeAverageRunLength(const vector<int>& ids)
+static double computeAverageRunLength(const vector<int>& ids, const vector<int>& textureIDs)
 {
     if (ids.empty())
         return 0.0;
 
-    int runCount = 1;
+    int runCount = 0;
+    int filteredSize = 0;
+    int prevID = -2; // sentinel that matches nothing
 
-    for (size_t i = 1; i < ids.size(); ++i)
-        if (ids[i] != ids[i - 1])
+    for (size_t i = 0; i < ids.size(); ++i)
+    {
+        if (textureIDs[i] < 0)
+            continue;
+
+        if (ids[i] != prevID)
             ++runCount;
 
-    // Average number of consecutive entries sharing the same ID before it changes
-    return static_cast<double>(ids.size()) / runCount;
+        prevID = ids[i];
+        ++filteredSize;
+    }
+
+    if (filteredSize == 0)
+        return 0.0;
+
+    return static_cast<double>(filteredSize) / runCount;
 }
 
 double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, Image& image,
@@ -165,7 +177,10 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
             totalIntersectMs +=
                 std::chrono::duration<double, std::milli>(intersectEnd - intersectStart).count();
 
-            shadingQueue.schedule(&materialCostTracker);
+            if (enableMemoryCoherenceStats && sample == 0 && depth == 0)
+                shadingQueue.printQueueComposition(depth, scene.materials, scene.textures);
+
+            shadingQueue.schedule(scene.materials, scene.textures, &materialCostTracker);
             shadingQueue.materialize();
 
             // Shading batch tracking
@@ -173,8 +188,10 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
 
             if (shadingBatchSize > 0)
             {
-                double materialRunLength = computeAverageRunLength(shadingQueue.materialIDs);
-                double textureRunLength = computeAverageRunLength(shadingQueue.textureIDs);
+                double materialRunLength =
+                    computeAverageRunLength(shadingQueue.materialIDs, shadingQueue.textureIDs);
+                double textureRunLength =
+                    computeAverageRunLength(shadingQueue.textureIDs, shadingQueue.textureIDs);
 
                 totalMaterialRunLengthWeighted += materialRunLength * shadingBatchSize;
                 totalTextureRunLengthWeighted += textureRunLength * shadingBatchSize;

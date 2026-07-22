@@ -8,8 +8,8 @@ struct HitRecord
     Point3 point;
     Vec3 normal;
     float distance;
-    int materialID;
-    int textureID;
+    int materialID = -1;
+    int textureID = -1;
     int triangleIndex = -1;
     float u, v;
     bool frontFace;

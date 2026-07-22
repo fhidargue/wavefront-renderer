@@ -1,10 +1,28 @@
 #include <gtest/gtest.h>
 #include <shading/Material.h>
+#include <shading/Texture.h>
 #include <math/SpatialHash.h>
 #include <geometry/Mesh.h>
 #include <core/HitRecord.h>
 #include <scheduling/ShadingQueue.h>
 #include <scheduling/RayQueue.h>
+
+static std::vector<Material> makeTestMaterials()
+{
+    return {
+        Material::makeDiffuse(Color(1, 1, 1)),
+        Material::makeMetal(Color(1, 1, 1), 0.5f),
+        Material::makeEmissive(Color(1, 1, 1), 1.0f),
+        Material::makeSpotLight(Color(1, 1, 1), 1.0f, 45.0f, 30.0f),
+        Material::makeGlass(1.5f),
+        Material::makePlastic(Color(1, 1, 1), 0.5f),
+    };
+}
+
+static std::vector<Texture> makeTestTextures()
+{
+    return {Texture(1, 1), Texture(2, 2), Texture(4, 4)};
+}
 
 TEST(SpatialHashTest, SameCellProducesSameHash)
 {
@@ -106,7 +124,10 @@ TEST(ShadingQueueTest, PreservesUVAndTriangleIndexThroughAddAndGet)
 
     ShadingQueue queue(SchedulingPolicy::None);
     queue.add(rays, 0, makeHit(0.25f, 0.75f, 42, 0));
-    queue.schedule();
+
+    std::vector<Material> materials = makeTestMaterials();
+    std::vector<Texture> textures = makeTestTextures();
+    queue.schedule(materials, textures);
 
     HitRecord retrieved = queue.getHitRecord(0);
     EXPECT_FLOAT_EQ(retrieved.u, 0.25f);
@@ -127,7 +148,9 @@ TEST(ShadingQueueTest, MaterializeKeepsUVInSyncAfterSort)
     queue.add(rays, 1, makeHit(0.2f, 0.2f, 200, 0));
     queue.add(rays, 2, makeHit(0.3f, 0.3f, 300, 1));
 
-    queue.schedule();
+    std::vector<Material> materials = makeTestMaterials();
+    std::vector<Texture> textures = makeTestTextures();
+    queue.schedule(materials, textures);
     queue.materialize();
 
     for (int i = 0; i < queue.size(); ++i)

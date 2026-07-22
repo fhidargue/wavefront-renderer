@@ -101,12 +101,12 @@ generate-stress-scenes:
 
 stress-dragons: build
 	@./$(BUILD_DIR)/renderer scenes/stressTestDragons.usda output/stressTestDragons.exr \
-		scenes/cameras/cornellBoxCamera.usda \
+		scenes/cameras/cornellBoxCamera.usda --memory-stats \
 		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 stress-mixed: build
 	@./$(BUILD_DIR)/renderer scenes/stressTestMixed.usda output/stressTestMixed.exr \
-		scenes/cameras/cornellBoxCamera.usda \
+		scenes/cameras/cornellBoxCamera.usda --memory-stats \
 		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 preview-stress-dragons: build
