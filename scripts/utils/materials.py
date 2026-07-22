@@ -4,14 +4,11 @@ from dataclasses import dataclass
 from .textures import generate_unique_material_texture
 
 MATERIAL_KIND_WEIGHTS = {
-    "diffuse": 15,
-    "diffuse_tex": 20,
-    "metal": 10,
-    "metal_tex": 15,
-    "plastic": 10,
-    "plastic_tex": 15,
-    "glass": 8,
-    "checker": 3,
+    "diffuse_tex": 35,
+    "metal_tex": 30,
+    "plastic_tex": 30,
+    "glass": 3,
+    "checker": 5,
 }
 
 COLOR_CHANNEL_RANGE = (0.2, 0.9)
@@ -40,6 +37,7 @@ def random_color(rng: random.Random) -> tuple:
         rng: Seeded random number generator to draw channel values from.
     """
     lo, hi = COLOR_CHANNEL_RANGE
+
     return tuple(round(rng.uniform(lo, hi), 3) for _ in range(3))
 
 
@@ -54,16 +52,20 @@ def build_material_kind_sequence(count: int, rng: random.Random) -> list[str]:
     """
     total_weight = sum(MATERIAL_KIND_WEIGHTS.values())
     sequence = []
+
     for kind, weight in MATERIAL_KIND_WEIGHTS.items():
         sequence.extend([kind] * round(count * weight / total_weight))
 
     most_common = max(MATERIAL_KIND_WEIGHTS, key=MATERIAL_KIND_WEIGHTS.get)
+
     while len(sequence) < count:
         sequence.append(most_common)
+
     while len(sequence) > count:
         sequence.pop()
 
     rng.shuffle(sequence)
+
     return sequence
 
 
@@ -85,16 +87,7 @@ def build_material_pool(count: int, rng: random.Random) -> list[MaterialRecipe]:
     for index, kind in enumerate(kinds):
         name = f"Material_{index:03d}_{kind}"
 
-        if kind in ("diffuse", "metal", "plastic"):
-            materials.append(
-                MaterialRecipe(
-                    name=name,
-                    kind=kind,
-                    color=random_color(rng),
-                    roughness=round(rng.uniform(*ROUGHNESS_RANGE), 3),
-                )
-            )
-        elif kind in ("diffuse_tex", "metal_tex", "plastic_tex"):
+        if kind in ("diffuse_tex", "metal_tex", "plastic_tex"):
             textured_progress += 1
             print(
                 f"Generating textures: {textured_progress}/{total_textured} "

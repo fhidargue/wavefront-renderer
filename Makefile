@@ -62,7 +62,7 @@ cornell: build
 
 cornell-dragon: build
 	@./$(BUILD_DIR)/renderer scenes/cornellBoxDragon.usda output/cornellBoxDragon.exr \
-		scenes/cameras/cornellBoxCamera.usda \
+		scenes/cameras/cornellBoxCamera.usda --memory-stats \
 		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
 kitchen: build

@@ -29,6 +29,7 @@ class WavefrontRenderer
     bool enableCostAwareRR = true;
     bool enableRaySort = true;
     bool enableAdaptiveSampling = true;
+    bool enableMemoryCoherenceStats = false;
     float adaptiveSamplingThreshold = AdaptiveSamplingConstants::defaultRelativeThreshold;
     float fireflyThreshold = 10.0f;
 

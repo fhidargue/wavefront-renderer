@@ -7,13 +7,15 @@
 #include <tbb/parallel_sort.h>
 #include <scheduling/RayQueue.h>
 #include <core/HitRecord.h>
+#include <render/CostTracker.h>
+#include <render/AdaptiveSampler.h>
 
 enum class SchedulingPolicy
 {
     None,
     MaterialAware,
-    MaterialAwareParallel,
-    TextureAware
+    TextureAware,
+    CostBenefitAware,
 };
 
 // DOD Structure of Arrays ShadingQueue
@@ -80,7 +82,7 @@ struct ShadingQueue
         pdfs.push_back(rays.pdfs[rayIndex]);
     }
 
-    void schedule()
+    void schedule(const CostTracker* costTracker = nullptr)
     {
         const int n = size();
 
@@ -103,15 +105,15 @@ struct ShadingQueue
             break;
 
         case SchedulingPolicy::MaterialAware:
-            std::sort(sortedIndices.begin(), sortedIndices.end(), materialCompare);
-            break;
-
-        case SchedulingPolicy::MaterialAwareParallel:
             tbb::parallel_sort(sortedIndices.begin(), sortedIndices.end(), materialCompare);
             break;
 
         case SchedulingPolicy::TextureAware:
             tbb::parallel_sort(sortedIndices.begin(), sortedIndices.end(), textureCompare);
+            break;
+
+        case SchedulingPolicy::CostBenefitAware:
+            scheduleCostBenefitAware(costTracker);
             break;
 
         default:
@@ -251,5 +253,41 @@ struct ShadingQueue
         // Data will now be physically sorted
         for (int position = 0; position < rayCount; ++position)
             sortedIndices[position] = position;
+    }
+
+  private:
+    void scheduleCostBenefitAware(const CostTracker* costTracker)
+    {
+        const int n = size();
+
+        std::unordered_map<int, int> rayCountByMaterial;
+        std::unordered_map<int, double> throughputSumByMaterial;
+
+        for (int i = 0; i < n; ++i)
+        {
+            int materialID = materialIDs[i];
+            Color throughput(throughputsR[i], throughputsG[i], throughputsB[i]);
+
+            rayCountByMaterial[materialID] += 1;
+            throughputSumByMaterial[materialID] += luminance(throughput);
+        }
+
+        constexpr double minimumCost = 1e-6; // guards against divisions by zero
+        std::unordered_map<int, double> priorityByMaterial;
+
+        for (const auto& entry : rayCountByMaterial)
+        {
+            int materialID = entry.first;
+            int rayCount = entry.second;
+            double benefit = static_cast<double>(rayCount) * throughputSumByMaterial[materialID];
+            double cost = costTracker ? costTracker->relativeCost(materialID) : 1.0;
+
+            priorityByMaterial[materialID] = benefit / std::max(cost, minimumCost);
+        }
+
+        // Higher priority (more benefit per unit cost) scheduled first
+        std::stable_sort(
+            sortedIndices.begin(), sortedIndices.end(), [&](int a, int b)
+            { return priorityByMaterial[materialIDs[a]] > priorityByMaterial[materialIDs[b]]; });
     }
 };

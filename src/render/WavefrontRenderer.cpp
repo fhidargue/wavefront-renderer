@@ -102,6 +102,11 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
     double totalTextureRunLengthWeighted = 0.0;
     long long totalCoherenceSampleWeight = 0;
 
+    // Cache line homogeneity: fraction of 64-byte cache lines that contain
+    // only one material/texture ID (1.0 = perfect, 0.0 = fully mixed)
+    double totalMaterialHomogeneityWeighted = 0.0;
+    double totalTextureHomogeneityWeighted = 0.0;
+
     vector<Color> accumulator(pixelCount, Color(0.0f, 0.0f, 0.0f));
     vector<Color> accumulatorBeforeSample(pixelCount, Color(0.0f, 0.0f, 0.0f));
     AdaptiveSampler adaptiveSampler(pixelCount, adaptiveSamplingThreshold);
@@ -160,7 +165,7 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
             totalIntersectMs +=
                 std::chrono::duration<double, std::milli>(intersectEnd - intersectStart).count();
 
-            shadingQueue.schedule();
+            shadingQueue.schedule(&materialCostTracker);
             shadingQueue.materialize();
 
             // Shading batch tracking
@@ -174,6 +179,52 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
                 totalMaterialRunLengthWeighted += materialRunLength * shadingBatchSize;
                 totalTextureRunLengthWeighted += textureRunLength * shadingBatchSize;
                 totalCoherenceSampleWeight += shadingBatchSize;
+
+                if (enableMemoryCoherenceStats)
+                {
+                    static constexpr int INTS_PER_CACHE_LINE = 64 / sizeof(int); // 16
+
+                    auto cacheLineHomogeneity = [](const std::vector<int>& ids,
+                                                   int elemsPerLine) -> double
+                    {
+                        if (ids.empty())
+                            return 0.0;
+
+                        int monomorphicLines = 0;
+                        int totalLines = 0;
+
+                        for (int lineStart = 0; lineStart < (int)ids.size();
+                             lineStart += elemsPerLine)
+                        {
+                            int lineEnd = std::min(lineStart + elemsPerLine, (int)ids.size());
+                            int firstID = ids[lineStart];
+                            bool isMono = true;
+
+                            for (int j = lineStart + 1; j < lineEnd; ++j)
+                            {
+                                if (ids[j] != firstID)
+                                {
+                                    isMono = false;
+                                    break;
+                                }
+                            }
+
+                            if (isMono)
+                                ++monomorphicLines;
+                            ++totalLines;
+                        }
+
+                        return static_cast<double>(monomorphicLines) / totalLines;
+                    };
+
+                    double materialHomogeneity =
+                        cacheLineHomogeneity(shadingQueue.materialIDs, INTS_PER_CACHE_LINE);
+                    double textureHomogeneity =
+                        cacheLineHomogeneity(shadingQueue.textureIDs, INTS_PER_CACHE_LINE);
+
+                    totalMaterialHomogeneityWeighted += materialHomogeneity * shadingBatchSize;
+                    totalTextureHomogeneityWeighted += textureHomogeneity * shadingBatchSize;
+                }
             }
 
             RayQueue nextQueue;
@@ -272,6 +323,21 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
                 "Average material run length  : " + to_string(averageMaterialRunLength),
                 "Average texture run length   : " + to_string(averageTextureRunLength),
                 "Total shaded hits            : " + to_string(totalCoherenceSampleWeight),
+            });
+    }
+
+    if (enableMemoryCoherenceStats && totalCoherenceSampleWeight > 0)
+    {
+        double averageMaterialHomogeneity =
+            totalMaterialHomogeneityWeighted / totalCoherenceSampleWeight;
+        double averageTextureHomogeneity =
+            totalTextureHomogeneityWeighted / totalCoherenceSampleWeight;
+
+        printStatsBlock(
+            "Memory Coherence Stats",
+            {
+                "Material ID cache line homogeneity : " + to_string(averageMaterialHomogeneity),
+                "Texture  ID cache line homogeneity : " + to_string(averageTextureHomogeneity),
             });
     }
 

@@ -41,6 +41,7 @@ int main(int argc, char* argv[])
     int imageHeight = -1;
     float fireflyThresholdOverride = -1.0f;
     bool denoiseEnabled = false;
+    bool enableMemoryCoherenceStats = false;
 
     // Ray and RR
     int costAwareRROverride = -1;
@@ -77,6 +78,8 @@ int main(int argc, char* argv[])
             enableAdaptiveSampling = false;
         else if (arg == "--quiet")
             quiet = true;
+        else if (arg == "--memory-stats")
+            enableMemoryCoherenceStats = true;
         else if (arg == "--env" && hasValue())
             environmentMapPath = argv[++i];
         else if (arg == "--samples" && hasValue())
@@ -113,10 +116,10 @@ int main(int argc, char* argv[])
         policy = SchedulingPolicy::None;
     else if (policyName == "material")
         policy = SchedulingPolicy::MaterialAware;
-    else if (policyName == "material-parallel")
-        policy = SchedulingPolicy::MaterialAwareParallel;
     else if (policyName == "texture")
         policy = SchedulingPolicy::TextureAware;
+    else if (policyName == "costBenefit")
+        policy = SchedulingPolicy::CostBenefitAware;
     else if (!policyName.empty())
         cerr << "WARNING: unknown --policy '" << policyName << "', using default" << endl;
 
@@ -167,6 +170,7 @@ int main(int argc, char* argv[])
     renderer.enableAdaptiveSampling = enableAdaptiveSampling;
     renderer.environmentMapPath = environmentMapPath;
     renderer.enableSampleLogging = quiet;
+    renderer.enableMemoryCoherenceStats = enableMemoryCoherenceStats;
 
     if (adaptiveThresholdOverride > 0.0f)
         renderer.adaptiveSamplingThreshold = adaptiveThresholdOverride;
