@@ -27,6 +27,10 @@ class RenderWorker(QThread):
         height: int = 600,
         denoise: bool = False,
         env_path: str = "",
+        cost_rr: bool = True,
+        ray_sort: bool = True,
+        samples: int | None = None,
+        adaptive_sampling: bool = True,
         parent=None,
     ):
         super().__init__(parent)
@@ -38,6 +42,10 @@ class RenderWorker(QThread):
         self.height = height
         self.denoise = denoise
         self.env_path = env_path
+        self.cost_rr = cost_rr
+        self.ray_sort = ray_sort
+        self.samples = samples
+        self.adaptive_sampling = adaptive_sampling
         self.preview_path = self._derive_preview_path(output_path)
         self._stop = False
 
@@ -76,7 +84,17 @@ class RenderWorker(QThread):
             str(self.width),
             "--height",
             str(self.height),
+            "--cost-rr",
+            "1" if self.cost_rr else "0",
+            "--ray-sort",
+            "1" if self.ray_sort else "0",
         ]
+
+        if self.samples is not None:
+            cmd.extend(["--samples", str(self.samples)])
+
+        if not self.adaptive_sampling:
+            cmd.append("--no-adaptive")
 
         if self.camera_path:
             cmd.append(self.camera_path)

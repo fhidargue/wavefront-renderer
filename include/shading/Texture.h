@@ -47,6 +47,11 @@ struct Texture
 
     // Loads an image file
     bool load(const std::string& filePath);
+
+    size_t memoryBytes() const
+    {
+        return pixels.size() * sizeof(Color);
+    }
 };
 
 // Generates random noise textures for benchmarking

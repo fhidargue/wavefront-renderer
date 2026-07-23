@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_set>
 #include <vector>
 #include <algorithm>
 #include <numeric>
@@ -7,13 +8,18 @@
 #include <tbb/parallel_sort.h>
 #include <scheduling/RayQueue.h>
 #include <core/HitRecord.h>
+#include <core/PrintUtils.h>
+#include <render/CostTracker.h>
+#include <render/AdaptiveSampler.h>
+#include <shading/Material.h>
+#include <shading/Texture.h>
 
 enum class SchedulingPolicy
 {
     None,
     MaterialAware,
-    MaterialAwareParallel,
-    TextureAware
+    TextureAware,
+    CostBenefitAware,
 };
 
 // DOD Structure of Arrays ShadingQueue
@@ -80,43 +86,56 @@ struct ShadingQueue
         pdfs.push_back(rays.pdfs[rayIndex]);
     }
 
-    void schedule()
+    void schedule(const std::vector<Material>& materials, const std::vector<Texture>& textures,
+                  const CostTracker* costTracker = nullptr)
     {
         const int n = size();
-
         sortedIndices.resize(n);
         std::iota(sortedIndices.begin(), sortedIndices.end(), 0);
 
-        auto materialCompare = [this](int a, int b) { return materialIDs[a] < materialIDs[b]; };
+        if (policy == SchedulingPolicy::None)
+            return;
 
-        auto textureCompare = [this](int a, int b)
+        if (policy == SchedulingPolicy::CostBenefitAware)
         {
-            if (materialIDs[a] != materialIDs[b])
-                return materialIDs[a] < materialIDs[b];
-
-            return textureIDs[a] < textureIDs[b];
-        };
-
-        switch (policy)
-        {
-        case SchedulingPolicy::None:
-            break;
-
-        case SchedulingPolicy::MaterialAware:
-            std::sort(sortedIndices.begin(), sortedIndices.end(), materialCompare);
-            break;
-
-        case SchedulingPolicy::MaterialAwareParallel:
-            tbb::parallel_sort(sortedIndices.begin(), sortedIndices.end(), materialCompare);
-            break;
-
-        case SchedulingPolicy::TextureAware:
-            tbb::parallel_sort(sortedIndices.begin(), sortedIndices.end(), textureCompare);
-            break;
-
-        default:
-            break;
+            scheduleCostBenefitAware(materials, costTracker);
+            return;
         }
+
+        std::vector<int> typeOrder = computeTypeOrder(materials, textures, costTracker);
+        std::unordered_map<int, int> typeRank;
+        for (int rank = 0; rank < static_cast<int>(typeOrder.size()); ++rank)
+            typeRank[typeOrder[rank]] = rank;
+
+        tbb::parallel_sort(
+            sortedIndices.begin(), sortedIndices.end(),
+            [this, &materials, &textures, &typeRank, costTracker](int a, int b)
+            {
+                int rankA = typeRank[static_cast<int>(materials[materialIDs[a]].type)];
+                int rankB = typeRank[static_cast<int>(materials[materialIDs[b]].type)];
+
+                if (rankA != rankB)
+                    return rankA < rankB;
+
+                if (policy == SchedulingPolicy::TextureAware)
+                {
+                    int tidA = textureIDs[a];
+                    int tidB = textureIDs[b];
+                    size_t sizeA = (tidA >= 0 && tidA < static_cast<int>(textures.size()))
+                                       ? textures[tidA].memoryBytes()
+                                       : 0;
+                    size_t sizeB = (tidB >= 0 && tidB < static_cast<int>(textures.size()))
+                                       ? textures[tidB].memoryBytes()
+                                       : 0;
+
+                    return sizeA > sizeB;
+                }
+
+                double costA = costTracker ? costTracker->relativeCost(materialIDs[a]) : 1.0;
+                double costB = costTracker ? costTracker->relativeCost(materialIDs[b]) : 1.0;
+
+                return costA > costB;
+            });
     }
 
     // Reconstruct HitRecord at sorted position
@@ -251,5 +270,174 @@ struct ShadingQueue
         // Data will now be physically sorted
         for (int position = 0; position < rayCount; ++position)
             sortedIndices[position] = position;
+    }
+
+    std::vector<int> computeTypeOrder(const std::vector<Material>& materials,
+                                      const std::vector<Texture>& textures,
+                                      const CostTracker* costTracker) const
+    {
+        std::unordered_map<int, int> rayCountByType;
+        std::unordered_map<int, size_t> memoryByType;
+        std::unordered_map<int, double> costByType;
+
+        for (int i = 0; i < size(); ++i)
+        {
+            int typeIndex = static_cast<int>(materials[materialIDs[i]].type);
+            rayCountByType[typeIndex]++;
+
+            int tid = textureIDs[i];
+
+            if (tid >= 0 && tid < static_cast<int>(textures.size()))
+                memoryByType[typeIndex] += textures[tid].memoryBytes();
+
+            double cost = costTracker ? costTracker->relativeCost(materialIDs[i]) : 1.0;
+            costByType[typeIndex] += cost;
+        }
+
+        std::vector<int> typeOrder;
+        for (auto& [typeIndex, count] : rayCountByType)
+            typeOrder.push_back(typeIndex);
+
+        switch (policy)
+        {
+        case SchedulingPolicy::MaterialAware:
+            std::sort(typeOrder.begin(), typeOrder.end(),
+                      [&](int a, int b)
+                      {
+                          if (rayCountByType[a] != rayCountByType[b])
+                              return rayCountByType[a] > rayCountByType[b];
+                          return a > b;
+                      });
+            break;
+        case SchedulingPolicy::TextureAware:
+            std::sort(typeOrder.begin(), typeOrder.end(),
+                      [&](int a, int b) { return memoryByType[a] > memoryByType[b]; });
+            break;
+
+        case SchedulingPolicy::CostBenefitAware:
+            std::sort(typeOrder.begin(), typeOrder.end(),
+                      [&](int a, int b) { return costByType[a] > costByType[b]; });
+            break;
+
+        default:
+            break;
+        }
+
+        return typeOrder;
+    }
+
+    void printQueueComposition(int depth, const std::vector<Material>& materials,
+                               const std::vector<Texture>& textures) const
+    {
+        static const char* typeNames[] = {"Diffuse",   "Metal", "Emissive",
+                                          "SpotLight", "Glass", "Plastic"};
+
+        std::unordered_map<int, int> countByMaterial;
+
+        for (int i = 0; i < size(); ++i)
+            countByMaterial[materialIDs[i]]++;
+
+        auto materialLine = [&](int mid, int count) -> std::string
+        {
+            const Material& mat = materials[mid];
+            std::string materialName = mat.uuid;
+            int tid = mat.textureID;
+            std::string texName =
+                (tid >= 0 && tid < static_cast<int>(textures.size())) ? textures[tid].name : "none";
+
+            return "  materialID=" + std::to_string(mid) +
+                   "  materialName=" + materialName.substr(materialName.rfind('/') + 1) +
+                   "  textureID=" + std::to_string(tid) +
+                   "  textureName=" + texName.substr(texName.rfind('|') + 1) +
+                   "  rays=" + std::to_string(count);
+        };
+
+        std::vector<std::string> lines;
+
+        if (policy == SchedulingPolicy::None)
+        {
+            std::vector<int> seenOrder;
+            std::unordered_set<int> seen;
+            for (int i = 0; i < size(); ++i)
+                if (seen.insert(materialIDs[i]).second)
+                    seenOrder.push_back(materialIDs[i]);
+
+            for (int mid : seenOrder)
+                lines.push_back(materialLine(mid, countByMaterial[mid]));
+        }
+        else
+        {
+            std::unordered_map<int, std::vector<std::pair<int, int>>> raysByType;
+            for (auto& [mid, count] : countByMaterial)
+            {
+                int typeIndex = static_cast<int>(materials[mid].type);
+                raysByType[typeIndex].push_back({mid, count});
+            }
+
+            std::vector<int> typeOrder = computeTypeOrder(materials, textures, nullptr);
+
+            for (int typeIndex : typeOrder)
+            {
+                auto& entries = raysByType[typeIndex];
+                int totalRaysForType = 0;
+                for (auto& [mid, count] : entries)
+                    totalRaysForType += count;
+
+                const char* typeName =
+                    (typeIndex >= 0 && typeIndex < 6) ? typeNames[typeIndex] : "Unknown";
+                lines.push_back(std::string(typeName) + " queue (" +
+                                std::to_string(totalRaysForType) + " rays)");
+
+                for (auto& [mid, count] : entries)
+                    lines.push_back(materialLine(mid, count));
+            }
+        }
+
+        printStatsBlock("Shading Queue Composition (" + std::to_string(size()) + " rays)", lines);
+    }
+
+  private:
+    void scheduleCostBenefitAware(const std::vector<Material>& materials,
+                                  const CostTracker* costTracker)
+    {
+        const int n = size();
+
+        std::unordered_map<int, int> rayCountByMaterial;
+        std::unordered_map<int, double> throughputSumByMaterial;
+
+        for (int i = 0; i < n; ++i)
+        {
+            int materialID = materialIDs[i];
+            Color throughput(throughputsR[i], throughputsG[i], throughputsB[i]);
+
+            rayCountByMaterial[materialID] += 1;
+            throughputSumByMaterial[materialID] += luminance(throughput);
+        }
+
+        constexpr double minimumCost = 1e-6; // guards against divisions by zero
+        std::unordered_map<int, double> priorityByMaterial;
+
+        for (const auto& entry : rayCountByMaterial)
+        {
+            int materialID = entry.first;
+            int rayCount = entry.second;
+            double benefit = static_cast<double>(rayCount) * throughputSumByMaterial[materialID];
+            double cost = costTracker ? costTracker->relativeCost(materialID) : 1.0;
+
+            priorityByMaterial[materialID] = benefit / std::max(cost, minimumCost);
+        }
+
+        // Higher priority (more benefit per unit cost) scheduled first
+        std::stable_sort(sortedIndices.begin(), sortedIndices.end(),
+                         [&](int a, int b)
+                         {
+                             int typeA = static_cast<int>(materials[materialIDs[a]].type);
+                             int typeB = static_cast<int>(materials[materialIDs[b]].type);
+                             if (typeA != typeB)
+                                 return typeA < typeB;
+
+                             return priorityByMaterial[materialIDs[a]] >
+                                    priorityByMaterial[materialIDs[b]];
+                         });
     }
 };

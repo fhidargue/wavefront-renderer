@@ -29,6 +29,10 @@ class RenderWindow(QMainWindow):
         height: int = 600,
         denoise: bool = False,
         env_path: str = "",
+        cost_rr: bool = True,
+        ray_sort: bool = True,
+        samples: int | None = None,
+        adaptive_sampling: bool = True,
         parent=None,
     ):
         super().__init__(parent)
@@ -40,6 +44,10 @@ class RenderWindow(QMainWindow):
         self.height = height
         self.denoise = denoise
         self.env_path = env_path
+        self.cost_rr = cost_rr
+        self.ray_sort = ray_sort
+        self.samples = samples
+        self.adaptive_sampling = adaptive_sampling
         self.worker = None
         self.start_time = None
 
@@ -145,6 +153,10 @@ class RenderWindow(QMainWindow):
             height=self.height,
             denoise=self.denoise,
             env_path=self.env_path,
+            cost_rr=self.cost_rr,
+            ray_sort=self.ray_sort,
+            samples=self.samples,
+            adaptive_sampling=self.adaptive_sampling,
         )
         self.worker.statusUpdate.connect(self._on_status_update)
         self.worker.progressUpdate.connect(self._on_progress_update)

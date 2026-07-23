@@ -41,14 +41,16 @@ int main(int argc, char* argv[])
     int imageHeight = -1;
     float fireflyThresholdOverride = -1.0f;
     bool denoiseEnabled = false;
-    bool enableCostAwareRR = true;
+    bool enableMemoryCoherenceStats = false;
+
+    // Ray and RR
+    int costAwareRROverride = -1;
+    int raySortOverride = -1;
 
     // Adaptive sampling
     bool enableAdaptiveSampling = true;
     float adaptiveThresholdOverride = -1.0f;
 
-    // TODO: turn on on havier scene
-    bool enableRaySort = false;
     bool quiet = false;
     string policyName;
     string environmentMapPath;
@@ -68,14 +70,16 @@ int main(int argc, char* argv[])
             imageHeight = std::stoi(argv[++i]);
         else if (arg == "--denoise")
             denoiseEnabled = true;
-        else if (arg == "--no-cost-rr")
-            enableCostAwareRR = false;
-        else if (arg == "--no-ray-sort")
-            enableRaySort = false;
+        else if (arg == "--cost-rr" && hasValue())
+            costAwareRROverride = std::stoi(argv[++i]);
+        else if (arg == "--ray-sort" && hasValue())
+            raySortOverride = std::stoi(argv[++i]);
         else if (arg == "--no-adaptive")
             enableAdaptiveSampling = false;
         else if (arg == "--quiet")
             quiet = true;
+        else if (arg == "--memory-stats")
+            enableMemoryCoherenceStats = true;
         else if (arg == "--env" && hasValue())
             environmentMapPath = argv[++i];
         else if (arg == "--samples" && hasValue())
@@ -112,10 +116,10 @@ int main(int argc, char* argv[])
         policy = SchedulingPolicy::None;
     else if (policyName == "material")
         policy = SchedulingPolicy::MaterialAware;
-    else if (policyName == "material-parallel")
-        policy = SchedulingPolicy::MaterialAwareParallel;
     else if (policyName == "texture")
         policy = SchedulingPolicy::TextureAware;
+    else if (policyName == "costBenefit")
+        policy = SchedulingPolicy::CostBenefitAware;
     else if (!policyName.empty())
         cerr << "WARNING: unknown --policy '" << policyName << "', using default" << endl;
 
@@ -156,11 +160,17 @@ int main(int argc, char* argv[])
     string previewPath = derivePreviewPath(outputPath);
 
     WavefrontRenderer renderer(samplesPerPixel, maxBounceDepth, policy);
-    renderer.enableCostAwareRR = enableCostAwareRR;
-    renderer.enableRaySort = enableRaySort;
+
+    if (costAwareRROverride >= 0)
+        renderer.enableCostAwareRR = (costAwareRROverride == 1);
+
+    if (raySortOverride >= 0)
+        renderer.enableRaySort = (raySortOverride == 1);
+
     renderer.enableAdaptiveSampling = enableAdaptiveSampling;
     renderer.environmentMapPath = environmentMapPath;
     renderer.enableSampleLogging = quiet;
+    renderer.enableMemoryCoherenceStats = enableMemoryCoherenceStats;
 
     if (adaptiveThresholdOverride > 0.0f)
         renderer.adaptiveSamplingThreshold = adaptiveThresholdOverride;

@@ -8,6 +8,21 @@ from PySide6.QtGui import QSurfaceFormat
 from gui.window import RenderWindow
 
 
+def _parse_flag_value(argv: list[str], flag: str, default: bool) -> bool:
+    """
+    Parses flag command arguments
+    """
+    if flag not in argv:
+        return default
+
+    flag_index = argv.index(flag)
+
+    if flag_index + 1 < len(argv):
+        return argv[flag_index + 1] == "1"
+
+    return default
+
+
 def configure_opengl():
     """
     Set OpenGL format before creating QApplication
@@ -19,7 +34,9 @@ def configure_opengl():
     QSurfaceFormat.setDefaultFormat(fmt)
 
 
-def resolve_paths(argv: list[str]) -> tuple[str, str, str, int, int]:
+def resolve_paths(
+    argv: list[str],
+) -> tuple[str, str, str, str, int, int, bool, str, bool, bool, int | None, bool]:
     project_root = Path(__file__).resolve().parents[1]
     renderer_path = str(project_root / "build" / "renderer")
     scene_path = (
@@ -42,6 +59,19 @@ def resolve_paths(argv: list[str]) -> tuple[str, str, str, int, int]:
         if env_index + 1 < len(argv):
             env_path = argv[env_index + 1]
 
+    cost_rr = _parse_flag_value(argv, "--cost-rr", default=True)
+    ray_sort = _parse_flag_value(argv, "--ray-sort", default=True)
+
+    samples = None
+
+    if "--samples" in argv:
+        samples_index = argv.index("--samples")
+
+        if samples_index + 1 < len(argv):
+            samples = int(argv[samples_index + 1])
+
+    adaptive_sampling = "--no-adaptive" not in argv
+
     return (
         renderer_path,
         scene_path,
@@ -51,6 +81,10 @@ def resolve_paths(argv: list[str]) -> tuple[str, str, str, int, int]:
         height,
         denoise,
         env_path,
+        cost_rr,
+        ray_sort,
+        samples,
+        adaptive_sampling,
     )
 
 
@@ -70,6 +104,10 @@ def main():
         height,
         denoise,
         env_path,
+        cost_rr,
+        ray_sort,
+        samples,
+        adaptive_sampling,
     ) = resolve_paths(sys.argv)
 
     window = RenderWindow(
@@ -81,6 +119,10 @@ def main():
         height=height,
         denoise=denoise,
         env_path=env_path,
+        cost_rr=cost_rr,
+        ray_sort=ray_sort,
+        samples=samples,
+        adaptive_sampling=adaptive_sampling,
     )
     window.show()
 
