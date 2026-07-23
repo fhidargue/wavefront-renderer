@@ -44,11 +44,13 @@ build:
 clean:
 	@rm -rf $(BUILD_DIR)
 
-clean-all:
+clean-build:
 	@rm -rf $(BUILD_DIR) $(VENV_DIR)
 
 clean-scripts:
 	@rm -rf scenes/textures/generated scenes/stress*.usda
+
+clean-all: clean-build clean-scripts
 
 rebuild: clean build
 

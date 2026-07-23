@@ -302,7 +302,12 @@ struct ShadingQueue
         {
         case SchedulingPolicy::MaterialAware:
             std::sort(typeOrder.begin(), typeOrder.end(),
-                      [&](int a, int b) { return rayCountByType[a] > rayCountByType[b]; });
+                      [&](int a, int b)
+                      {
+                          if (rayCountByType[a] != rayCountByType[b])
+                              return rayCountByType[a] > rayCountByType[b];
+                          return a > b;
+                      });
             break;
         case SchedulingPolicy::TextureAware:
             std::sort(typeOrder.begin(), typeOrder.end(),
