@@ -1,13 +1,14 @@
 import random
 from dataclasses import dataclass
 
-from .textures import generate_unique_material_texture
+from .textures import generate_unique_material_texture, generate_heavy_texture
 
 MATERIAL_KIND_WEIGHTS = {
-    "diffuse_tex": 35,
-    "metal_tex": 30,
-    "plastic_tex": 30,
-    "glass": 3,
+    "diffuse_tex": 30,
+    "metal_tex": 25,
+    "plastic_tex": 25,
+    "heavy_tex": 10,
+    "glass": 5,
     "checker": 5,
 }
 
@@ -81,7 +82,9 @@ def build_material_pool(count: int, rng: random.Random) -> list[MaterialRecipe]:
     kinds = build_material_kind_sequence(count, rng)
     materials = []
 
-    total_textured = sum(1 for kind in kinds if kind.endswith("_tex"))
+    total_textured = sum(
+        1 for kind in kinds if kind.endswith("_tex") or kind == "heavy_tex"
+    )
     textured_progress = 0
 
     for index, kind in enumerate(kinds):
@@ -103,6 +106,24 @@ def build_material_pool(count: int, rng: random.Random) -> list[MaterialRecipe]:
                     color=random_color(rng),
                     roughness=round(rng.uniform(*ROUGHNESS_RANGE), 3),
                     texture_path=generate_unique_material_texture(name, rng),
+                )
+            )
+        elif kind == "heavy_tex":
+            textured_progress += 1
+            print(
+                f"Generating textures: {textured_progress}/{total_textured} "
+                f"({100 * textured_progress / total_textured:.0f}%) - {name}",
+                end="\r",
+                flush=True,
+            )
+
+            materials.append(
+                MaterialRecipe(
+                    name=name,
+                    kind="diffuse_tex",  # shades as diffuse, but with a heavy texture
+                    color=random_color(rng),
+                    roughness=round(rng.uniform(*ROUGHNESS_RANGE), 3),
+                    texture_path=generate_heavy_texture(name, rng),
                 )
             )
         elif kind == "glass":

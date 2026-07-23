@@ -2,9 +2,14 @@ import random
 import numpy as np
 from PIL import Image
 
-from constants import EXISTING_TEXTURES, GENERATED_TEXTURES_DIR, SCENES_DIR
+from constants import GENERATED_TEXTURES_DIR, SCENES_DIR
 
-HIGH_RES_TEXTURE_SIZE = 2048
+TEXTURE_SIZE_TIERS = [
+    (256, 15),  # cheap
+    (1024, 35),  # medium
+    (2048, 35),  # large
+    (4096, 15),  # heavy
+]
 BYTES_PER_TEXEL = 12
 
 # Fractal noise
@@ -144,25 +149,51 @@ def generate_fractal_noise_texture(size: int, rng: random.Random) -> Image.Image
     return Image.merge("RGB", channels)
 
 
+def generate_layered_composite_texture(size: int, rng: random.Random) -> Image.Image:
+    """
+    Generates a square RGB image by compositing three independent fractal noise
+    layers with randomised blend weights, simulating a multi-texture lookup.
+
+    Args:
+        size: Width and height, in pixels, of the square output image.
+        rng: Seeded random number generator used for each layer and blend weights.
+    """
+    layer_count = 3
+    weights = [rng.uniform(0.2, 1.0) for _ in range(layer_count)]
+    total_weight = sum(weights)
+
+    accumulated = np.zeros((size, size, 3), dtype=np.float64)
+
+    for weight in weights:
+        channels = [_generate_fractal_noise_channel(size, rng) for _ in range(3)]
+        layer = np.stack(channels, axis=-1).astype(np.float64)
+        accumulated += layer * (weight / total_weight)
+
+    return Image.fromarray(np.clip(accumulated, 0, 255).astype(np.uint8), mode="RGB")
+
+
 TEXTURE_GENERATORS = [
     generate_noise_texture,
     generate_gradient_texture,
     generate_stripe_texture,
     generate_checker_texture,
     generate_fractal_noise_texture,
+    generate_layered_composite_texture,
 ]
 
 
 def generate_unique_material_texture(material_name: str, rng: random.Random) -> str:
     """
-    Produces a texture for the given material, either by reusing an existing texture at random or by
-    generating a new one with a randomly chosen generator and size, and returns its relative path.
+    Produces a texture for the given material by picking a size from weighted tiers
+    and a randomly chosen generator, then saves it and returns its relative path.
 
     Args:
-        material_name: Name of the material the texture is being generated for, used in the output filename.
-        rng: Seeded random number generator used for the reuse decision, size, generator choice, and pixel content.
+        material_name: Name of the material the texture is being generated for.
+        rng: Seeded random number generator used for size, generator choice, and pixel content.
     """
-    size = HIGH_RES_TEXTURE_SIZE
+    sizes, weights = zip(*TEXTURE_SIZE_TIERS)
+    size = rng.choices(sizes, weights=weights, k=1)[0]
+
     generator = rng.choice(TEXTURE_GENERATORS)
     image = generator(size, rng)
 
@@ -194,3 +225,20 @@ def estimate_resident_texture_bytes(materials: list) -> int:
         total_bytes += width * height * BYTES_PER_TEXEL
 
     return total_bytes
+
+
+def generate_heavy_texture(material_name: str, rng: random.Random) -> str:
+    """
+    Produces a guaranteed 4096x4096 layered composite texture for heavy materials.
+
+    Args:
+        material_name: Name of the material, used in the output filename.
+        rng: Seeded random number generator.
+    """
+    size = 4096
+    image = generate_layered_composite_texture(size, rng)
+    filename = f"{material_name}_layered_{size}.png"
+    GENERATED_TEXTURES_DIR.mkdir(parents=True, exist_ok=True)
+    image.save(GENERATED_TEXTURES_DIR / filename)
+
+    return f"textures/generated/{filename}"
