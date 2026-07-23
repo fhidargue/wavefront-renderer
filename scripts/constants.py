@@ -13,7 +13,7 @@ EXISTING_TEXTURES = ["fabric.png", "wood.png", "metal.png"]
 
 # Grid constants
 GRID_ROWS = 6
-GRID_COLS = 4
+GRID_COLS = 3
 GRID_LAYERS = 5
 OBJECT_COUNT = GRID_ROWS * GRID_COLS * GRID_LAYERS
 
