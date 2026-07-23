@@ -35,48 +35,48 @@ def Xform "CornellBoxDragon"
         # Modify the small-box dimensions
         over "ShortBox_Bottom" (apiSchemas = ["MaterialBindingAPI"])
         {
-            double3 xformOp:translate = (1.6, 0, -0.14)
-            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            double3 xformOp:translate = (1.3, 0, -2.0)
+            double3 xformOp:scale = (0.8, 1.8, 0.8)
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
             rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
         }
 
         over "ShortBox_Top" (apiSchemas = ["MaterialBindingAPI"])
         {
-            double3 xformOp:translate = (1.6, 0, -0.14)
-            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            double3 xformOp:translate = (1.3, 0, -2.0)
+            double3 xformOp:scale = (0.8, 1.8, 0.8)
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
             rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
         }
 
         over "ShortBox_Front" (apiSchemas = ["MaterialBindingAPI"])
         {
-            double3 xformOp:translate = (1.6, 0, -0.14)
-            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            double3 xformOp:translate = (1.3, 0, -2.0)
+            double3 xformOp:scale = (0.8, 1.8, 0.8)
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
             rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
         }
 
         over "ShortBox_Back" (apiSchemas = ["MaterialBindingAPI"])
         { 
-            double3 xformOp:translate = (1.6, 0, -0.14)
-            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            double3 xformOp:translate = (1.3, 0, -2.0)
+            double3 xformOp:scale = (0.8, 1.8, 0.8)
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
             rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
         }
 
         over "ShortBox_Left" (apiSchemas = ["MaterialBindingAPI"])
         {
-            double3 xformOp:translate = (1.6, 0, -0.14)
-            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            double3 xformOp:translate = (1.3, 0, -2.0)
+            double3 xformOp:scale = (0.8, 1.8, 0.8)
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
             rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
         }
 
         over "ShortBox_Right" (apiSchemas = ["MaterialBindingAPI"])
         {
-            double3 xformOp:translate = (1.6, 0, -0.14)
-            double3 xformOp:scale = (0.8, 1.6, 0.8)
+            double3 xformOp:translate = (1.3, 0, -2.0)
+            double3 xformOp:scale = (0.8, 1.8, 0.8)
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
             rel material:binding = </CornellBoxDragon/Materials/YellowMetal>
         }
@@ -87,7 +87,7 @@ def Xform "CornellBoxDragon"
     )
     {
         double3 xformOp:translate = (-0.8, 0, 2.3)
-        double3 xformOp:scale = (0.05, 0.05, 0.05)
+        double3 xformOp:scale = (0.055, 0.055, 0.055)
         float xformOp:rotateY = 140
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale", "xformOp:rotateY"]
 
@@ -101,7 +101,7 @@ def Xform "CornellBoxDragon"
         prepend references = @scenes/objects/teapot.usda@
     )
     {
-        double3 xformOp:translate = (2.60885, 4.8, -1.0)
+        double3 xformOp:translate = (2.45, 5.13, -0.43)
         double3 xformOp:scale = (0.5, 0.5, 0.5)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
         
