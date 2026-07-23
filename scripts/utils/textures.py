@@ -5,10 +5,10 @@ from PIL import Image
 from constants import GENERATED_TEXTURES_DIR, SCENES_DIR
 
 TEXTURE_SIZE_TIERS = [
-    (256, 15), # cheap
-    (1024, 35), # medium
-    (2048, 35), # large
-    (4096, 15), # heavy
+    (256, 15),  # cheap
+    (1024, 35),  # medium
+    (2048, 35),  # large
+    (4096, 15),  # heavy
 ]
 BYTES_PER_TEXEL = 12
 
