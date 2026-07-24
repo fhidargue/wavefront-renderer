@@ -53,7 +53,7 @@ clean-build:
 	@rm -rf $(BUILD_DIR) $(VENV_DIR)
 
 clean-scripts:
-	@rm -rf scenes/textures/generated scenes/stress*.usda
+	@rm -rf scenes/textures/generated scenes/stress*.usda results/figures
 
 clean-all: clean-build clean-scripts
 
