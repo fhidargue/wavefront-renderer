@@ -36,7 +36,7 @@ endif
 POLICY_FLAG = --policy $(POLICY)
 SAMPLES_FLAG = --samples $(SAMPLES)
 
-.PHONY: all build clean clean-all clean-scripts rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-dragons stress-mixed preview-stress-dragons preview-stress-mixed plot
+.PHONY: all build clean clean-all clean-scripts rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-dragons stress-mixed preview-stress-dragons preview-stress-mixed reports
 
 all: build
 
@@ -131,5 +131,5 @@ preview-stress-mixed: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestMixed.usda output/stressTestMixed.exr \
 		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
 
-plot:
+reports:
 	@uv run python scripts/results/plot_results.py
