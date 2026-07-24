@@ -92,15 +92,16 @@ def plot_shade_time(df: pd.DataFrame):
 
     for bar in ax.patches:
         height = bar.get_height()
-        if height > 0:
+        if height > 500:
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
-                height + 100,
+                height * 0.5,
                 f"{height:,.0f}ms",
                 ha="center",
-                va="bottom",
+                va="center",
                 fontsize=7,
-                rotation=90,
+                color="white",
+                fontweight="bold",
             )
 
     ax.set_title("Shading Time by Policy and Scene")
@@ -123,7 +124,7 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
     df_melt["stage"] = df_melt["stage"].map(stage_labels)
 
     scenes = df["scene"].unique()
-    fig, axes = plt.subplots(1, len(scenes), figsize=(7 * len(scenes), 5), sharey=True)
+    fig, axes = plt.subplots(1, len(scenes), figsize=(8 * len(scenes), 6), sharey=True)
 
     if len(scenes) == 1:
         axes = [axes]
@@ -132,27 +133,36 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
         scene_df = df_melt[df_melt["scene"] == scene]
         pivot = scene_df.pivot(index="policy", columns="stage", values="ms")
         pivot = pivot.reindex(ORDERED_POLICY_LABELS)
-        pivot[["Sort", "Intersect", "Shade"]].plot(
-            kind="bar", stacked=True, ax=ax, color=["#4878d0", "#ee854a", "#6acc65"]
-        )
+        ordered = pivot[["Sort", "Intersect", "Shade"]]
+        ordered.plot(kind="bar", stacked=True, ax=ax, color=["#4878d0", "#ee854a", "#6acc65"])
 
-        # Annotate total on top of each stacked bar
-        totals = pivot[["Sort", "Intersect", "Shade"]].sum(axis=1)
-        for i, (policy, total) in enumerate(totals.items()):
-            ax.text(
-                i,
-                total + 200,
-                f"{total:,.0f}",
-                ha="center",
-                va="bottom",
-                fontsize=7,
-            )
+        # Annotate each segment with its value
+        for bar_group_idx, policy in enumerate(ORDERED_POLICY_LABELS):
+            if policy not in pivot.index:
+                continue
+            bottom = 0
+            for stage in ["Sort", "Intersect", "Shade"]:
+                val = pivot.loc[policy, stage] if stage in pivot.columns else 0
+                if val > 500:
+                    ax.text(
+                        bar_group_idx,
+                        bottom + val / 2,
+                        f"{val:,.0f}",
+                        ha="center",
+                        va="center",
+                        fontsize=7,
+                        color="white",
+                        fontweight="bold",
+                    )
+                bottom += val
 
-        ax.set_title(f"{scene}")
+        ax.set_title(f"{scene}", fontsize=12)
         ax.set_ylabel("Time (ms)" if ax == axes[0] else "")
         ax.set_xlabel("")
         ax.tick_params(axis="x", rotation=25)
-        ax.legend(title="Stage")
+
+        # Move legend outside the plot area
+        ax.legend(title="Stage", bbox_to_anchor=(1.01, 1), loc="upper left", borderaxespad=0)
 
     fig.suptitle("Pipeline Time Breakdown by Policy and Scene", fontsize=13)
     plt.tight_layout()
@@ -160,64 +170,71 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
     save(fig, "pipeline_breakdown")
 
 
-def plot_coherence(df: pd.DataFrame):
-    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
+def plot_run_length(df: pd.DataFrame):
+    """
+    Horizontal bar chart comparing material and texture run length per policy.
+    Split into two subplots side by side for direct comparison.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(16, 5))
+
+    for ax, metric, title in zip(
+        axes,
+        ["mat_run_length", "tex_run_length"],
+        ["Material Run Length", "Texture Run Length"],
+    ):
+        sns.barplot(
+            data=df,
+            y="policy",
+            x=metric,
+            hue="scene",
+            orient="h",
+            ax=ax,
+            order=ORDERED_POLICY_LABELS,
+        )
+        for bar in ax.patches:
+            width = bar.get_width()
+            if width > 0:
+                ax.text(
+                    width + 5,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{width:.1f}",
+                    va="center",
+                    ha="left",
+                    fontsize=9,
+                    fontweight="bold",
+                )
+        ax.set_title(f"{title} — higher is better", fontsize=11)
+        ax.set_xlabel("Average Run Length")
+        ax.set_ylabel("Policy")
+        ax.legend(title="Scene")
+        ax.set_xlim(0, df[metric].max() * 1.18)
+
+    fig.suptitle("Run Length by Policy and Scene", fontsize=13)
+    plt.tight_layout()
+    save(fig, "run_length")
+
+
+def plot_homogeneity(df: pd.DataFrame):
+    """
+    Side by side bar charts of material and texture cache line homogeneity.
+    Values annotated inside each bar.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
     def annotate(ax):
         for bar in ax.patches:
-            height = bar.get_height()
-            if height > 0:
+            h = bar.get_height()
+            if h > 0.05:
                 ax.text(
                     bar.get_x() + bar.get_width() / 2,
-                    height + 0.005,
-                    f"{height:.3f}",
+                    h * 0.5,
+                    f"{h:.3f}",
                     ha="center",
-                    va="bottom",
-                    fontsize=6,
-                    rotation=90,
+                    va="center",
+                    fontsize=8,
+                    color="white",
+                    fontweight="bold",
                 )
-
-    def annotate_run(ax):
-        for bar in ax.patches:
-            height = bar.get_height()
-            if height > 0:
-                ax.text(
-                    bar.get_x() + bar.get_width() / 2,
-                    height + 1,
-                    f"{height:.1f}",
-                    ha="center",
-                    va="bottom",
-                    fontsize=6,
-                    rotation=90,
-                )
-
-    sns.barplot(
-        data=df,
-        x="scene",
-        y="mat_run_length",
-        hue="policy",
-        hue_order=ORDERED_POLICY_LABELS,
-        ax=axes[0][0],
-    )
-    axes[0][0].set_title("Material Run Length")
-    axes[0][0].set_ylabel("Avg Run Length")
-    axes[0][0].set_xlabel("")
-    axes[0][0].legend(title="Policy")
-    annotate_run(axes[0][0])
-
-    sns.barplot(
-        data=df,
-        x="scene",
-        y="tex_run_length",
-        hue="policy",
-        hue_order=ORDERED_POLICY_LABELS,
-        ax=axes[0][1],
-    )
-    axes[0][1].set_title("Texture Run Length")
-    axes[0][1].set_ylabel("Avg Run Length")
-    axes[0][1].set_xlabel("")
-    axes[0][1].legend(title="Policy")
-    annotate_run(axes[0][1])
 
     sns.barplot(
         data=df,
@@ -225,13 +242,14 @@ def plot_coherence(df: pd.DataFrame):
         y="mat_homogeneity",
         hue="policy",
         hue_order=ORDERED_POLICY_LABELS,
-        ax=axes[1][0],
+        ax=axes[0],
     )
-    axes[1][0].set_title("Material ID Cache Line Homogeneity")
-    axes[1][0].set_ylabel("Homogeneity (0–1)")
-    axes[1][0].set_xlabel("Scene")
-    axes[1][0].legend(title="Policy")
-    annotate(axes[1][0])
+    axes[0].set_title("Material ID Cache Line Homogeneity")
+    axes[0].set_ylabel("Homogeneity (0–1)")
+    axes[0].set_xlabel("Scene")
+    axes[0].legend(title="Policy", fontsize=7)
+    axes[0].set_ylim(0, 1.1)
+    annotate(axes[0])
 
     sns.barplot(
         data=df,
@@ -239,18 +257,19 @@ def plot_coherence(df: pd.DataFrame):
         y="tex_homogeneity",
         hue="policy",
         hue_order=ORDERED_POLICY_LABELS,
-        ax=axes[1][1],
+        ax=axes[1],
     )
-    axes[1][1].set_title("Texture ID Cache Line Homogeneity")
-    axes[1][1].set_ylabel("Homogeneity (0–1)")
-    axes[1][1].set_xlabel("Scene")
-    axes[1][1].legend(title="Policy")
-    annotate(axes[1][1])
+    axes[1].set_title("Texture ID Cache Line Homogeneity")
+    axes[1].set_ylabel("Homogeneity (0–1)")
+    axes[1].set_xlabel("Scene")
+    axes[1].legend(title="Policy", fontsize=7)
+    axes[1].set_ylim(0, 1.1)
+    annotate(axes[1])
 
-    fig.suptitle("Memory Coherence Metrics by Policy and Scene", fontsize=13)
+    fig.suptitle("Cache Line Homogeneity by Policy and Scene", fontsize=13)
     plt.tight_layout()
 
-    save(fig, "coherence_metrics")
+    save(fig, "cache_homogeneity")
 
 
 def main():
@@ -262,7 +281,8 @@ def main():
 
     plot_shade_time(df)
     plot_pipeline_breakdown(df)
-    plot_coherence(df)
+    plot_run_length(df)
+    plot_homogeneity(df)
 
     print(f"\nAll figures saved to {OUTPUT_DIR}/")
 
