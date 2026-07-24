@@ -151,12 +151,14 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
         for policy in ORDERED_POLICY_LABELS:
             row = df[(df["policy"] == policy) & (df["scene"] == scene)]
             if not row.empty:
-                rows.append({
-                    "label": f"{scene}\n{policy}",
-                    "Sort": row["sort_ms"].values[0],
-                    "Intersect": row["intersect_ms"].values[0],
-                    "Shade": row["shade_ms"].values[0],
-                })
+                rows.append(
+                    {
+                        "label": f"{scene}\n{policy}",
+                        "Sort": row["sort_ms"].values[0],
+                        "Intersect": row["intersect_ms"].values[0],
+                        "Shade": row["shade_ms"].values[0],
+                    }
+                )
 
     plot_df = pd.DataFrame(rows)
 
