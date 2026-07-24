@@ -4,6 +4,8 @@ WIDTH ?= 600
 HEIGHT ?= 600
 COST_RR ?= 1
 ENV ?=
+POLICY ?= none
+SAMPLES ?= 256
 KITCHEN_SET_PATH=$(HOME)/Downloads/Kitchen_set
 
 # Golden render settings
@@ -31,7 +33,10 @@ else
 ENV_FLAG =
 endif
 
-.PHONY: all build clean clean-all clean-scripts rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-dragons stress-mixed preview-stress-dragons preview-stress-mixed
+POLICY_FLAG = --policy $(POLICY)
+SAMPLES_FLAG = --samples $(SAMPLES)
+
+.PHONY: all build clean clean-all clean-scripts rebuild test cornell kitchen cornell-dragon golden-render preview preview-cornell-dragon preview-kitchen format generate-stress-scenes stress-dragons stress-mixed preview-stress-dragons preview-stress-mixed plot
 
 all: build
 
@@ -105,12 +110,18 @@ generate-stress-scenes:
 stress-dragons: build
 	@./$(BUILD_DIR)/renderer scenes/stressTestDragons.usda output/stressTestDragons.exr \
 		scenes/cameras/cornellBoxCamera.usda --memory-stats \
-		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise \
+		$(COST_RR_FLAG) $(POLICY_FLAG) $(SAMPLES_FLAG) $(ENV_FLAG) \
+		| tee /tmp/render_output.txt
+	@uv run python scripts/results/parse_results.py /tmp/render_output.txt stressTestDragons $(POLICY)
 
 stress-mixed: build
 	@./$(BUILD_DIR)/renderer scenes/stressTestMixed.usda output/stressTestMixed.exr \
 		scenes/cameras/cornellBoxCamera.usda --memory-stats \
-		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
+		--quiet --width $(WIDTH) --height $(HEIGHT) --denoise \
+		$(COST_RR_FLAG) $(POLICY_FLAG) $(SAMPLES_FLAG) $(ENV_FLAG) \
+		| tee /tmp/render_output.txt
+	@uv run python scripts/results/parse_results.py /tmp/render_output.txt stressTestMixed $(POLICY)
 
 preview-stress-dragons: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestDragons.usda output/stressTestDragons.exr \
@@ -119,3 +130,6 @@ preview-stress-dragons: build
 preview-stress-mixed: build
 	@WIDTH=$(WIDTH) HEIGHT=$(HEIGHT) uv run python3 -m gui.main scenes/stressTestMixed.usda output/stressTestMixed.exr \
 		scenes/cameras/cornellBoxCamera.usda --quiet --denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG)
+
+plot:
+	@uv run python scripts/results/plot_results.py
