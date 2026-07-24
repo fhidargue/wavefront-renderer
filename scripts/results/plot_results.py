@@ -172,45 +172,43 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
 
 def plot_run_length(df: pd.DataFrame):
     """
-    Horizontal bar chart comparing material and texture run length per policy.
-    Split into two subplots side by side for direct comparison.
+    Horizontal bar chart comparing material run length per policy and scene.
+    Texture run length is identical so only one chart is needed.
     """
-    fig, axes = plt.subplots(1, 2, figsize=(16, 5))
+    fig, ax = plt.subplots(figsize=(10, 5))
 
-    for ax, metric, title in zip(
-        axes,
-        ["mat_run_length", "tex_run_length"],
-        ["Material Run Length", "Texture Run Length"],
-    ):
-        sns.barplot(
-            data=df,
-            y="policy",
-            x=metric,
-            hue="scene",
-            orient="h",
-            ax=ax,
-            order=ORDERED_POLICY_LABELS,
-        )
-        for bar in ax.patches:
-            width = bar.get_width()
-            if width > 0:
-                ax.text(
-                    width + 5,
-                    bar.get_y() + bar.get_height() / 2,
-                    f"{width:.1f}",
-                    va="center",
-                    ha="left",
-                    fontsize=9,
-                    fontweight="bold",
-                )
-        ax.set_title(f"{title} — higher is better", fontsize=11)
-        ax.set_xlabel("Average Run Length")
-        ax.set_ylabel("Policy")
-        ax.legend(title="Scene")
-        ax.set_xlim(0, df[metric].max() * 1.18)
+    sns.barplot(
+        data=df,
+        y="policy",
+        x="mat_run_length",
+        hue="scene",
+        orient="h",
+        ax=ax,
+        order=ORDERED_POLICY_LABELS,
+    )
+
+    for bar in ax.patches:
+        width = bar.get_width()
+        if width > 0:
+            ax.text(
+                width + 5,
+                bar.get_y() + bar.get_height() / 2,
+                f"{width:.1f}",
+                va="center",
+                ha="left",
+                fontsize=9,
+                fontweight="bold",
+            )
+
+    ax.set_title("Average Run Length by Policy — higher is better", fontsize=12)
+    ax.set_xlabel("Average Run Length (consecutive rays hitting same material)")
+    ax.set_ylabel("Policy")
+    ax.legend(title="Scene")
+    ax.set_xlim(0, df["mat_run_length"].max() * 1.18)
 
     fig.suptitle("Run Length by Policy and Scene", fontsize=13)
     plt.tight_layout()
+    
     save(fig, "run_length")
 
 
