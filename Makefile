@@ -86,7 +86,8 @@ preview-kitchen: build
 
 format:
 	@find . -name "*.cpp" -o -name "*.h" | grep -v "/build/" | xargs clang-format -i
-	@uv run ruff format . && uv run ruff check --fix . && uv run ruff check .
+	@uv run ruff format .
+	@uv run ruff check --fix .
 
 golden-render: build
 	@echo "Starting golden render: $(GOLDEN_SAMPLES) samples, depth $(GOLDEN_MAX_DEPTH), no scheduling, no cost-aware RR"

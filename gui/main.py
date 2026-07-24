@@ -2,8 +2,8 @@ import os
 import sys
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QSurfaceFormat
+from PySide6.QtWidgets import QApplication
 
 from gui.window import RenderWindow
 
@@ -39,12 +39,8 @@ def resolve_paths(
 ) -> tuple[str, str, str, str, int, int, bool, str, bool, bool, int | None, bool]:
     project_root = Path(__file__).resolve().parents[1]
     renderer_path = str(project_root / "build" / "renderer")
-    scene_path = (
-        argv[1] if len(argv) > 1 else str(project_root / "scenes" / "cornellBox.usda")
-    )
-    output_path = (
-        argv[2] if len(argv) > 2 else str(project_root / "output" / "preview.exr")
-    )
+    scene_path = argv[1] if len(argv) > 1 else str(project_root / "scenes" / "cornellBox.usda")
+    output_path = argv[2] if len(argv) > 2 else str(project_root / "output" / "preview.exr")
     camera_path = argv[3] if len(argv) > 3 else ""
 
     # Denoise flag

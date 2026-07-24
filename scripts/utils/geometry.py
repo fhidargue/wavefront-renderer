@@ -1,25 +1,25 @@
-from pxr import Usd, UsdGeom, UsdShade, Gf, Sdf
 import itertools
 
 from constants import (
-    TEAPOT_ASSET,
     DRAGON_ASSET,
-    GRID_ROWS,
-    GRID_COLS,
-    GRID_LAYERS,
     DRAGON_FRACTION_IN_MIXED_SCENE,
-    ROOM_MIN_X,
-    ROOM_MAX_X,
-    ROOM_MIN_Z,
-    ROOM_MAX_Z,
-    ROOM_MIN_Y,
-    ROOM_MAX_Y,
-    GRID_WALL_MARGIN,
-    OBJECT_FILL_FACTOR,
     DRAGON_OVERLAP_FACTOR,
     DRAGON_PACKING_MARGIN,
     DRAGON_Y_DROP_MULTIPLIER,
+    GRID_COLS,
+    GRID_LAYERS,
+    GRID_ROWS,
+    GRID_WALL_MARGIN,
+    OBJECT_FILL_FACTOR,
+    ROOM_MAX_X,
+    ROOM_MAX_Y,
+    ROOM_MAX_Z,
+    ROOM_MIN_X,
+    ROOM_MIN_Y,
+    ROOM_MIN_Z,
+    TEAPOT_ASSET,
 )
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 
 def compute_asset_footprint(asset_path) -> Gf.Vec3d:

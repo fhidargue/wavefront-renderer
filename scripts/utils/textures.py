@@ -1,8 +1,8 @@
 import random
-import numpy as np
-from PIL import Image
 
+import numpy as np
 from constants import GENERATED_TEXTURES_DIR, SCENES_DIR
+from PIL import Image
 
 TEXTURE_SIZE_TIERS = [
     (256, 15),  # cheap
@@ -34,9 +34,7 @@ def _generate_fractal_noise_channel(size: int, rng: random.Random) -> np.ndarray
 
     for _ in range(FRACTAL_NOISE_OCTAVES):
         lattice_size = min(grid_size, size)
-        lattice_values = [
-            rng.uniform(0.0, 1.0) for _ in range(lattice_size * lattice_size)
-        ]
+        lattice_values = [rng.uniform(0.0, 1.0) for _ in range(lattice_size * lattice_size)]
         lattice_image = Image.new("F", (lattice_size, lattice_size))
         lattice_image.putdata(lattice_values)
         upsampled = lattice_image.resize((size, size), Image.BICUBIC)
@@ -79,13 +77,9 @@ def generate_gradient_texture(size: int, rng: random.Random) -> Image.Image:
 
     xs = np.arange(size, dtype=np.float32)
     ys = np.arange(size, dtype=np.float32)
-    t = np.clip(
-        (xs[np.newaxis, :] + ys[:, np.newaxis]) / (2.0 * max(size - 1, 1)), 0.0, 1.0
-    )
+    t = np.clip((xs[np.newaxis, :] + ys[:, np.newaxis]) / (2.0 * max(size - 1, 1)), 0.0, 1.0)
 
-    pixel_data = (start_color + t[:, :, np.newaxis] * (end_color - start_color)).astype(
-        np.uint8
-    )
+    pixel_data = (start_color + t[:, :, np.newaxis] * (end_color - start_color)).astype(np.uint8)
 
     return Image.fromarray(pixel_data, mode="RGB")
 
@@ -142,8 +136,7 @@ def generate_fractal_noise_texture(size: int, rng: random.Random) -> Image.Image
         rng: Seeded random number generator used to generate each channel's noise.
     """
     channels = [
-        Image.fromarray(_generate_fractal_noise_channel(size, rng), mode="L")
-        for _ in range(3)
+        Image.fromarray(_generate_fractal_noise_channel(size, rng), mode="L") for _ in range(3)
     ]
 
     return Image.merge("RGB", channels)

@@ -6,13 +6,14 @@ Code referenced from: https://github.com/NCCA/FBODemos
 Date accessed: 28, June 2026.
 """
 
-import numpy as np
-from pathlib import Path
 import ctypes
-from PySide6.QtOpenGLWidgets import QOpenGLWidget
-import OpenGL.GL as GL
+from pathlib import Path
 
-from gui.image_loader import load_exr, linear_to_srgb
+import numpy as np
+from OpenGL import GL
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
+
+from gui.image_loader import linear_to_srgb, load_exr
 
 
 def _load_shader(filename: str) -> str:
@@ -118,15 +119,11 @@ class RenderDisplay(QOpenGLWidget):
 
         GL.glBindVertexArray(self.vao)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vbo)
-        GL.glBufferData(
-            GL.GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL.GL_STATIC_DRAW
-        )
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL.GL_STATIC_DRAW)
 
         stride = 4 * vertices.itemsize
 
-        GL.glVertexAttribPointer(
-            0, 2, GL.GL_FLOAT, GL.GL_FALSE, stride, ctypes.c_void_p(0)
-        )
+        GL.glVertexAttribPointer(0, 2, GL.GL_FLOAT, GL.GL_FALSE, stride, ctypes.c_void_p(0))
         GL.glEnableVertexAttribArray(0)
 
         GL.glVertexAttribPointer(

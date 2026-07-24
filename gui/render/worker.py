@@ -1,7 +1,6 @@
 import os
-import time
 import subprocess
-
+import time
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
@@ -148,9 +147,7 @@ class RenderWorker(QThread):
             elapsed = time.time() * 1000 - start_ms
 
             if process.returncode != 0:
-                self.renderFailed.emit(
-                    f"Renderer exited with code {process.returncode}"
-                )
+                self.renderFailed.emit(f"Renderer exited with code {process.returncode}")
                 return
 
             self.renderComplete.emit(elapsed, self.output_path)

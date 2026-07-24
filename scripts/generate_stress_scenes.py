@@ -2,14 +2,13 @@
 import random
 from pathlib import Path
 
+from constants import OBJECT_COUNT, SCENES_DIR
 from pxr import Usd, UsdGeom
-
-from constants import SCENES_DIR, OBJECT_COUNT
-from utils.materials import build_material_pool, MaterialRecipe
+from utils.cornell_reference import reference_empty_cornell_box
+from utils.geometry import populate_dragon_grid, populate_mixed_grid
+from utils.materials import MaterialRecipe, build_material_pool
 from utils.textures import estimate_resident_texture_bytes
 from utils.usd_materials import add_materials_scope
-from utils.geometry import populate_dragon_grid, populate_mixed_grid
-from utils.cornell_reference import reference_empty_cornell_box
 
 ROOT_PRIM_NAME = "StressTest"
 CORNELL_BOX_PRIM_NAME = "CornellBox"
@@ -39,9 +38,7 @@ def create_stage(output_path: Path, doc: str) -> Usd.Stage:
     return stage
 
 
-def build_dragon_scene(
-    materials: list[MaterialRecipe], material_names_by_cell: list[str]
-) -> Path:
+def build_dragon_scene(materials: list[MaterialRecipe], material_names_by_cell: list[str]) -> Path:
     """
     Builds and saves a stress-test scene of a dragon grid with per-cell unique materials inside a
     reference Cornell box.
@@ -60,9 +57,7 @@ def build_dragon_scene(
     root_path = f"/{ROOT_PRIM_NAME}"
 
     reference_empty_cornell_box(stage, f"{root_path}/{CORNELL_BOX_PRIM_NAME}")
-    material_paths = add_materials_scope(
-        stage, f"{root_path}/{MATERIALS_SCOPE_NAME}", materials
-    )
+    material_paths = add_materials_scope(stage, f"{root_path}/{MATERIALS_SCOPE_NAME}", materials)
     populate_dragon_grid(
         stage,
         f"{root_path}/{GEOMETRY_SCOPE_NAME}",
@@ -100,9 +95,7 @@ def build_mixed_scene(
     root_path = f"/{ROOT_PRIM_NAME}"
 
     reference_empty_cornell_box(stage, f"{root_path}/{CORNELL_BOX_PRIM_NAME}")
-    material_paths = add_materials_scope(
-        stage, f"{root_path}/{MATERIALS_SCOPE_NAME}", materials
-    )
+    material_paths = add_materials_scope(stage, f"{root_path}/{MATERIALS_SCOPE_NAME}", materials)
     populate_mixed_grid(
         stage,
         f"{root_path}/{GEOMETRY_SCOPE_NAME}",

@@ -1,18 +1,18 @@
 import time
 from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLabel,
-    QProgressBar,
-    QSizePolicy,
-)
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFontMetrics
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QProgressBar,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from gui.render.display import RenderDisplay
 from gui.render.worker import RenderWorker
@@ -103,9 +103,7 @@ class RenderWindow(QMainWindow):
 
         self.status_label = QLabel("Press Render to start")
         self.status_label.setStyleSheet("color: grey; font-size: 12px;")
-        self.status_label.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
-        )
+        self.status_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.status_label.setMinimumWidth(0)
 
         self.progress_label = QLabel("")
@@ -179,9 +177,7 @@ class RenderWindow(QMainWindow):
         the window wider or get silently clipped
         """
         metrics = QFontMetrics(self.status_label.font())
-        elided = metrics.elidedText(
-            text, Qt.TextElideMode.ElideMiddle, self.status_label.width()
-        )
+        elided = metrics.elidedText(text, Qt.TextElideMode.ElideMiddle, self.status_label.width())
         self.status_label.setText(elided)
 
     def _on_status_update(self, line: str):
