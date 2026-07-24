@@ -35,7 +35,7 @@ def load_exr(filepath: str) -> np.ndarray | None:
         pixels = np.flipud(pixels)
 
         return pixels
-    except Exception as error:
+    except (OSError, RuntimeError) as error:
         print(f"Failed to load {filepath}: {error}")
         return None
 

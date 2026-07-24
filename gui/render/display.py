@@ -176,7 +176,7 @@ class RenderDisplay(QOpenGLWidget):
 
             if pixels is None:
                 return
-        except Exception:
+        except (OSError, RuntimeError):
             return
 
         self._upload_pixels(linear_to_srgb(pixels))

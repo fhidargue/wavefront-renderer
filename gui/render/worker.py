@@ -164,5 +164,5 @@ class RenderWorker(QThread):
                 except OSError as e:
                     print(f"Could not delete preview: {e}")
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError, RuntimeError) as e:
             self.renderFailed.emit(str(e))

@@ -48,8 +48,8 @@ def resolve_paths(
     camera_path = argv[3] if len(argv) > 3 else ""
 
     # Denoise flag
-    width = int(os.environ.get("WIDTH", 600))
-    height = int(os.environ.get("HEIGHT", 600))
+    width = int(os.environ.get("WIDTH", "600"))
+    height = int(os.environ.get("HEIGHT", "600"))
     denoise = "--denoise" in argv
 
     # Env HDRI flag
