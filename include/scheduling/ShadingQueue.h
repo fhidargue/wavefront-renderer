@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <numeric>
 #include <type_traits>
+#include <cstdint>
 #include <tbb/parallel_sort.h>
 #include <scheduling/RayQueue.h>
 #include <core/HitRecord.h>
@@ -87,7 +88,8 @@ struct ShadingQueue
     }
 
     void schedule(const std::vector<Material>& materials, const std::vector<Texture>& textures,
-                  const CostTracker* costTracker = nullptr)
+                  const CostTracker* costTracker = nullptr,
+                  const CostTracker* textureCostTracker = nullptr)
     {
         const int n = size();
         sortedIndices.resize(n);
@@ -98,7 +100,7 @@ struct ShadingQueue
 
         if (policy == SchedulingPolicy::CostBenefitAware)
         {
-            scheduleCostBenefitAware(materials, costTracker);
+            scheduleCostBenefitAware(materials, costTracker, textureCostTracker);
             return;
         }
 
@@ -398,7 +400,8 @@ struct ShadingQueue
 
   private:
     void scheduleCostBenefitAware(const std::vector<Material>& materials,
-                                  const CostTracker* costTracker)
+                                  const CostTracker* costTracker,
+                                  const CostTracker* textureCostTracker)
     {
         const int n = size();
 
@@ -420,24 +423,94 @@ struct ShadingQueue
         for (const auto& entry : rayCountByMaterial)
         {
             int materialID = entry.first;
-            int rayCount = entry.second;
-            double benefit = static_cast<double>(rayCount) * throughputSumByMaterial[materialID];
-            double cost = costTracker ? costTracker->relativeCost(materialID) : 1.0;
+            double benefit = throughputSumByMaterial[materialID];
 
-            priorityByMaterial[materialID] = benefit / std::max(cost, minimumCost);
+            double shadingCost = costTracker ? costTracker->relativeCost(materialID) : 1.0;
+            int textureID = materials[materialID].textureID;
+            double textureCost = (textureCostTracker && textureID >= 0)
+                                     ? textureCostTracker->relativeCost(textureID)
+                                     : 0.0;
+            double combinedCost = shadingCost + textureCost;
+
+            priorityByMaterial[materialID] = benefit / std::max(combinedCost, minimumCost);
         }
 
-        // Higher priority (more benefit per unit cost) scheduled first
+        // Compute scene bounds of hit points for Morton quantisation
+        float minX = *std::min_element(hitPointsX.begin(), hitPointsX.end());
+        float minY = *std::min_element(hitPointsY.begin(), hitPointsY.end());
+        float minZ = *std::min_element(hitPointsZ.begin(), hitPointsZ.end());
+        float maxX = *std::max_element(hitPointsX.begin(), hitPointsX.end());
+        float maxY = *std::max_element(hitPointsY.begin(), hitPointsY.end());
+        float maxZ = *std::max_element(hitPointsZ.begin(), hitPointsZ.end());
+
+        // Compute Morton codes once upfront so sorting only compares precomputed values
+        std::vector<uint64_t> mortonCodes(n);
+
+        for (int i = 0; i < n; ++i)
+            mortonCodes[i] = computeMortonCode(hitPointsX[i], hitPointsY[i], hitPointsZ[i], minX,
+                                               minY, minZ, maxX, maxY, maxZ);
+
+        // Sorting happens in three ways:
+        // 1. Shader type: groups Diffuse / Metal / Glass / etc
+        // 2. Priority: within each type, high throughput/cost benefit first
+        // 3. Morton code: within same priority, spatially close hits together (BVH locality
+        // enhancement)
         std::stable_sort(sortedIndices.begin(), sortedIndices.end(),
                          [&](int a, int b)
                          {
                              int typeA = static_cast<int>(materials[materialIDs[a]].type);
                              int typeB = static_cast<int>(materials[materialIDs[b]].type);
+
                              if (typeA != typeB)
                                  return typeA < typeB;
 
-                             return priorityByMaterial[materialIDs[a]] >
-                                    priorityByMaterial[materialIDs[b]];
+                             double priorityA = priorityByMaterial[materialIDs[a]];
+                             double priorityB = priorityByMaterial[materialIDs[b]];
+
+                             if (priorityA != priorityB)
+                                 return priorityA > priorityB;
+
+                             return mortonCodes[a] < mortonCodes[b];
                          });
+    }
+
+    // Encodes a 3D hit point into a 30bit Morton code by inserting 10 bits per axis
+    static uint64_t computeMortonCode(float x, float y, float z, float minX, float minY, float minZ,
+                                      float maxX, float maxY, float maxZ)
+    {
+        static constexpr uint32_t MORTON_RESOLUTION = 1023;
+        static constexpr uint64_t MASK_10_BITS = 0x3ff;
+        static constexpr uint64_t MASK_SPREAD_16 = 0x30000ffULL;
+        static constexpr uint64_t MASK_SPREAD_8 = 0x300f00fULL;
+        static constexpr uint64_t MASK_SPREAD_4 = 0x30c30c3ULL;
+        static constexpr uint64_t MASK_SPREAD_2 = 0x9249249ULL;
+
+        auto quantise = [](float value, float lo, float hi) -> uint32_t
+        {
+            float normalizedPosition = (hi > lo) ? (value - lo) / (hi - lo) : 0.0f;
+
+            return static_cast<uint32_t>(std::clamp(normalizedPosition, 0.0f, 1.0f) *
+                                         MORTON_RESOLUTION);
+        };
+
+        // Spreads a 10bit integer across 30 bits by inserting two zero bits between each bit
+        auto spread = [](uint32_t value) -> uint64_t
+        {
+            uint64_t expandedBits = value & MASK_10_BITS;
+            expandedBits = (expandedBits | expandedBits << 16) & MASK_SPREAD_16;
+            expandedBits = (expandedBits | expandedBits << 8) & MASK_SPREAD_8;
+            expandedBits = (expandedBits | expandedBits << 4) & MASK_SPREAD_4;
+            expandedBits = (expandedBits | expandedBits << 2) & MASK_SPREAD_2;
+
+            return expandedBits;
+        };
+
+        static constexpr int X_BIT_OFFSET = 0;
+        static constexpr int Y_BIT_OFFSET = 1;
+        static constexpr int Z_BIT_OFFSET = 2;
+
+        return (spread(quantise(x, minX, maxX)) << X_BIT_OFFSET) |
+               (spread(quantise(y, minY, maxY)) << Y_BIT_OFFSET) |
+               (spread(quantise(z, minZ, maxZ)) << Z_BIT_OFFSET);
     }
 };

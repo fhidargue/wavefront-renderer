@@ -1,5 +1,6 @@
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 
 def load_exr(filepath: str) -> np.ndarray | None:
@@ -23,9 +24,7 @@ def load_exr(filepath: str) -> np.ndarray | None:
         if pixels is None:
             return None
 
-        pixels = pixels.reshape(
-            specification.height, specification.width, specification.nchannels
-        )
+        pixels = pixels.reshape(specification.height, specification.width, specification.nchannels)
 
         # Only keep RGB channels from RGBA
         if specification.nchannels > 3:
@@ -35,7 +34,7 @@ def load_exr(filepath: str) -> np.ndarray | None:
         pixels = np.flipud(pixels)
 
         return pixels
-    except Exception as error:
+    except (OSError, RuntimeError) as error:
         print(f"Failed to load {filepath}: {error}")
         return None
 

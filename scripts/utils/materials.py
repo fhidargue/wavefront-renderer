@@ -1,7 +1,7 @@
 import random
 from dataclasses import dataclass
 
-from .textures import generate_unique_material_texture, generate_heavy_texture
+from .textures import generate_heavy_texture, generate_unique_material_texture
 
 MATERIAL_KIND_WEIGHTS = {
     "diffuse_tex": 30,
@@ -82,9 +82,7 @@ def build_material_pool(count: int, rng: random.Random) -> list[MaterialRecipe]:
     kinds = build_material_kind_sequence(count, rng)
     materials = []
 
-    total_textured = sum(
-        1 for kind in kinds if kind.endswith("_tex") or kind == "heavy_tex"
-    )
+    total_textured = sum(1 for kind in kinds if kind.endswith("_tex") or kind == "heavy_tex")
     textured_progress = 0
 
     for index, kind in enumerate(kinds):

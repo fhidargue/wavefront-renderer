@@ -1,13 +1,11 @@
-from pxr import Usd, UsdShade, UsdGeom, Sdf, Gf
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 from .materials import MaterialRecipe
 
 UV_PRIMVAR_NAME = "st"
 
 
-def add_materials_scope(
-    stage: Usd.Stage, scope_path: str, materials: list[MaterialRecipe]
-) -> dict:
+def add_materials_scope(stage: Usd.Stage, scope_path: str, materials: list[MaterialRecipe]) -> dict:
     """
     Defines a Scope of UsdPreviewSurface materials from the given recipes, wiring up textures
     and kind-specific inputs (metallic, roughness, ior, checker), and returns a mapping from material name to its prim path.
@@ -26,9 +24,7 @@ def add_materials_scope(
 
         shader = UsdShade.Shader.Define(stage, f"{material_path}/PreviewSurface")
         shader.CreateIdAttr("UsdPreviewSurface")
-        material.CreateSurfaceOutput().ConnectToSource(
-            shader.ConnectableAPI(), "surface"
-        )
+        material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
 
         diffuse_input = shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f)
 
@@ -36,9 +32,7 @@ def add_materials_scope(
             # Standard UsdUVTexture
             st_reader = UsdShade.Shader.Define(stage, f"{material_path}/stReader")
             st_reader.CreateIdAttr("UsdPrimvarReader_float2")
-            st_reader.CreateInput("varname", Sdf.ValueTypeNames.Token).Set(
-                UV_PRIMVAR_NAME
-            )
+            st_reader.CreateInput("varname", Sdf.ValueTypeNames.Token).Set(UV_PRIMVAR_NAME)
             st_output = st_reader.CreateOutput("result", Sdf.ValueTypeNames.Float2)
 
             texture = UsdShade.Shader.Define(stage, f"{material_path}/DiffuseTexture")
@@ -46,9 +40,7 @@ def add_materials_scope(
             texture.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(
                 Sdf.AssetPath(recipe.texture_path)
             )
-            texture.CreateInput("st", Sdf.ValueTypeNames.Float2).ConnectToSource(
-                st_output
-            )
+            texture.CreateInput("st", Sdf.ValueTypeNames.Float2).ConnectToSource(st_output)
             texture_rgb = texture.CreateOutput("rgb", Sdf.ValueTypeNames.Float3)
 
             diffuse_input.ConnectToSource(texture_rgb)
@@ -57,14 +49,10 @@ def add_materials_scope(
 
         if recipe.kind in ("metal", "metal_tex"):
             shader.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(1.0)
-            shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(
-                recipe.roughness
-            )
+            shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(recipe.roughness)
         elif recipe.kind in ("plastic", "plastic_tex"):
             shader.CreateInput("plastic", Sdf.ValueTypeNames.Bool).Set(True)
-            shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(
-                recipe.roughness
-            )
+            shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(recipe.roughness)
         elif recipe.kind == "glass":
             shader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(recipe.ior)
         elif recipe.kind == "checker":

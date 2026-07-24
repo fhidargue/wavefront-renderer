@@ -180,7 +180,8 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
             if (enableMemoryCoherenceStats && sample == 0 && depth == 0)
                 shadingQueue.printQueueComposition(depth, scene.materials, scene.textures);
 
-            shadingQueue.schedule(scene.materials, scene.textures, &materialCostTracker);
+            shadingQueue.schedule(scene.materials, scene.textures, &materialCostTracker,
+                                  &textureCostTracker);
             shadingQueue.materialize();
 
             // Shading batch tracking

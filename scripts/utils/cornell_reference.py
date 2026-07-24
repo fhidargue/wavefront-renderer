@@ -1,11 +1,9 @@
-from pxr import Usd, UsdShade, Sdf, Gf, UsdGeom
-
 from constants import (
     CORNELL_BOX_ASSET,
-    CORNELL_WALL_COLOR,
     CORNELL_LIGHT_EMISSIVE_STRENGTH,
+    CORNELL_WALL_COLOR,
 )
-
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 TALL_BOX_PARTS = [
     "TallBox_Bottom",
@@ -43,17 +41,13 @@ def reference_empty_cornell_box(stage: Usd.Stage, prim_path: str):
             part_prim.SetActive(False)
 
     for wall_material_name in ("RedMaterial", "GreenMaterial"):
-        shader_prim = stage.GetPrimAtPath(
-            f"{prim_path}/Materials/{wall_material_name}/Shader"
-        )
+        shader_prim = stage.GetPrimAtPath(f"{prim_path}/Materials/{wall_material_name}/Shader")
         if shader_prim.IsValid():
             UsdShade.Shader(shader_prim).CreateInput(
                 "diffuseColor", Sdf.ValueTypeNames.Color3f
             ).Set(Gf.Vec3f(*CORNELL_WALL_COLOR))
 
-    light_shader_prim = stage.GetPrimAtPath(
-        f"{prim_path}/Materials/LightMaterial/Shader"
-    )
+    light_shader_prim = stage.GetPrimAtPath(f"{prim_path}/Materials/LightMaterial/Shader")
 
     if light_shader_prim.IsValid():
         UsdShade.Shader(light_shader_prim).CreateInput(
@@ -83,9 +77,7 @@ def _add_mirror_panel(stage: Usd.Stage, prim_path: str):
     material = UsdShade.Material.Define(stage, mirror_material_path)
     shader = UsdShade.Shader.Define(stage, f"{mirror_material_path}/Shader")
     shader.CreateIdAttr("UsdPreviewSurface")
-    shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(
-        Gf.Vec3f(0.95, 0.95, 0.95)
-    )
+    shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(0.95, 0.95, 0.95))
     shader.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(1.0)
     shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.0)
     material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")

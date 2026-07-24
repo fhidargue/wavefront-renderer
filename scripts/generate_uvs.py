@@ -2,7 +2,7 @@
 import argparse
 from pathlib import Path
 
-from pxr import Usd, UsdGeom, Sdf, Gf
+from pxr import Gf, Sdf, Usd, UsdGeom
 
 DEFAULT_TEXEL_WORLD_SIZE = 1.5
 MIN_BBOX_EXTENT = 1e-6
@@ -71,9 +71,7 @@ def compute_box_projected_uvs(
     bbox_extent = bbox_max - bbox_min
 
     # One tile count per axis
-    tile_counts = [
-        max(bbox_extent[axis], MIN_BBOX_EXTENT) / texel_world_size for axis in range(3)
-    ]
+    tile_counts = [max(bbox_extent[axis], MIN_BBOX_EXTENT) / texel_world_size for axis in range(3)]
 
     face_varying_uvs = []
     cursor = 0
@@ -87,15 +85,9 @@ def compute_box_projected_uvs(
         u_axis, v_axis = [a for a in (0, 1, 2) if a != axis]
 
         for point in face_points:
-            u = normalize_to_unit_range(
-                point[u_axis], bbox_min[u_axis], bbox_max[u_axis]
-            )
-            v = normalize_to_unit_range(
-                point[v_axis], bbox_min[v_axis], bbox_max[v_axis]
-            )
-            face_varying_uvs.append(
-                Gf.Vec2f(u * tile_counts[u_axis], v * tile_counts[v_axis])
-            )
+            u = normalize_to_unit_range(point[u_axis], bbox_min[u_axis], bbox_max[u_axis])
+            v = normalize_to_unit_range(point[v_axis], bbox_min[v_axis], bbox_max[v_axis])
+            face_varying_uvs.append(Gf.Vec2f(u * tile_counts[u_axis], v * tile_counts[v_axis]))
 
         cursor += count
 
@@ -165,9 +157,7 @@ def generate_uvs(target_path: Path, texel_world_size: float, force: bool):
         uvs = compute_box_projected_uvs(
             points, face_vertex_counts, face_vertex_indices, texel_world_size
         )
-        assert len(uvs) == len(face_vertex_indices), (
-            "UV count must match faceVertexIndices count"
-        )
+        assert len(uvs) == len(face_vertex_indices), "UV count must match faceVertexIndices count"
 
         st_primvar = UsdGeom.PrimvarsAPI(mesh_prim).CreatePrimvar(
             "st", Sdf.ValueTypeNames.TexCoord2fArray, UsdGeom.Tokens.faceVarying
@@ -178,9 +168,7 @@ def generate_uvs(target_path: Path, texel_world_size: float, force: bool):
         processed += 1
 
     stage.GetRootLayer().Save()
-    print(
-        f"\nOverwrote {target_path}. {processed} mesh(es) processed, {skipped} skipped"
-    )
+    print(f"\nOverwrote {target_path}. {processed} mesh(es) processed, {skipped} skipped")
 
     if processed == 0:
         print("WARNING: no meshes were processed")
@@ -190,9 +178,7 @@ def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument(
-        "target", type=Path, help="Path to the .usda asset to modify IN PLACE"
-    )
+    parser.add_argument("target", type=Path, help="Path to the .usda asset to modify IN PLACE")
     parser.add_argument(
         "--texel-size",
         type=float,
