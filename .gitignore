@@ -72,6 +72,7 @@ output/*.ppm
 output/*.png
 output/*.exr
 build/
+results/figures/*.png
 
 # textures
 scenes/textures/generated
