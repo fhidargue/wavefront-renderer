@@ -335,7 +335,6 @@ struct ShadingQueue
                                           "SpotLight", "Glass", "Plastic"};
 
         std::unordered_map<int, int> countByMaterial;
-
         for (int i = 0; i < size(); ++i)
             countByMaterial[materialIDs[i]]++;
 
@@ -347,11 +346,16 @@ struct ShadingQueue
             std::string texName =
                 (tid >= 0 && tid < static_cast<int>(textures.size())) ? textures[tid].name : "none";
 
-            return "  materialID=" + std::to_string(mid) +
-                   "  materialName=" + materialName.substr(materialName.rfind('/') + 1) +
-                   "  textureID=" + std::to_string(tid) +
-                   "  textureName=" + texName.substr(texName.rfind('|') + 1) +
-                   "  rays=" + std::to_string(count);
+            auto safeSuffix = [](const std::string& str, char delim) -> std::string
+            {
+                auto pos = str.rfind(delim);
+                return (pos == std::string::npos) ? str : str.substr(pos + 1);
+            };
+
+            return " materialID=" + std::to_string(mid) +
+                   " materialName=" + safeSuffix(materialName, '/') +
+                   " textureID=" + std::to_string(tid) +
+                   " textureName=" + safeSuffix(texName, '|') + " rays=" + std::to_string(count);
         };
 
         std::vector<std::string> lines;
@@ -369,11 +373,42 @@ struct ShadingQueue
         }
         else
         {
+            // Build first-position map only if sortedIndices is valid
+            std::unordered_map<int, int> firstPositionByMaterial;
+            const bool hasSortedIndices = static_cast<int>(sortedIndices.size()) == size();
+
+            if (hasSortedIndices)
+            {
+                for (int pos = 0; pos < size(); ++pos)
+                {
+                    int idx = sortedIndices[pos];
+                    if (idx < 0 || idx >= size())
+                        continue;
+                    int mid = materialIDs[idx];
+                    if (firstPositionByMaterial.find(mid) == firstPositionByMaterial.end())
+                        firstPositionByMaterial[mid] = pos;
+                }
+            }
+
             std::unordered_map<int, std::vector<std::pair<int, int>>> raysByType;
             for (auto& [mid, count] : countByMaterial)
             {
                 int typeIndex = static_cast<int>(materials[mid].type);
                 raysByType[typeIndex].push_back({mid, count});
+            }
+
+            // Sort materials within each type by actual shade position if available
+            for (auto& [typeIndex, entries] : raysByType)
+            {
+                std::sort(entries.begin(), entries.end(),
+                          [&](const std::pair<int, int>& a, const std::pair<int, int>& b)
+                          {
+                              auto itA = firstPositionByMaterial.find(a.first);
+                              auto itB = firstPositionByMaterial.find(b.first);
+                              int posA = (itA != firstPositionByMaterial.end()) ? itA->second : 0;
+                              int posB = (itB != firstPositionByMaterial.end()) ? itB->second : 0;
+                              return posA < posB;
+                          });
             }
 
             std::vector<int> typeOrder = computeTypeOrder(materials, textures, nullptr);
