@@ -81,10 +81,7 @@ def Xform "Root"
 
 TEST(UsdSceneLoaderTest, InvalidFileReturnsEmptyScene)
 {
-    Scene scene = UsdSceneLoader::load("/nonexistent/path/scene.usda");
-
-    EXPECT_EQ(scene.meshes.size(), 0u);
-    EXPECT_EQ(scene.materials.size(), 0u);
+    EXPECT_THROW(UsdSceneLoader::load("/nonexistent/path/scene.usda"), std::runtime_error);
 }
 
 TEST(UsdSceneLoaderTest, LoadsCorrectNumberOfMaterials)

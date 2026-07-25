@@ -43,10 +43,11 @@ def resolve_paths(
     output_path = argv[2] if len(argv) > 2 else str(project_root / "output" / "preview.exr")
     camera_path = argv[3] if len(argv) > 3 else ""
 
-    # Denoise flag
+    # CLI flags
     width = int(os.environ.get("WIDTH", "600"))
     height = int(os.environ.get("HEIGHT", "600"))
     denoise = "--denoise" in argv
+    memory_stats = "--memory-stats" in argv
 
     # Env HDRI flag
     env_path = ""
@@ -81,6 +82,7 @@ def resolve_paths(
         ray_sort,
         samples,
         adaptive_sampling,
+        memory_stats,
     )
 
 
@@ -104,6 +106,7 @@ def main():
         ray_sort,
         samples,
         adaptive_sampling,
+        memory_stats,
     ) = resolve_paths(sys.argv)
 
     window = RenderWindow(
@@ -119,6 +122,7 @@ def main():
         ray_sort=ray_sort,
         samples=samples,
         adaptive_sampling=adaptive_sampling,
+        memory_stats=memory_stats,
     )
     window.show()
 

@@ -39,13 +39,16 @@ NUMERIC_COLUMNS = [
     "total_shaded_hits",
 ]
 
+BENCHMARK_SCENES = {"stressTestDragons", "stressTestMixed"}
+
 
 def load_data() -> pd.DataFrame:
     """
-    Loads the benchmark CSV, converts metric columns to numeric, maps raw keys
-    to display labels, and averages multiple runs of the same scene/policy pair.
+    Loads the benchmark CSV, filters to stress scenes only, converts metric columns
+    to numeric, maps raw keys to display labels, and averages multiple runs.
     """
     df = pd.read_csv(RESULTS_CSV)
+    df = df[df["scene"].isin(BENCHMARK_SCENES)]
 
     for column in NUMERIC_COLUMNS:
         df[column] = pd.to_numeric(df[column], errors="coerce")
@@ -96,18 +99,36 @@ def annotate_bars_inside(ax: plt.Axes, value_format: str, minimum_height: float)
             )
 
 
-def plot_shade_time(df: pd.DataFrame):
+def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
     """
-    Grouped bar chart of shading time per policy per scene.
-    Values are annotated inside each bar for direct readability.
+    Builds all benchmark figures. When save_to_disk is True, saves each figure
+    as a PNG to FIGURES_OUTPUT_DIR. Always returns the dict of figures for GUI use.
 
     Args:
-        df: Benchmark results dataframe with scene, policy, and shade_ms columns.
-    """
-    fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
+        df: Benchmark results dataframe produced by load_data().
+        save_to_disk: If True, saves figures to disk in addition to returning them.
 
+    Returns:
+        Dict mapping figure name to matplotlib Figure.
+    """
+    figures = {}
+
+    # Shade time
+
+    baseline = df[df["policy"] == "None"][["scene", "shade_ms"]].rename(
+        columns={"shade_ms": "baseline_ms"}
+    )
+    merged = df.merge(baseline, on="scene")
+    merged["improvement_pct"] = (
+        (merged["shade_ms"] - merged["baseline_ms"]) / merged["baseline_ms"] * 100
+    )
+    improvement_lookup = {
+        (row["scene"], row["policy"]): row["improvement_pct"] for _, row in merged.iterrows()
+    }
+
+    fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
     sns.barplot(
-        data=df,
+        data=merged,
         x="scene",
         y="shade_ms",
         hue="policy",
@@ -116,17 +137,39 @@ def plot_shade_time(df: pd.DataFrame):
         ax=ax,
     )
 
-    for bar in ax.patches:
+    scenes = list(merged["scene"].unique())
+    num_scenes = len(scenes)
+
+    for bar_index, bar in enumerate(ax.patches):
         bar_height_ms = bar.get_height()
-        if bar_height_ms > MIN_VALUE_MS_FOR_LABEL:
+
+        if bar_height_ms < MIN_VALUE_MS_FOR_LABEL:
+            continue
+
+        policy = ORDERED_POLICY_LABELS[bar_index // num_scenes]
+        scene = scenes[bar_index % num_scenes]
+
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar_height_ms * 0.5,
+            f"{bar_height_ms:,.0f}ms",
+            ha="center",
+            va="center",
+            fontsize=BAR_LABEL_FONT_SIZE,
+            color="white",
+            fontweight="bold",
+        )
+
+        if policy != "None":
+            pct = improvement_lookup.get((scene, policy), 0)
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
-                bar_height_ms * 0.5,
-                f"{bar_height_ms:,.0f}ms",
+                bar_height_ms + 100,
+                f"{pct:+.1f}%",
                 ha="center",
-                va="center",
+                va="bottom",
                 fontsize=BAR_LABEL_FONT_SIZE,
-                color="white",
+                color="black",
                 fontweight="bold",
             )
 
@@ -134,18 +177,13 @@ def plot_shade_time(df: pd.DataFrame):
     ax.set_ylabel("Shade Time (ms)")
     ax.set_xlabel("Scene")
     ax.legend(title="Policy")
+    figures["shade_time"] = fig
 
-    save(fig, "shade_time")
+    if save_to_disk:
+        save(fig, "shade_time")
 
+    # Pipeline breakdown
 
-def plot_pipeline_breakdown(df: pd.DataFrame):
-    """
-    Single stacked bar chart combining all scenes and policies.
-    X-axis groups by scene then policy so all data is visible in one graph.
-
-    Args:
-        df: Benchmark results dataframe.
-    """
     rows = []
     for scene in df["scene"].unique():
         for policy in ORDERED_POLICY_LABELS:
@@ -161,19 +199,12 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
                 )
 
     plot_df = pd.DataFrame(rows)
-
     fig, ax = plt.subplots(figsize=(16, 6))
-
     bottom = [0] * len(plot_df)
+
     for stage_name, stage_color in STAGE_COLORS.items():
         values = plot_df[stage_name].tolist()
-        bars = ax.bar(
-            plot_df["label"],
-            values,
-            bottom=bottom,
-            color=stage_color,
-            label=stage_name,
-        )
+        bars = ax.bar(plot_df["label"], values, bottom=bottom, color=stage_color, label=stage_name)
 
         for bar, val, bot in zip(bars, values, bottom):
             if val > MIN_VALUE_MS_FOR_LABEL:
@@ -187,7 +218,6 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
                     color="white",
                     fontweight="bold",
                 )
-
         bottom = [b + v for b, v in zip(bottom, values)]
 
     for bar_index, (_, row) in enumerate(plot_df.iterrows()):
@@ -206,94 +236,16 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
     ax.set_xlabel("")
     ax.tick_params(axis="x", rotation=25)
     ax.legend(title="Stage", bbox_to_anchor=(1.01, 1), loc="upper left")
-
     fig.suptitle("Pipeline Time Breakdown by Policy and Scene", fontsize=SUPTITLE_FONT_SIZE)
     plt.tight_layout()
+    figures["pipeline"] = fig
 
-    save(fig, "pipeline_breakdown")
+    if save_to_disk:
+        save(fig, "pipeline_breakdown")
 
+    # Run length
 
-def plot_cache_homogeneity(df: pd.DataFrame):
-    """
-    Single bar chart grouping by metric and scene combination.
-    Groups are built dynamically from available data — no empty bars.
-
-    Args:
-        df: Benchmark results dataframe.
-    """
-    df_melt = df.melt(
-        id_vars=["scene", "policy"],
-        value_vars=["mat_homogeneity", "tex_homogeneity"],
-        var_name="metric",
-        value_name="homogeneity",
-    )
-
-    metric_labels = {
-        "mat_homogeneity": "Material",
-        "tex_homogeneity": "Texture",
-    }
-    df_melt["metric"] = df_melt["metric"].map(metric_labels)
-    df_melt["group"] = df_melt["scene"] + " " + df_melt["metric"]
-
-    available_scenes = df["scene"].unique()
-    group_order = [
-        f"{scene} {metric}"
-        for metric in ["Material", "Texture"]
-        for scene in available_scenes
-        if not df_melt[df_melt["group"] == f"{scene} {metric}"]["homogeneity"].isna().all()
-    ]
-
-    fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
-
-    sns.barplot(
-        data=df_melt,
-        x="group",
-        y="homogeneity",
-        hue="policy",
-        hue_order=ORDERED_POLICY_LABELS,
-        order=group_order,
-        palette=POLICY_COLORS,
-        ax=ax,
-    )
-
-    for bar in ax.patches:
-        bar_height = bar.get_height()
-        if bar_height > MIN_HOMOGENEITY_FOR_LABEL:
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                bar_height * 0.5,
-                f"{bar_height:.3f}",
-                ha="center",
-                va="center",
-                fontsize=BAR_LABEL_FONT_SIZE,
-                color="white",
-                fontweight="bold",
-            )
-
-    ax.set_title(
-        "Cache Line Homogeneity by Policy, Metric and Scene",
-        fontsize=SUBPLOT_TITLE_FONT_SIZE,
-    )
-    ax.set_ylabel("Homogeneity (0–1)")
-    ax.set_xlabel("")
-    ax.set_ylim(0, HOMOGENEITY_Y_AXIS_MAX)
-    ax.legend(title="Policy", fontsize=LEGEND_FONT_SIZE)
-
-    plt.tight_layout()
-
-    save(fig, "cache_homogeneity")
-
-
-def plot_run_length(df: pd.DataFrame):
-    """
-    Horizontal grouped bar chart of average material run length per policy and scene.
-    Higher run length means more consecutive rays hit the same material — better coherence.
-
-    Args:
-        df: Benchmark results dataframe with mat_run_length column.
-    """
     fig, ax = plt.subplots(figsize=RUN_LENGTH_FIGURE_SIZE)
-
     sns.barplot(
         data=df,
         y="policy",
@@ -306,6 +258,7 @@ def plot_run_length(df: pd.DataFrame):
 
     for bar in ax.patches:
         bar_width = bar.get_width()
+
         if bar_width > 0:
             ax.text(
                 bar_width + 5,
@@ -324,25 +277,88 @@ def plot_run_length(df: pd.DataFrame):
     ax.set_ylabel("Policy")
     ax.legend(title="Scene")
     ax.set_xlim(0, df["mat_run_length"].max() * RUN_LENGTH_X_AXIS_MARGIN)
-
     fig.suptitle("Run Length by Policy and Scene", fontsize=SUPTITLE_FONT_SIZE)
     plt.tight_layout()
+    figures["run_length"] = fig
 
-    save(fig, "run_length")
+    if save_to_disk:
+        save(fig, "run_length")
+
+    # Cache homogeneity
+
+    df_melt = df.melt(
+        id_vars=["scene", "policy"],
+        value_vars=["mat_homogeneity", "tex_homogeneity"],
+        var_name="metric",
+        value_name="homogeneity",
+    )
+    df_melt["metric"] = df_melt["metric"].map(
+        {"mat_homogeneity": "Material", "tex_homogeneity": "Texture"}
+    )
+    df_melt["group"] = df_melt["scene"] + " " + df_melt["metric"]
+    available_scenes = df["scene"].unique()
+    group_order = [
+        f"{scene} {metric}"
+        for scene in available_scenes
+        for metric in ["Material", "Texture"]
+        if not df_melt[df_melt["group"] == f"{scene} {metric}"]["homogeneity"].isna().all()
+    ]
+
+    fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
+    sns.barplot(
+        data=df_melt,
+        x="group",
+        y="homogeneity",
+        hue="policy",
+        hue_order=ORDERED_POLICY_LABELS,
+        order=group_order,
+        palette=POLICY_COLORS,
+        ax=ax,
+    )
+
+    for bar in ax.patches:
+        h = bar.get_height()
+
+        if h > MIN_HOMOGENEITY_FOR_LABEL:
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                h * 0.5,
+                f"{h:.3f}",
+                ha="center",
+                va="center",
+                fontsize=BAR_LABEL_FONT_SIZE,
+                color="white",
+                fontweight="bold",
+            )
+
+    ax.set_ylim(0, HOMOGENEITY_Y_AXIS_MAX)
+    ax.set_ylabel("Homogeneity (0–1)")
+    ax.set_xlabel("")
+    ax.legend(title="Policy", fontsize=LEGEND_FONT_SIZE)
+    ax.set_title("Cache Line Homogeneity by Policy and Scene")
+    plt.tight_layout()
+    figures["homogeneity"] = fig
+
+    if save_to_disk:
+        save(fig, "cache_homogeneity")
+
+    return figures
+
+
+def build_figures(df: pd.DataFrame) -> dict:
+    """
+    GUI entry point. Builds figures without saving to disk.
+    """
+    return create_figures(df, save_to_disk=False)
 
 
 def main():
     sns.set_theme(style="whitegrid", palette="tab10")
-
     df = load_data()
+
     print(f"Loaded {len(df)} rows from {RESULTS_CSV}")
-
-    plot_shade_time(df)
-    plot_pipeline_breakdown(df)
-    plot_cache_homogeneity(df)
-    plot_run_length(df)
-
-    print("\nAll figures created")
+    create_figures(df, save_to_disk=True)
+    print(f"\nAll figures saved to {FIGURES_OUTPUT_DIR}/")
 
 
 if __name__ == "__main__":
