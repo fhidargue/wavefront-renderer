@@ -15,6 +15,7 @@ class RenderWorker(QThread):
     progressUpdate = Signal(int, float)
     renderComplete = Signal(float, str)
     renderFailed = Signal(str)
+    outputCaptured = Signal(str)
 
     def __init__(
         self,
@@ -30,6 +31,8 @@ class RenderWorker(QThread):
         ray_sort: bool = True,
         samples: int | None = None,
         adaptive_sampling: bool = True,
+        policy: str = "none",
+        memory_stats: bool = False,
         parent=None,
     ):
         super().__init__(parent)
@@ -46,6 +49,8 @@ class RenderWorker(QThread):
         self.samples = samples
         self.adaptive_sampling = adaptive_sampling
         self.preview_path = self._derive_preview_path(output_path)
+        self.memory_stats = memory_stats
+        self.policy = policy
         self._stop = False
 
     @staticmethod
@@ -101,6 +106,9 @@ class RenderWorker(QThread):
         if self.denoise:
             cmd.append("--denoise")
 
+        if self.memory_stats:
+            cmd.append("--memory-stats")
+
         if self.env_path:
             cmd.extend(["--env", self.env_path])
 
@@ -113,6 +121,7 @@ class RenderWorker(QThread):
                 bufsize=1,
                 universal_newlines=True,
             )
+            captured_lines = []
 
             for line in process.stdout:
                 if self._stop:
@@ -120,6 +129,7 @@ class RenderWorker(QThread):
                     return
 
                 line = line.rstrip()
+                captured_lines.append(line)
 
                 if line.startswith("Sample:"):
                     try:
@@ -150,6 +160,7 @@ class RenderWorker(QThread):
                 self.renderFailed.emit(f"Renderer exited with code {process.returncode}")
                 return
 
+            self.outputCaptured.emit("\n".join(captured_lines))
             self.renderComplete.emit(elapsed, self.output_path)
 
             # Clean up preview file

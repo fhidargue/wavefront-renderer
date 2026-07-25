@@ -2,8 +2,8 @@ from pathlib import Path
 
 import seaborn as sns
 
-RESULTS_CSV = Path("results/benchmark_results.csv")
-FIGURES_OUTPUT_DIR = Path("results/figures")
+RESULTS_CSV = Path(__file__).resolve().parents[2] / "results" / "benchmark_results.csv"
+FIGURES_OUTPUT_DIR = Path(__file__).resolve().parents[2] / "results" / "figures"
 
 POLICY_KEYS = ["none", "material", "texture", "costBenefit"]
 

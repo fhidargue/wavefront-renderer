@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-RESULTS_CSV = Path("results/benchmark_results.csv")
+RESULTS_CSV = Path(__file__).resolve().parents[2] / "results" / "benchmark_results.csv"
 
 # CSV columns
 FIELDS = [
@@ -89,6 +89,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     log_text = Path(sys.argv[1]).read_text()
+
     scene_name = sys.argv[2]
     policy_name = sys.argv[3]
 

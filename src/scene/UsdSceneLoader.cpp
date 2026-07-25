@@ -344,8 +344,7 @@ Scene UsdSceneLoader::load(const string& usdFilePath)
 
     if (!stage)
     {
-        cerr << "ERROR: Could not open: " << usdFilePath << endl;
-        return Scene();
+        throw std::runtime_error("Could not open: " + usdFilePath);
     }
 
     Scene scene;
