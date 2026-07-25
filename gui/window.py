@@ -132,6 +132,7 @@ class RenderWindow(QMainWindow):
         display_container.addWidget(self.display)
         display_container.addStretch()
         layout.addLayout(display_container)
+        layout.addSpacing(8)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)

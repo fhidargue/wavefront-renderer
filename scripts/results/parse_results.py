@@ -8,6 +8,8 @@ from pathlib import Path
 
 RESULTS_CSV = Path(__file__).resolve().parents[2] / "results" / "benchmark_results.csv"
 
+BENCHMARK_SCENES = {"stressTestDragons", "stressTestMixed"}
+
 # CSV columns
 FIELDS = [
     "timestamp",
@@ -70,6 +72,9 @@ def append_row(row: dict):
     Args:
         row: Dict with keys matching FIELDS, produced by parse().
     """
+    if row.get("scene") not in BENCHMARK_SCENES:
+        return
+
     RESULTS_CSV.parent.mkdir(parents=True, exist_ok=True)
     write_header = not RESULTS_CSV.exists()
 

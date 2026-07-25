@@ -33,7 +33,7 @@ class ResultsTab(QWidget):
         self.status_label.setStyleSheet("color: grey; font-size: 12px;")
 
         refresh_btn = QPushButton("Refresh")
-        refresh_btn.setFixedHeight(28)
+        refresh_btn.setFixedHeight(32)
         refresh_btn.clicked.connect(self.refresh)
 
         top_bar.addWidget(self.status_label, 1)
