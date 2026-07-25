@@ -215,9 +215,8 @@ def plot_pipeline_breakdown(df: pd.DataFrame):
 
 def plot_cache_homogeneity(df: pd.DataFrame):
     """
-    Single bar chart with four groups on x-axis:
-    Material Dragons, Material Mixed, Texture Dragons, Texture Mixed.
-    Each group shows all four policies side by side.
+    Single bar chart grouping by metric and scene combination.
+    Groups are built dynamically from available data — no empty bars.
 
     Args:
         df: Benchmark results dataframe.
@@ -234,13 +233,14 @@ def plot_cache_homogeneity(df: pd.DataFrame):
         "tex_homogeneity": "Texture",
     }
     df_melt["metric"] = df_melt["metric"].map(metric_labels)
-    df_melt["group"] = df_melt["metric"] + " " + df_melt["scene"]
+    df_melt["group"] = df_melt["scene"] + " " + df_melt["metric"]
 
+    available_scenes = df["scene"].unique()
     group_order = [
-        "Material Dragons",
-        "Material Mixed",
-        "Texture Dragons",
-        "Texture Mixed",
+        f"{scene} {metric}"
+        for metric in ["Material", "Texture"]
+        for scene in available_scenes
+        if not df_melt[df_melt["group"] == f"{scene} {metric}"]["homogeneity"].isna().all()
     ]
 
     fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
@@ -271,7 +271,8 @@ def plot_cache_homogeneity(df: pd.DataFrame):
             )
 
     ax.set_title(
-        "Cache Line Homogeneity by Policy, Metric and Scene", fontsize=SUBPLOT_TITLE_FONT_SIZE
+        "Cache Line Homogeneity by Policy, Metric and Scene",
+        fontsize=SUBPLOT_TITLE_FONT_SIZE,
     )
     ax.set_ylabel("Homogeneity (0–1)")
     ax.set_xlabel("")
