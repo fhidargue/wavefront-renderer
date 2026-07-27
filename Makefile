@@ -45,7 +45,7 @@ RENDERER = ./$(BUILD_DIR)/renderer
 # Phony
 .PHONY: all build clean clean-build clean-scripts clean-all rebuild test \
         cornell cornell-dragon kitchen golden-render preview \
-        format generate-stress-scenes stress-dragons stress-mixed reports rebuild-buckets
+        format generate-stress-scenes stress-dragons stress-mixed reports
 
 # Build
 all: build
@@ -124,9 +124,6 @@ preview: build
 # Reports
 reports:
 	@uv run python scripts/results/plot_results.py
-
-rebuild-buckets:
-	uv run python scripts/results/parse_results.py --rebuild-buckets
 
 # Format
 format:
