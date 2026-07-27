@@ -2,7 +2,6 @@ from pathlib import Path
 
 import seaborn as sns
 
-RESULTS_CSV = Path(__file__).resolve().parents[2] / "results" / "benchmark_results.csv"
 FIGURES_OUTPUT_DIR = Path(__file__).resolve().parents[2] / "results" / "figures"
 
 POLICY_KEYS = ["none", "material", "texture", "costBenefit"]
@@ -37,11 +36,6 @@ STAGE_COLORS = {
 }
 
 SHADE_TIME_FIGURE_SIZE = (11, 5)
-COMBINED_FIGURE_SIZE = (14, 12)
-RUN_LENGTH_FIGURE_SIZE = (10, 5)
-
-COMBINED_GRIDSPEC_HSPACE = 0.45
-COMBINED_GRIDSPEC_WSPACE = 0.35
 
 MIN_VALUE_MS_FOR_LABEL = 500
 MIN_HOMOGENEITY_FOR_LABEL = 0.05

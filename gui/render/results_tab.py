@@ -1,5 +1,8 @@
+import importlib.util
+import sys
 from pathlib import Path
 
+import seaborn as sns
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -10,12 +13,19 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-RESULTS_CSV = Path("results/benchmark_results.csv")
+RESULTS_DIR = Path(__file__).resolve().parents[2] / "results"
+
+FIGURE_TAB_LABELS = {
+    "shade_time": "Shade Time",
+    "pipeline": "Pipeline",
+    "run_length": "Run Length",
+    "homogeneity": "Homogeneity",
+}
 
 
 class ResultsTab(QWidget):
     """
-    Embeds the benchmark result figures directly inside the GUI as a tab.
+    Embeds benchmark result figures inside the GUI as a tab.
     """
 
     def __init__(self, parent=None):
@@ -27,7 +37,6 @@ class ResultsTab(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        # Top bar
         top_bar = QHBoxLayout()
         self.status_label = QLabel("No data yet. Refresh or run a benchmark to see results.")
         self.status_label.setStyleSheet("color: grey; font-size: 12px;")
@@ -40,77 +49,96 @@ class ResultsTab(QWidget):
         top_bar.addWidget(refresh_btn)
         layout.addLayout(top_bar)
 
-        # Inner tab widget
-        self.figure_tabs = QTabWidget()
-        layout.addWidget(self.figure_tabs)
+        self.sample_tabs = QTabWidget()
+        layout.addWidget(self.sample_tabs)
 
     def refresh(self):
         """
-        Reloads the CSV and redraws all figures.
-        Called automatically after each render completes.
+        Discovers all per sample CSV files, builds figures for each,
+        and populates one outer tab per sample count.
         """
-        if not RESULTS_CSV.exists():
-            self.status_label.setText("No benchmark data found. Run a render first.")
+        bucket_files = sorted(
+            RESULTS_DIR.glob("benchmark_results_*.csv"),
+            key=lambda p: int(p.stem.replace("benchmark_results_", "")),
+        )
+
+        if not bucket_files:
+            self.status_label.setText("No benchmark data found. Run a stress scene first.")
             return
 
         try:
-            import importlib.util
-            import sys
-
-            import seaborn as sns
-
+            plot_results_module = self._load_plot_results()
             sns.set_theme(style="whitegrid", palette="tab10")
 
-            plot_results_path = (
-                Path(__file__).resolve().parents[2] / "scripts" / "results" / "plot_results.py"
-            )
-            spec = importlib.util.spec_from_file_location("plot_results", plot_results_path)
-            plot_results_module = importlib.util.module_from_spec(spec)
+            self.sample_tabs.blockSignals(True)
 
-            # Add scripts/results to sys.path so plot_results.py can find its constants
-            scripts_results_path = str(plot_results_path.parent)
-            if scripts_results_path not in sys.path:
-                sys.path.insert(0, scripts_results_path)
+            while self.sample_tabs.count() > 0:
+                self.sample_tabs.removeTab(0)
 
-            spec.loader.exec_module(plot_results_module)
+            loaded_count = 0
 
-            df = plot_results_module.load_data()
+            for csv_path in bucket_files:
+                sample_label = csv_path.stem.replace("benchmark_results_", "")
+                df = plot_results_module.load_data(csv_path)
 
-            if df.empty:
-                self.status_label.setText("CSV exists but contains no data.")
-                return
+                if df.empty:
+                    continue
 
-            figures = plot_results_module.build_figures(df)
-            self._populate_tabs(figures)
+                figures = plot_results_module.build_figures(df)
+                sample_widget = self._build_sample_tab(figures)
+                self.sample_tabs.addTab(sample_widget, f"{sample_label} samples")
+                loaded_count += 1
 
-            self.status_label.setText(
-                f"Showing {len(df)} result rows. "
-                f"{len(df['scene'].unique())} scenes, "
-                f"{len(df['policy'].unique())} policies."
-            )
+            self.sample_tabs.blockSignals(False)
+
+            if loaded_count == 0:
+                self.status_label.setText("CSV files found but contain no valid data.")
+            else:
+                self.status_label.setText(
+                    f"Showing {loaded_count} sample bucket(s) — "
+                    f"{', '.join(f.stem.replace('benchmark_results_', '') for f in bucket_files)} samples."
+                )
 
         except (OSError, RuntimeError, KeyError, ValueError) as error:
             self.status_label.setText(f"Error loading results: {error}")
 
-    def _populate_tabs(self, figures: dict):
+    def _build_sample_tab(self, figures: dict) -> QWidget:
         """
-        Clears and repopulates the inner tab widget with one canvas per figure.
+        Builds a widget containing inner tabs for each figure in the sample group.
 
         Args:
-            figures: Dict of name to matplotlib Figure from build_figures().
+            figures: Dict of figure name to matplotlib Figure from build_figures().
         """
-        while self.figure_tabs.count() > 0:
-            self.figure_tabs.removeTab(0)
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 4, 0, 0)
 
-        tab_labels = {
-            "shade_time": "Shade Time",
-            "pipeline": "Pipeline",
-            "run_length": "Run Length",
-            "homogeneity": "Homogeneity",
-        }
+        figure_tabs = QTabWidget()
+        figure_tabs.setDocumentMode(True)
 
-        for key, label in tab_labels.items():
+        for key, label in FIGURE_TAB_LABELS.items():
             if key not in figures:
                 continue
+
             canvas = FigureCanvasQTAgg(figures[key])
-            self.figure_tabs.addTab(canvas, label)
+            figure_tabs.addTab(canvas, label)
+
+        layout.addWidget(figure_tabs)
+
+        return widget
+
+    def _load_plot_results(self):
+        """
+        Loads plot_results.py via importlib to avoid sys.path conflicts
+        """
+        plot_results_path = RESULTS_DIR.parent / "scripts" / "results" / "plot_results.py"
+        scripts_results_path = str(plot_results_path.parent)
+
+        if scripts_results_path not in sys.path:
+            sys.path.insert(0, scripts_results_path)
+
+        spec = importlib.util.spec_from_file_location("plot_results", plot_results_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        return module

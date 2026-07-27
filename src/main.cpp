@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <filesystem>
 #include <math/Vec3.h>
 #include <core/Camera.h>
 #include <core/Denoiser.h>
@@ -106,8 +107,24 @@ int main(int argc, char* argv[])
         imageHeight = (imageHeight > 0) ? imageHeight : 600;
 
         string usdFilePath = (positional.size() >= 1) ? positional[0] : "";
-        string outputPath = (positional.size() >= 2) ? positional[1] : "output/cornellBox.exr";
         string cameraFile = (positional.size() >= 3) ? positional[2] : "";
+        string outputPath;
+
+        if (positional.size() >= 2)
+        {
+            outputPath = positional[1];
+        }
+        else if (!usdFilePath.empty())
+        {
+            std::filesystem::path scenePath(usdFilePath);
+            std::string effectivePolicy = policyName.empty() ? "material" : policyName;
+            outputPath = "output/" + scenePath.stem().string() + "_" +
+                         std::to_string(samplesPerPixel) + "_" + effectivePolicy + ".exr";
+        }
+        else
+        {
+            outputPath = "output/cornellBox.exr";
+        }
 
         Scene scene;
 

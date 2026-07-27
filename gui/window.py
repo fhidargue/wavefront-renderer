@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from gui.render.compare_tab import CompareTab
 from gui.render.display import RenderDisplay
 from gui.render.results_tab import ResultsTab
 from gui.render.worker import RenderWorker
@@ -198,7 +199,10 @@ class RenderWindow(QMainWindow):
         self.results_tab = ResultsTab()
         self.root_tabs.addTab(self.results_tab, "Results")
 
-        self.adjustSize()
+        self.compare_tab = CompareTab()
+        self.root_tabs.addTab(self.compare_tab, "Compare")
+
+        self.resize(self.width + 32, self.height + 120)
 
     def _build_poll_timer(self):
         """
@@ -381,6 +385,7 @@ class RenderWindow(QMainWindow):
             )
 
             self.results_tab.refresh()
+            self.compare_tab._populate_combos()
 
         except (OSError, RuntimeError, ImportError) as error:
             print(f"Failed to record benchmark data: {error}")
