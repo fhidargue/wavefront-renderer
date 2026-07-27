@@ -41,14 +41,25 @@ NUMERIC_COLUMNS = [
 
 BENCHMARK_SCENES = {"stressTestDragons", "stressTestMixed"}
 
+# Maps stage display name to its raw CSV column name.
+STAGE_COLUMN_MAP = {
+    "Sort": "sort_ms",
+    "Intersect": "intersect_ms",
+    "Shade": "shade_ms",
+}
+
+NONE_POLICY_LABEL = "None"
+PIPELINE_PCT_FONT_SIZE = 6
+ORDERED_SCENES = ["Mixed", "Dragons"]
+
 
 def load_data(csv_path: Path) -> pd.DataFrame:
     """
-    Loads a per sample benchmark CSV, filters to stress scenes only, converts
+    Loads a per-sample benchmark CSV, filters to stress scenes only, converts
     metric columns to numeric and maps raw keys to display labels.
 
     Args:
-        csv_path: Path to the specific per sample CSV to load.
+        csv_path: Path to the specific per-sample CSV to load.
     """
     df = pd.read_csv(csv_path)
     df = df[df["scene"].isin(BENCHMARK_SCENES)]
@@ -89,7 +100,6 @@ def annotate_bars_inside(ax: plt.Axes, value_format: str, minimum_height: float)
     """
     for bar in ax.patches:
         height = bar.get_height()
-
         if height > minimum_height:
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
@@ -103,7 +113,26 @@ def annotate_bars_inside(ax: plt.Axes, value_format: str, minimum_height: float)
             )
 
 
-def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: str = "") -> dict:
+def _compute_baseline_lookup(df_mean: pd.DataFrame) -> dict:
+    """
+    Builds a {(scene, stage_name): ms_value} dict for the None policy baseline.
+    Used by the pipeline chart to compute per-segment % change annotations.
+    """
+    baseline_lookup = {}
+
+    for scene in df_mean["scene"].unique():
+        none_row = df_mean[
+            (df_mean["policy"] == NONE_POLICY_LABEL) & (df_mean["scene"] == scene)
+        ]
+        if none_row.empty:
+            continue
+        for stage_name, stage_column in STAGE_COLUMN_MAP.items():
+            baseline_lookup[(scene, stage_name)] = none_row[stage_column].values[0]
+
+    return baseline_lookup
+
+
+def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
     """
     Builds all benchmark figures. When save_to_disk is True, saves each figure
     as a PNG to FIGURES_OUTPUT_DIR. Always returns the dict of figures for GUI use.
@@ -116,7 +145,8 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
     figures = {}
 
     # Shade time
-    baseline = df_mean[df_mean["policy"] == "None"][["scene", "shade_ms"]].rename(
+
+    baseline = df_mean[df_mean["policy"] == NONE_POLICY_LABEL][["scene", "shade_ms"]].rename(
         columns={"shade_ms": "baseline_ms"}
     )
     merged_mean = df_mean.merge(baseline, on="scene")
@@ -124,23 +154,25 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
         (merged_mean["shade_ms"] - merged_mean["baseline_ms"]) / merged_mean["baseline_ms"] * 100
     )
     improvement_lookup = {
-        (row["scene"], row["policy"]): row["improvement_pct"] for _, row in merged_mean.iterrows()
+        (row["scene"], row["policy"]): row["improvement_pct"]
+        for _, row in merged_mean.iterrows()
     }
 
     fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
+    scenes = ORDERED_SCENES
+
     sns.barplot(
         data=df,
         x="scene",
         y="shade_ms",
         hue="policy",
         hue_order=ORDERED_POLICY_LABELS,
+        order=scenes,
         palette=POLICY_COLORS,
-        errorbar="sd",
-        capsize=0.08,
+        errorbar=None,
         ax=ax,
     )
 
-    scenes = list(df_mean["scene"].unique())
     num_scenes = len(scenes)
 
     for bar_index, bar in enumerate(ax.patches):
@@ -151,6 +183,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
 
         policy = ORDERED_POLICY_LABELS[bar_index // num_scenes]
         scene = scenes[bar_index % num_scenes]
+
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar_height_ms * 0.5,
@@ -161,7 +194,8 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
             color="white",
             fontweight="bold",
         )
-        if policy != "None":
+
+        if policy != NONE_POLICY_LABEL:
             pct = improvement_lookup.get((scene, policy), 0)
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
@@ -181,12 +215,14 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
     figures["shade_time"] = fig
 
     if save_to_disk:
-        save(fig, f"shade_time_{sample_label}" if sample_label else "shade_time")
+        save(fig, "shade_time")
 
     # Pipeline breakdown
-    rows = []
 
-    for scene in df_mean["scene"].unique():
+    baseline_lookup = _compute_baseline_lookup(df_mean)
+
+    rows = []
+    for scene in ORDERED_SCENES:
         for policy in ORDERED_POLICY_LABELS:
             row = df_mean[(df_mean["policy"] == policy) & (df_mean["scene"] == scene)]
 
@@ -194,6 +230,8 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
                 rows.append(
                     {
                         "label": f"{scene}\n{policy}",
+                        "scene": scene,
+                        "policy": policy,
                         "Sort": row["sort_ms"].values[0],
                         "Intersect": row["intersect_ms"].values[0],
                         "Shade": row["shade_ms"].values[0],
@@ -208,11 +246,20 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
         values = plot_df[stage_name].tolist()
         bars = ax.bar(plot_df["label"], values, bottom=bottom, color=stage_color, label=stage_name)
 
-        for bar, val, bot in zip(bars, values, bottom):
-            if val > MIN_VALUE_MS_FOR_LABEL:
+        for bar_index, (bar, val, bot) in enumerate(zip(bars, values, bottom)):
+            if val <= MIN_VALUE_MS_FOR_LABEL:
+                continue
+
+            scene = plot_df.iloc[bar_index]["scene"]
+            policy = plot_df.iloc[bar_index]["policy"]
+
+            segment_center_y = bot + val / 2
+
+            if policy == NONE_POLICY_LABEL:
+                # Baseline bars show only the raw ms value
                 ax.text(
                     bar.get_x() + bar.get_width() / 2,
-                    bot + val / 2,
+                    segment_center_y,
                     f"{val:,.0f}",
                     ha="center",
                     va="center",
@@ -220,6 +267,35 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
                     color="white",
                     fontweight="bold",
                 )
+            else:
+                # Non baseline bars show ms value above center and % change below center
+                baseline_val = baseline_lookup.get((scene, stage_name), 0)
+                pct_change = (
+                    (val - baseline_val) / baseline_val * 100 if baseline_val > 0 else 0.0
+                )
+
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    segment_center_y + val * 0.12,
+                    f"{val:,.0f}",
+                    ha="center",
+                    va="center",
+                    fontsize=SEGMENT_LABEL_FONT_SIZE,
+                    color="white",
+                    fontweight="bold",
+                )
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    segment_center_y - val * 0.12,
+                    f"{pct_change:+.1f}%",
+                    ha="center",
+                    va="center",
+                    fontsize=PIPELINE_PCT_FONT_SIZE,
+                    color="white",
+                    fontweight="bold",
+                    alpha=0.9,
+                )
+
         bottom = [b + v for b, v in zip(bottom, values)]
 
     for bar_index, (_, row) in enumerate(plot_df.iterrows()):
@@ -243,9 +319,10 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
     figures["pipeline"] = fig
 
     if save_to_disk:
-        save(fig, f"pipeline_breakdown_{sample_label}" if sample_label else "pipeline_breakdown")
+        save(fig, "pipeline_breakdown")
 
-    # Run length
+    # Run Length
+
     fig, ax = plt.subplots(figsize=(18, 7))
 
     sns.barplot(
@@ -256,8 +333,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
         orient="h",
         ax=ax,
         order=ORDERED_POLICY_LABELS,
-        errorbar="sd",
-        capsize=0.08,
+        errorbar=None,
     )
 
     for bar in ax.patches:
@@ -285,9 +361,10 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
     figures["run_length"] = fig
 
     if save_to_disk:
-        save(fig, f"run_length_{sample_label}" if sample_label else "run_length")
+        save(fig, "run_length")
 
     # Cache homogeneity
+
     df_melt = df.melt(
         id_vars=["scene", "policy"],
         value_vars=["mat_homogeneity", "tex_homogeneity"],
@@ -295,14 +372,14 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
         value_name="homogeneity",
     )
     df_melt["metric"] = df_melt["metric"].map(
-        {"mat_homogeneity": "Material", "tex_homogeneity": "Texture"}
+        {"mat_homogeneity": "Material ID", "tex_homogeneity": "Texture ID"}
     )
     df_melt["group"] = df_melt["scene"] + " " + df_melt["metric"]
     available_scenes = df["scene"].unique()
     group_order = [
         f"{scene} {metric}"
         for scene in available_scenes
-        for metric in ["Material", "Texture"]
+        for metric in ["Material ID", "Texture ID"]
         if not df_melt[df_melt["group"] == f"{scene} {metric}"]["homogeneity"].isna().all()
     ]
 
@@ -314,7 +391,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
         value_name="homogeneity",
     )
     df_melt_mean["metric"] = df_melt_mean["metric"].map(
-        {"mat_homogeneity": "Material", "tex_homogeneity": "Texture"}
+        {"mat_homogeneity": "Material ID", "tex_homogeneity": "Texture ID"}
     )
     df_melt_mean["group"] = df_melt_mean["scene"] + " " + df_melt_mean["metric"]
 
@@ -328,8 +405,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
         hue_order=ORDERED_POLICY_LABELS,
         order=group_order,
         palette=POLICY_COLORS,
-        errorbar="sd",
-        capsize=0.08,
+        errorbar=None,
         ax=ax,
     )
 
@@ -357,7 +433,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
     figures["homogeneity"] = fig
 
     if save_to_disk:
-        save(fig, f"cache_homogeneity_{sample_label}" if sample_label else "cache_homogeneity")
+        save(fig, "cache_homogeneity")
 
     return figures
 
@@ -389,7 +465,7 @@ def main():
             print("No valid data. Skipping")
             continue
 
-        create_figures(df, save_to_disk=True, sample_label=sample_label)
+        create_figures(df, save_to_disk=True)
         print(f"Figures saved for {sample_label} samples")
 
     print(f"\nAll figures saved to {FIGURES_OUTPUT_DIR}/")

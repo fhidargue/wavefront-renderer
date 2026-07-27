@@ -95,7 +95,7 @@ class ResultsTab(QWidget):
                 self.status_label.setText("CSV files found but contain no valid data.")
             else:
                 self.status_label.setText(
-                    f"Showing {loaded_count} sample bucket(s) — "
+                    f"Showing {loaded_count} data bucket(s) at "
                     f"{', '.join(f.stem.replace('benchmark_results_', '') for f in bucket_files)} samples."
                 )
 
