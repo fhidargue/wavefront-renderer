@@ -16,11 +16,12 @@ from PySide6.QtWidgets import (
 RESULTS_DIR = Path(__file__).resolve().parents[2] / "results"
 
 FIGURE_TAB_LABELS = {
-    "shade_time":  "Shade Time",
-    "pipeline":    "Pipeline",
-    "run_length":  "Run Length",
+    "shade_time": "Shade Time",
+    "pipeline": "Pipeline",
+    "run_length": "Run Length",
     "homogeneity": "Homogeneity",
 }
+
 
 class ResultsTab(QWidget):
     """

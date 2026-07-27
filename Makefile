@@ -75,21 +75,25 @@ test: build
 
 # Renders
 cornell: build
-	@$(RENDERER) scenes/cornellBox.usda output/cornellBox.exr \
-		$(CAMERA) $(COMMON_FLAGS)
+	@$(RENDERER) scenes/cornellBox.usda \
+		output/cornellBox_$(SAMPLES)_$(POLICY).exr \
+		$(CAMERA) $(COMMON_FLAGS) $(POLICY_FLAG) $(SAMPLES_FLAG)
 
 cornell-dragon: build
-	@$(RENDERER) scenes/cornellBoxDragon.usda output/cornellBoxDragon.exr \
-		$(CAMERA) --memory-stats $(COMMON_FLAGS)
+	@$(RENDERER) scenes/cornellBoxDragon.usda \
+		output/cornellBoxDragon_$(SAMPLES)_$(POLICY).exr \
+		$(CAMERA) --memory-stats $(COMMON_FLAGS) $(POLICY_FLAG) $(SAMPLES_FLAG)
 
 kitchen: build
 	@PXR_AR_DEFAULT_SEARCH_PATH=$(KITCHEN_SET_PATH) \
-		$(RENDERER) scenes/kitchenSet.usda output/kitchen.exr \
-		$(KITCHEN_CAM) $(COMMON_FLAGS)
+		$(RENDERER) scenes/kitchenSet.usda \
+		output/kitchenSet_$(SAMPLES)_$(POLICY).exr \
+		$(KITCHEN_CAM) $(COMMON_FLAGS) $(POLICY_FLAG) $(SAMPLES_FLAG)
 
 golden-render: build
 	@echo "Starting golden render: $(GOLDEN_SAMPLES) samples, depth $(GOLDEN_MAX_DEPTH)"
-	@$(RENDERER) scenes/cornellBoxDragon.usda output/cornellBoxDragon_golden.exr \
+	@$(RENDERER) scenes/cornellBoxDragon.usda \
+		output/cornellBoxDragon_$(GOLDEN_SAMPLES)_none_golden.exr \
 		$(CAMERA) --quiet --width $(WIDTH) --height $(HEIGHT) \
 		--samples $(GOLDEN_SAMPLES) --max-depth $(GOLDEN_MAX_DEPTH) \
 		--policy none --cost-rr 0 --ray-sort 0 \
@@ -97,7 +101,8 @@ golden-render: build
 
 # Stress
 define run_stress
-	@set -o pipefail; $(RENDERER) scenes/$(1).usda output/$(1).exr \
+	@set -o pipefail; $(RENDERER) scenes/$(1).usda \
+		output/$(1)_$(SAMPLES)_$(POLICY).exr \
 		$(CAMERA) --memory-stats $(COMMON_FLAGS) \
 		$(POLICY_FLAG) $(SAMPLES_FLAG) \
 		2>&1 | tee /tmp/render_output.txt

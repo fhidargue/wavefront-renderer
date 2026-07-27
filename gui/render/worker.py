@@ -38,7 +38,6 @@ class RenderWorker(QThread):
         super().__init__(parent)
         self.renderer_path = Path(renderer_path)
         self.scene_path = scene_path
-        self.output_path = output_path
         self.camera_path = camera_path
         self.width = width
         self.height = height
@@ -48,18 +47,43 @@ class RenderWorker(QThread):
         self.ray_sort = ray_sort
         self.samples = samples
         self.adaptive_sampling = adaptive_sampling
-        self.preview_path = self._derive_preview_path(output_path)
         self.memory_stats = memory_stats
         self.policy = policy
         self._stop = False
 
+        effective_samples = samples if samples is not None else 256
+        self.output_path = self._derive_structured_output_path(
+            scene_path, output_path, effective_samples, policy
+        )
+        self.preview_path = self._derive_preview_path(self.output_path)
+
+    @staticmethod
+    def _derive_structured_output_path(
+        scene_path: str, output_path: str, samples: int, policy: str
+    ) -> str:
+        """
+        Derives a structured output path encoding scene, sample count and policy.
+
+        Args:
+            scene_path: Path to the USD scene file.
+            output_path: Base output directory and filename hint.
+            samples: Number of samples used for the render.
+            policy: Scheduling policy name.
+        """
+        scene_stem = Path(scene_path).stem
+        path = Path(output_path)
+
+        return str(path.parent / f"{scene_stem}_{samples}_{policy}{path.suffix}")
+
     @staticmethod
     def _derive_preview_path(output_path: str) -> str:
         """
-        Matches the C++ preview path logic: insert _preview before extension
+        Matches the C++ preview path logic: insert _preview before extension.
+
+        Args:
+            output_path: Structured output path to derive the preview path from.
         """
         path = Path(output_path)
-
         return str(path.parent / f"{path.stem}_preview{path.suffix}")
 
     def stop(self):
