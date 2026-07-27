@@ -1,0 +1,2 @@
+timestamp,scene,policy,samples,shade_ms,intersect_ms,sort_ms,mat_run_length,tex_run_length,mat_homogeneity,tex_homogeneity,total_shaded_hits
+2026-07-27T15:45:19.158702,stressTestDragons,none,256,97705.916158,55119.491187,6343.011625,3.873112,3.873112,0.246369,0.360869,223350043

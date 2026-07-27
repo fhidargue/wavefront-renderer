@@ -109,6 +109,9 @@ class RenderWorker(QThread):
         if self.memory_stats:
             cmd.append("--memory-stats")
 
+        if self.policy:
+            cmd.extend(["--policy", self.policy])
+
         if self.env_path:
             cmd.extend(["--env", self.env_path])
 

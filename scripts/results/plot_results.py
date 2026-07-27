@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -14,8 +16,6 @@ from constants import (
     ORDERED_POLICY_LABELS,
     POLICY_COLORS,
     POLICY_DISPLAY_NAMES,
-    RESULTS_CSV,
-    RUN_LENGTH_FIGURE_SIZE,
     RUN_LENGTH_LABEL_FONT_SIZE,
     RUN_LENGTH_X_AXIS_MARGIN,
     SCENE_DISPLAY_NAMES,
@@ -42,20 +42,23 @@ NUMERIC_COLUMNS = [
 BENCHMARK_SCENES = {"stressTestDragons", "stressTestMixed"}
 
 
-def load_data() -> pd.DataFrame:
+def load_data(csv_path: Path) -> pd.DataFrame:
     """
-    Loads the benchmark CSV, filters to stress scenes only, converts metric columns
-    to numeric, maps raw keys to display labels, and averages multiple runs.
+    Loads a per-sample benchmark CSV, filters to stress scenes only, converts
+    metric columns to numeric and maps raw keys to display labels.
+
+    Args:
+        csv_path: Path to the specific per-sample CSV to load.
     """
-    df = pd.read_csv(RESULTS_CSV)
+    df = pd.read_csv(csv_path)
     df = df[df["scene"].isin(BENCHMARK_SCENES)]
+    df["samples"] = pd.to_numeric(df["samples"], errors="coerce")
 
     for column in NUMERIC_COLUMNS:
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
     df["policy"] = df["policy"].map(POLICY_DISPLAY_NAMES).fillna(df["policy"])
     df["scene"] = df["scene"].map(SCENE_DISPLAY_NAMES).fillna(df["scene"])
-    df = df.groupby(["scene", "policy"], as_index=False)[NUMERIC_COLUMNS].mean()
 
     return df
 
@@ -81,7 +84,7 @@ def annotate_bars_inside(ax: plt.Axes, value_format: str, minimum_height: float)
 
     Args:
         ax: The axes containing the bars to annotate.
-        value_format: Python format string for the label (e.g. '{:.3f}').
+        value_format: Python format string for the label.
         minimum_height: Bars shorter than this value are not annotated.
     """
     for bar in ax.patches:
@@ -105,39 +108,38 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
     as a PNG to FIGURES_OUTPUT_DIR. Always returns the dict of figures for GUI use.
 
     Args:
-        df: Benchmark results dataframe produced by load_data().
+        df: Raw benchmark results dataframe produced by load_data().
         save_to_disk: If True, saves figures to disk in addition to returning them.
-
-    Returns:
-        Dict mapping figure name to matplotlib Figure.
     """
+    df_mean = df.groupby(["scene", "policy"], as_index=False)[NUMERIC_COLUMNS].mean()
     figures = {}
 
     # Shade time
-
-    baseline = df[df["policy"] == "None"][["scene", "shade_ms"]].rename(
+    baseline = df_mean[df_mean["policy"] == "None"][["scene", "shade_ms"]].rename(
         columns={"shade_ms": "baseline_ms"}
     )
-    merged = df.merge(baseline, on="scene")
-    merged["improvement_pct"] = (
-        (merged["shade_ms"] - merged["baseline_ms"]) / merged["baseline_ms"] * 100
+    merged_mean = df_mean.merge(baseline, on="scene")
+    merged_mean["improvement_pct"] = (
+        (merged_mean["shade_ms"] - merged_mean["baseline_ms"]) / merged_mean["baseline_ms"] * 100
     )
     improvement_lookup = {
-        (row["scene"], row["policy"]): row["improvement_pct"] for _, row in merged.iterrows()
+        (row["scene"], row["policy"]): row["improvement_pct"] for _, row in merged_mean.iterrows()
     }
 
     fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
     sns.barplot(
-        data=merged,
+        data=df,
         x="scene",
         y="shade_ms",
         hue="policy",
         hue_order=ORDERED_POLICY_LABELS,
         palette=POLICY_COLORS,
+        errorbar="sd",
+        capsize=0.08,
         ax=ax,
     )
 
-    scenes = list(merged["scene"].unique())
+    scenes = list(df_mean["scene"].unique())
     num_scenes = len(scenes)
 
     for bar_index, bar in enumerate(ax.patches):
@@ -148,7 +150,6 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
 
         policy = ORDERED_POLICY_LABELS[bar_index // num_scenes]
         scene = scenes[bar_index % num_scenes]
-
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar_height_ms * 0.5,
@@ -159,7 +160,6 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
             color="white",
             fontweight="bold",
         )
-
         if policy != "None":
             pct = improvement_lookup.get((scene, policy), 0)
             ax.text(
@@ -183,11 +183,12 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
         save(fig, "shade_time")
 
     # Pipeline breakdown
-
     rows = []
-    for scene in df["scene"].unique():
+
+    for scene in df_mean["scene"].unique():
         for policy in ORDERED_POLICY_LABELS:
-            row = df[(df["policy"] == policy) & (df["scene"] == scene)]
+            row = df_mean[(df_mean["policy"] == policy) & (df_mean["scene"] == scene)]
+
             if not row.empty:
                 rows.append(
                     {
@@ -234,8 +235,8 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
 
     ax.set_ylabel("Time (ms)")
     ax.set_xlabel("")
-    ax.tick_params(axis="x", rotation=25)
-    ax.legend(title="Stage", bbox_to_anchor=(1.01, 1), loc="upper left")
+    ax.tick_params(axis="x", rotation=50)
+    ax.legend(title="Stage", loc="lower left")
     fig.suptitle("Pipeline Time Breakdown by Policy and Scene", fontsize=SUPTITLE_FONT_SIZE)
     plt.tight_layout()
     figures["pipeline"] = fig
@@ -244,8 +245,8 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
         save(fig, "pipeline_breakdown")
 
     # Run length
+    fig, ax = plt.subplots(figsize=(18, 7))
 
-    fig, ax = plt.subplots(figsize=RUN_LENGTH_FIGURE_SIZE)
     sns.barplot(
         data=df,
         y="policy",
@@ -254,11 +255,12 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
         orient="h",
         ax=ax,
         order=ORDERED_POLICY_LABELS,
+        errorbar="sd",
+        capsize=0.08,
     )
 
     for bar in ax.patches:
         bar_width = bar.get_width()
-
         if bar_width > 0:
             ax.text(
                 bar_width + 5,
@@ -285,7 +287,6 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
         save(fig, "run_length")
 
     # Cache homogeneity
-
     df_melt = df.melt(
         id_vars=["scene", "policy"],
         value_vars=["mat_homogeneity", "tex_homogeneity"],
@@ -304,7 +305,20 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
         if not df_melt[df_melt["group"] == f"{scene} {metric}"]["homogeneity"].isna().all()
     ]
 
+    # Use mean values for annotation, raw for error bars
+    df_melt_mean = df_mean.melt(
+        id_vars=["scene", "policy"],
+        value_vars=["mat_homogeneity", "tex_homogeneity"],
+        var_name="metric",
+        value_name="homogeneity",
+    )
+    df_melt_mean["metric"] = df_melt_mean["metric"].map(
+        {"mat_homogeneity": "Material", "tex_homogeneity": "Texture"}
+    )
+    df_melt_mean["group"] = df_melt_mean["scene"] + " " + df_melt_mean["metric"]
+
     fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
+
     sns.barplot(
         data=df_melt,
         x="group",
@@ -313,6 +327,8 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
         hue_order=ORDERED_POLICY_LABELS,
         order=group_order,
         palette=POLICY_COLORS,
+        errorbar="sd",
+        capsize=0.08,
         ax=ax,
     )
 
@@ -354,10 +370,27 @@ def build_figures(df: pd.DataFrame) -> dict:
 
 def main():
     sns.set_theme(style="whitegrid", palette="tab10")
-    df = load_data()
 
-    print(f"Loaded {len(df)} rows from {RESULTS_CSV}")
-    create_figures(df, save_to_disk=True)
+    results_dir = Path(__file__).resolve().parents[2] / "results"
+    bucket_files = sorted(results_dir.glob("benchmark_results_*.csv"))
+
+    if not bucket_files:
+        print("No benchmark CSV files found in results/")
+        return
+
+    for csv_path in bucket_files:
+        sample_label = csv_path.stem.replace("benchmark_results_", "")
+        print(f"\nProcessing {csv_path.name}")
+
+        df = load_data(csv_path)
+
+        if df.empty:
+            print("No valid data. Skipping")
+            continue
+
+        create_figures(df, save_to_disk=True)
+        print(f"Figures saved for {sample_label} samples")
+
     print(f"\nAll figures saved to {FIGURES_OUTPUT_DIR}/")
 
 

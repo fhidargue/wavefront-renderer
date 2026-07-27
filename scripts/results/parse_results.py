@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-RESULTS_CSV = Path(__file__).resolve().parents[2] / "results" / "benchmark_results.csv"
+RESULTS_DIR = Path(__file__).resolve().parents[2] / "results"
 
 BENCHMARK_SCENES = {"stressTestDragons", "stressTestMixed"}
 
@@ -64,10 +64,20 @@ def parse(stdout: str, scene: str, policy: str) -> dict:
     return row
 
 
+def results_csv_for_samples(sample_count: int) -> Path:
+    """
+    Returns the CSV path for a specific sample count bucket.
+
+    Args:
+        sample_count: Number of samples the benchmark was run at.
+    """
+    return RESULTS_DIR / f"benchmark_results_{sample_count}.csv"
+
+
 def append_row(row: dict):
     """
-    Appends one result row to the CSV, writing the header first if the file
-    does not exist yet.
+    Appends one result row to the per-sample bucket CSV.
+    Skips non-benchmark scenes silently.
 
     Args:
         row: Dict with keys matching FIELDS, produced by parse().
@@ -75,10 +85,16 @@ def append_row(row: dict):
     if row.get("scene") not in BENCHMARK_SCENES:
         return
 
-    RESULTS_CSV.parent.mkdir(parents=True, exist_ok=True)
-    write_header = not RESULTS_CSV.exists()
+    sample_count = row.get("samples", "")
 
-    with open(RESULTS_CSV, "a", newline="\n") as f:
+    if not sample_count:
+        return
+
+    output_path = results_csv_for_samples(int(sample_count))
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    write_header = not output_path.exists()
+
+    with open(output_path, "a", newline="\n") as f:
         writer = csv.DictWriter(f, fieldnames=FIELDS)
 
         if write_header:
@@ -88,17 +104,30 @@ def append_row(row: dict):
         f.flush()
 
 
+def list_buckets():
+    """
+    Lists all existing per-sample bucket CSV files and their row counts.
+    """
+    bucket_files = sorted(RESULTS_DIR.glob("benchmark_results_*.csv"))
+
+    if not bucket_files:
+        print("No bucket files found.")
+        return
+
+    for path in bucket_files:
+        with open(path, newline="") as f:
+            row_count = sum(1 for _ in csv.DictReader(f))
+        print(f"{path.name}  ({row_count} rows)")
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) == 2 and sys.argv[1] == "--list-buckets":
+        list_buckets()
+    elif len(sys.argv) < 4:
         print("Usage: parse_results.py <log_file> <scene_name> <policy>")
         sys.exit(1)
-
-    log_text = Path(sys.argv[1]).read_text()
-
-    scene_name = sys.argv[2]
-    policy_name = sys.argv[3]
-
-    row = parse(log_text, scene=scene_name, policy=policy_name)
-    append_row(row)
-
-    print(f"Recorded: scene={scene_name} policy={policy_name} shade_ms={row['shade_ms']}")
+    else:
+        log_text = Path(sys.argv[1]).read_text()
+        row = parse(log_text, scene=sys.argv[2], policy=sys.argv[3])
+        append_row(row)
+        print(f"Recorded: scene={row['scene']} policy={row['policy']} shade_ms={row['shade_ms']}")
