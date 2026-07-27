@@ -8,7 +8,7 @@ from PySide6.QtCore import QThread, Signal
 
 class RenderWorker(QThread):
     """
-    Runs the compiled C++ renderer in a background thread
+    Runs the compiled C++ renderer in a background thread.
     """
 
     statusUpdate = Signal(str)
@@ -84,26 +84,19 @@ class RenderWorker(QThread):
             output_path: Structured output path to derive the preview path from.
         """
         path = Path(output_path)
+
         return str(path.parent / f"{path.stem}_preview{path.suffix}")
 
     def stop(self):
         """
-        Request the render to terminate the subprocess
+        Requests the render to stop and terminates the subprocess.
         """
         self._stop = True
 
-    def run(self):
+    def _build_cmd(self) -> list[str]:
         """
-        Runs on the background thread
+        Builds the renderer command from the current configuration.
         """
-        if not self.renderer_path.exists():
-            self.renderFailed.emit(
-                f"Renderer not found: {self.renderer_path}\nRun 'make build' first."
-            )
-            return
-
-        start_ms = time.time() * 1000
-
         cmd = [
             str(self.renderer_path),
             self.scene_path,
@@ -120,65 +113,77 @@ class RenderWorker(QThread):
 
         if self.samples is not None:
             cmd.extend(["--samples", str(self.samples)])
-
         if not self.adaptive_sampling:
             cmd.append("--no-adaptive")
-
         if self.camera_path:
             cmd.append(self.camera_path)
-
         if self.denoise:
             cmd.append("--denoise")
-
         if self.memory_stats:
             cmd.append("--memory-stats")
-
         if self.policy:
             cmd.extend(["--policy", self.policy])
-
         if self.env_path:
             cmd.extend(["--env", self.env_path])
 
+        return cmd
+
+    def _process_line(self, line: str):
+        """
+        Handles a single line of renderer stdout updates progress or status.
+
+        Args:
+            line: A single stripped line from the renderer process stdout.
+        """
+        if line.startswith("Sample:"):
+            try:
+                parts = line.split()
+                current, total = parts[1].split("/")
+                self.progressUpdate.emit(int(current), float(total))
+            except (IndexError, ValueError):
+                pass
+            return
+
+        if line.startswith("Image written:"):
+            return
+
+        print(line)
+
+        stripped = line.strip()
+        if stripped and set(stripped) != {"="}:
+            self.statusUpdate.emit(line)
+
+    def run(self):
+        """
+        Runs the renderer in a subprocess, streams output, and emits signals.
+        """
+        if not self.renderer_path.exists():
+            self.renderFailed.emit(
+                f"Renderer not found: {self.renderer_path}\nRun 'make build' first."
+            )
+            return
+
+        start_ms = time.time() * 1000
+
         try:
             process = subprocess.Popen(
-                cmd,
+                self._build_cmd(),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
             )
+
             captured_lines = []
 
             for line in process.stdout:
                 if self._stop:
                     process.terminate()
                     return
-
                 line = line.rstrip()
                 captured_lines.append(line)
-
-                if line.startswith("Sample:"):
-                    try:
-                        parts = line.split()
-                        current, total = parts[1].split("/")
-                        self.progressUpdate.emit(int(current), float(total))
-                    except (IndexError, ValueError):
-                        pass
-                    continue
-                elif line.startswith("Image written:"):
-                    continue
-
-                print(line)
-
-                # Strip the log noise
-                stripped = line.strip()
-                is_border_line = stripped and set(stripped) == {"="}
-
-                if is_border_line:
-                    continue
-
-                self.statusUpdate.emit(line)
+                self._process_line(line)
 
             process.wait()
             elapsed = time.time() * 1000 - start_ms
@@ -190,7 +195,6 @@ class RenderWorker(QThread):
             self.outputCaptured.emit("\n".join(captured_lines))
             self.renderComplete.emit(elapsed, self.output_path)
 
-            # Clean up preview file
             preview = Path(self.preview_path)
 
             if preview.exists():

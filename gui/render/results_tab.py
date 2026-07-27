@@ -119,10 +119,12 @@ class ResultsTab(QWidget):
         for key, label in FIGURE_TAB_LABELS.items():
             if key not in figures:
                 continue
+
             canvas = FigureCanvasQTAgg(figures[key])
             figure_tabs.addTab(canvas, label)
 
         layout.addWidget(figure_tabs)
+
         return widget
 
     def _load_plot_results(self):

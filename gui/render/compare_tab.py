@@ -148,6 +148,7 @@ class CompareTab(QWidget):
         weights = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
         lum_a = np.dot(img_a, weights)
         lum_b = np.dot(img_b, weights)
+
         return np.abs(lum_a - lum_b)
 
     def _on_compare(self):

@@ -89,6 +89,7 @@ def annotate_bars_inside(ax: plt.Axes, value_format: str, minimum_height: float)
     """
     for bar in ax.patches:
         height = bar.get_height()
+
         if height > minimum_height:
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
