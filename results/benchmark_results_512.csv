@@ -1,2 +1,0 @@
-timestamp,scene,policy,samples,shade_ms,intersect_ms,sort_ms,mat_run_length,tex_run_length,mat_homogeneity,tex_homogeneity,total_shaded_hits
-2026-07-27T15:58:01.082005,stressTestDragons,costBenefit,512,150972.450945,105733.051539,16385.102436,1446.707456,1446.707456,0.991794,0.936659,702405924
