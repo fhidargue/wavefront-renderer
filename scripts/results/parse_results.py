@@ -76,7 +76,7 @@ def results_csv_for_samples(sample_count: int) -> Path:
 
 def append_row(row: dict):
     """
-    Appends one result row to the per-sample bucket CSV.
+    Appends one result row to the per sample bucket CSV.
     Skips non-benchmark scenes silently.
 
     Args:
@@ -106,7 +106,7 @@ def append_row(row: dict):
 
 def list_buckets():
     """
-    Lists all existing per-sample bucket CSV files and their row counts.
+    Lists all existing per sample bucket CSV files and their row counts.
     """
     bucket_files = sorted(RESULTS_DIR.glob("benchmark_results_*.csv"))
 

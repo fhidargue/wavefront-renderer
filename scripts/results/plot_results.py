@@ -44,11 +44,11 @@ BENCHMARK_SCENES = {"stressTestDragons", "stressTestMixed"}
 
 def load_data(csv_path: Path) -> pd.DataFrame:
     """
-    Loads a per-sample benchmark CSV, filters to stress scenes only, converts
+    Loads a per sample benchmark CSV, filters to stress scenes only, converts
     metric columns to numeric and maps raw keys to display labels.
 
     Args:
-        csv_path: Path to the specific per-sample CSV to load.
+        csv_path: Path to the specific per sample CSV to load.
     """
     df = pd.read_csv(csv_path)
     df = df[df["scene"].isin(BENCHMARK_SCENES)]
