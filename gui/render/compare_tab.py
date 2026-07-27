@@ -65,12 +65,11 @@ class CompareTab(QWidget):
         buttons_row.addWidget(compare_btn)
         buttons_row.addWidget(refresh_btn)
         layout.addLayout(buttons_row)
-        
+
         buttons_row.addWidget(compare_btn)
         buttons_row.addWidget(refresh_btn)
         buttons_row.addStretch()
         layout.addLayout(buttons_row)
-
 
         # Matplotlib canvas for heatmap
         self.content_tabs = QTabWidget()
@@ -79,7 +78,9 @@ class CompareTab(QWidget):
         layout.addWidget(self.content_tabs, stretch=1)
 
         # Status label
-        self.status_label = QLabel("Select two rendered images and click Compare to see the luminance difference heatmap.")
+        self.status_label = QLabel(
+            "Select two rendered images and click Compare to see the luminance difference heatmap."
+        )
         self.status_label.setStyleSheet("color: grey; font-size: 12px;")
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
