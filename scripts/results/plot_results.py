@@ -121,9 +121,7 @@ def _compute_baseline_lookup(df_mean: pd.DataFrame) -> dict:
     baseline_lookup = {}
 
     for scene in df_mean["scene"].unique():
-        none_row = df_mean[
-            (df_mean["policy"] == NONE_POLICY_LABEL) & (df_mean["scene"] == scene)
-        ]
+        none_row = df_mean[(df_mean["policy"] == NONE_POLICY_LABEL) & (df_mean["scene"] == scene)]
         if none_row.empty:
             continue
         for stage_name, stage_column in STAGE_COLUMN_MAP.items():
@@ -154,8 +152,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
         (merged_mean["shade_ms"] - merged_mean["baseline_ms"]) / merged_mean["baseline_ms"] * 100
     )
     improvement_lookup = {
-        (row["scene"], row["policy"]): row["improvement_pct"]
-        for _, row in merged_mean.iterrows()
+        (row["scene"], row["policy"]): row["improvement_pct"] for _, row in merged_mean.iterrows()
     }
 
     fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
@@ -270,9 +267,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
             else:
                 # Non baseline bars show ms value above center and % change below center
                 baseline_val = baseline_lookup.get((scene, stage_name), 0)
-                pct_change = (
-                    (val - baseline_val) / baseline_val * 100 if baseline_val > 0 else 0.0
-                )
+                pct_change = (val - baseline_val) / baseline_val * 100 if baseline_val > 0 else 0.0
 
                 ax.text(
                     bar.get_x() + bar.get_width() / 2,
