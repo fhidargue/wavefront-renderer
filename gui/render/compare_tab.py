@@ -31,53 +31,39 @@ class CompareTab(QWidget):
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
+        layout.setSpacing(0.1)
 
-        # Image selection row
-        controls = QHBoxLayout()
-        controls.setSpacing(6)
-
+        row_a = QHBoxLayout()
+        row_a.setSpacing(6)
+        row_a.addWidget(QLabel("Image A:"))
         self.image_a_combo = QComboBox()
-        self.image_b_combo = QComboBox()
         self.image_a_combo.setFixedHeight(32)
-        self.image_a_combo.setMaximumWidth(220)
-        self.image_b_combo.setFixedHeight(32)
-        self.image_b_combo.setMaximumWidth(220)
-
-        combos_row = QHBoxLayout()
-        combos_row.setSpacing(6)
-        combos_row.addWidget(QLabel("Image A:"))
-        combos_row.addWidget(self.image_a_combo, 1)
-        combos_row.addWidget(QLabel("Image B:"))
-        combos_row.addWidget(self.image_b_combo, 1)
-        layout.addLayout(combos_row)
-
-        buttons_row = QHBoxLayout()
-        buttons_row.setSpacing(6)
+        row_a.addWidget(self.image_a_combo, 1)
         compare_btn = QPushButton("Compare")
         compare_btn.setFixedHeight(32)
+        compare_btn.setFixedWidth(90)
         compare_btn.clicked.connect(self._on_compare)
+        row_a.addWidget(compare_btn)
+
+        row_b = QHBoxLayout()
+        row_b.setSpacing(6)
+        row_b.addWidget(QLabel("Image B:"))
+        self.image_b_combo = QComboBox()
+        self.image_b_combo.setFixedHeight(32)
+        row_b.addWidget(self.image_b_combo, 1)
         refresh_btn = QPushButton("Refresh")
         refresh_btn.setFixedHeight(32)
+        refresh_btn.setFixedWidth(90)
         refresh_btn.clicked.connect(self._populate_combos)
+        row_b.addWidget(refresh_btn)
 
-        buttons_row.addStretch()
-        buttons_row.addWidget(compare_btn)
-        buttons_row.addWidget(refresh_btn)
-        layout.addLayout(buttons_row)
+        layout.addLayout(row_a)
+        layout.addLayout(row_b)
 
-        buttons_row.addWidget(compare_btn)
-        buttons_row.addWidget(refresh_btn)
-        buttons_row.addStretch()
-        layout.addLayout(buttons_row)
-
-        # Matplotlib canvas for heatmap
         self.content_tabs = QTabWidget()
         self.content_tabs.setDocumentMode(True)
-        self.content_tabs.setMinimumSize(0, 0)
-        layout.addWidget(self.content_tabs, stretch=1)
+        layout.addWidget(self.content_tabs)
 
-        # Status label
         self.status_label = QLabel(
             "Select two rendered images and click Compare to see the luminance difference heatmap."
         )
