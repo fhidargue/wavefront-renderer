@@ -31,7 +31,7 @@ class CompareTab(QWidget):
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(0.1)
+        layout.setSpacing(4)
 
         row_a = QHBoxLayout()
         row_a.setSpacing(6)
@@ -59,10 +59,7 @@ class CompareTab(QWidget):
 
         layout.addLayout(row_a)
         layout.addLayout(row_b)
-
-        self.content_tabs = QTabWidget()
-        self.content_tabs.setDocumentMode(True)
-        layout.addWidget(self.content_tabs)
+        layout.addSpacing(4)
 
         self.status_label = QLabel(
             "Select two rendered images and click Compare to see the luminance difference heatmap."
@@ -70,6 +67,11 @@ class CompareTab(QWidget):
         self.status_label.setStyleSheet("color: grey; font-size: 12px;")
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
+        layout.addSpacing(4)
+
+        self.content_tabs = QTabWidget()
+        self.content_tabs.setDocumentMode(True)
+        layout.addWidget(self.content_tabs)
 
         self._populate_combos()
 
