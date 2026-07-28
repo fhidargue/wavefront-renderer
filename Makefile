@@ -106,7 +106,7 @@ define run_stress
 		$(CAMERA) --memory-stats $(COMMON_FLAGS) \
 		$(POLICY_FLAG) $(SAMPLES_FLAG) \
 		2>&1 | tee /tmp/render_output.txt
-	uv run python scripts/results/parse_results.py /tmp/render_output.txt $(1) $(POLICY)
+	uv run python scripts/results/parse_results.py /tmp/render_output.txt $(1) $(POLICY) $(WIDTH) $(HEIGHT)
 endef
 
 stress-dragons: build

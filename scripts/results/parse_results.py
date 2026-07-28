@@ -16,6 +16,8 @@ FIELDS = [
     "scene",
     "policy",
     "samples",
+    "width",
+    "height",
     "shade_ms",
     "intersect_ms",
     "sort_ms",
@@ -38,6 +40,8 @@ PATTERNS = {
     "tex_homogeneity": r"Texture  ID cache line homogeneity\s+:\s+([\d.]+)",
     "total_shaded_hits": r"Total shaded hits\s+:\s+(\d+)",
     "samples": r"Rendered:.*\|\s+(\d+) samples",
+    "width":  r"Rendered:\s+(\d+)x\d+",
+    "height": r"Rendered:\s+\d+x(\d+)",
 }
 
 

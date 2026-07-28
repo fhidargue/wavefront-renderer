@@ -37,6 +37,8 @@ NUMERIC_COLUMNS = [
     "mat_homogeneity",
     "tex_homogeneity",
     "total_shaded_hits",
+    "width",
+    "height"
 ]
 
 BENCHMARK_SCENES = {"stressTestDragons", "stressTestMixed"}
@@ -66,7 +68,8 @@ def load_data(csv_path: Path) -> pd.DataFrame:
     df["samples"] = pd.to_numeric(df["samples"], errors="coerce")
 
     for column in NUMERIC_COLUMNS:
-        df[column] = pd.to_numeric(df[column], errors="coerce")
+        if column in df.columns:
+            df[column] = pd.to_numeric(df[column], errors="coerce")
 
     df["policy"] = df["policy"].map(POLICY_DISPLAY_NAMES).fillna(df["policy"])
     df["scene"] = df["scene"].map(SCENE_DISPLAY_NAMES).fillna(df["scene"])
