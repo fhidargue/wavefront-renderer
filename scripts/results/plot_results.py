@@ -38,7 +38,7 @@ NUMERIC_COLUMNS = [
     "tex_homogeneity",
     "total_shaded_hits",
     "width",
-    "height"
+    "height",
 ]
 
 BENCHMARK_SCENES = {"stressTestDragons", "stressTestMixed"}
