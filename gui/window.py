@@ -119,6 +119,7 @@ class RenderWindow(QMainWindow):
         Builds the main window UI with a render display, progress bar, controls, and results tab.
         """
         self.root_tabs = QTabWidget()
+        self.root_tabs.setDocumentMode(True)
         self.setCentralWidget(self.root_tabs)
 
         render_widget = QWidget()

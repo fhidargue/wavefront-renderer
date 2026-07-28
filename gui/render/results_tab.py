@@ -16,10 +16,11 @@ from PySide6.QtWidgets import (
 RESULTS_DIR = Path(__file__).resolve().parents[2] / "results"
 
 FIGURE_TAB_LABELS = {
-    "shade_time": "Shade Time",
+    "homogeneity": "Homogeneity",
     "pipeline": "Pipeline",
     "run_length": "Run Length",
-    "homogeneity": "Homogeneity",
+    "shade_time": "Shade Time",
+    "shaded_hits": "Shaded Hits",
 }
 
 
@@ -50,6 +51,7 @@ class ResultsTab(QWidget):
         layout.addLayout(top_bar)
 
         self.sample_tabs = QTabWidget()
+        self.sample_tabs.setDocumentMode(True)
         layout.addWidget(self.sample_tabs)
 
     def refresh(self):
