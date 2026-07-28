@@ -441,12 +441,14 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
         ax=ax,
     )
 
-    baseline_hits = df_mean[df_mean["policy"] == NONE_POLICY_LABEL][["scene", "total_shaded_hits"]].rename(
-        columns={"total_shaded_hits": "baseline_hits"}
-    )
+    baseline_hits = df_mean[df_mean["policy"] == NONE_POLICY_LABEL][
+        ["scene", "total_shaded_hits"]
+    ].rename(columns={"total_shaded_hits": "baseline_hits"})
     merged_hits = df_mean.merge(baseline_hits, on="scene")
     merged_hits["hits_pct"] = (
-        (merged_hits["total_shaded_hits"] - merged_hits["baseline_hits"]) / merged_hits["baseline_hits"] * 100
+        (merged_hits["total_shaded_hits"] - merged_hits["baseline_hits"])
+        / merged_hits["baseline_hits"]
+        * 100
     )
     hits_improvement_lookup = {
         (row["scene"], row["policy"]): row["hits_pct"] for _, row in merged_hits.iterrows()
@@ -466,9 +468,11 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
             bar.get_x() + bar.get_width() / 2,
             bar_height * 0.5,
             f"{bar_height / 1_000_000_000:.3f}B",
-            ha="center", va="center",
+            ha="center",
+            va="center",
             fontsize=BAR_LABEL_FONT_SIZE,
-            color="white", fontweight="bold",
+            color="white",
+            fontweight="bold",
         )
         if policy != NONE_POLICY_LABEL:
             pct = hits_improvement_lookup.get((scene, policy), 0)
@@ -476,9 +480,11 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
                 bar.get_x() + bar.get_width() / 2,
                 bar_height + 1_000_000,
                 f"{pct:+.1f}%",
-                ha="center", va="bottom",
+                ha="center",
+                va="bottom",
                 fontsize=BAR_LABEL_FONT_SIZE,
-                color="black", fontweight="bold",
+                color="black",
+                fontweight="bold",
             )
 
     ax.set_title("Total Shaded Hits by Policy and Scene")
