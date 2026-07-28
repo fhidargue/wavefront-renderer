@@ -31,7 +31,7 @@ class CompareTab(QWidget):
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(8)
+        layout.setSpacing(0.1)
 
         row_a = QHBoxLayout()
         row_a.setSpacing(6)
