@@ -1,0 +1,358 @@
+#usda 1.0
+(
+    doc = "Material Variants - Wide Cornell Box"
+    defaultPrim = "Scene"
+    upAxis = "Y"
+    metersPerUnit = 0.01
+)
+
+def Xform "Scene"
+{
+    def Scope "Materials"
+    {
+        def Material "DarkGrayMaterial"
+        {
+            token outputs:surface.connect = </Scene/Materials/DarkGrayMaterial/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.08, 0.08, 0.08)
+                float inputs:roughness = 1.0
+                float inputs:metallic = 0.0
+                token outputs:surface
+            }
+        }
+
+        def Material "LightMaterial"
+        {
+            token outputs:surface.connect = </Scene/Materials/LightMaterial/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                color3f inputs:emissiveColor = (120.0, 120.0, 120.0)
+                float inputs:roughness = 1.0
+                float inputs:spotOuterAngle = 120
+                float inputs:spotFalloffAngle = 90
+                token outputs:surface
+            }
+        }
+
+        def Material "MirrorMaterial"
+        {
+            token outputs:surface.connect = </Scene/Materials/MirrorMaterial/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                float inputs:metallic = 1
+                float inputs:roughness = 0
+                token outputs:surface
+            }
+        }
+
+        def Material "AccentLight"
+        {
+            token outputs:surface.connect = </Scene/Materials/AccentLight/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1.0, 1.0, 1.0)
+                color3f inputs:emissiveColor = (6.0, 5.5, 7.5)
+                float inputs:roughness = 1.0
+                token outputs:surface
+            }
+        }
+
+        def Material "AccentLightBlack"
+        {
+            token outputs:surface.connect = </Scene/Materials/AccentLightBlack/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.02, 0.02, 0.02)
+                float inputs:roughness = 1.0
+                token outputs:surface
+            }
+        }
+
+        def Material "FloorMaterial"
+        {
+            token outputs:surface.connect = </Scene/Materials/FloorMaterial/PreviewSurface.outputs:surface>
+            def Shader "PreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor.connect = </Scene/Materials/FloorMaterial/DiffuseTexture.outputs:rgb>
+                float inputs:metallic = 0.8
+                token outputs:surface
+            }
+            def Shader "stReader"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname = "st"
+                float2 outputs:result
+            }
+            def Shader "DiffuseTexture"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @textures/checker_floor.png@
+                float2 inputs:st.connect = </Scene/Materials/FloorMaterial/stReader.outputs:result>
+                float3 outputs:rgb
+            }
+        }
+
+        def Material "DragonNone"
+        {
+            token outputs:surface.connect = </Scene/Materials/DragonNone/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.75, 0.75, 0.75)
+                float inputs:roughness = 0.8
+                token outputs:surface
+            }
+        }
+
+        def Material "DragonMaterial"
+        {
+            token outputs:surface.connect = </Scene/Materials/DragonMaterial/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.85, 0.08, 0.08)
+                float inputs:roughness = 0.15
+                bool inputs:plastic = true
+                token outputs:surface
+            }
+        }
+
+        def Material "DragonTexture"
+        {
+            token outputs:surface.connect = </Scene/Materials/DragonTexture/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.5, 0.7, 0.85)
+                float inputs:roughness = 0.8
+                bool inputs:spatialChecker = true
+                float inputs:spatialCheckerCellSize = 0.3
+                float inputs:spatialCheckerReduceContrast = 0.4
+                token outputs:surface
+            }
+        }
+
+        def Material "DragonCostBenefit"
+        {
+            token outputs:surface.connect = </Scene/Materials/DragonCostBenefit/Shader.outputs:surface>
+            def Shader "Shader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.72, 0.35, 0.15)
+                float inputs:roughness = 0.25
+                float inputs:metallic = 1.0
+                token outputs:surface
+            }
+        }
+    }
+
+    def Mesh "Floor" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-13, 0, -5), (13, 0, -5), (13, 0, 16), (-13, 0, 16)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        texCoord2f[] primvars:st = [(0, 0), (3.25, 0), (3.25, 2.625), (0, 2.625)] (
+            interpolation = "vertex"
+        )
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/FloorMaterial>
+    }
+
+    def Mesh "Ceiling" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-13, 10, 16), (13, 10, 16), (13, 10, -5), (-13, 10, -5)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/DarkGrayMaterial>
+    }
+
+    def Mesh "BackWall" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-13, 0, -5), (-13, 10, -5), (13, 10, -5), (13, 0, -5)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/DarkGrayMaterial>
+    }
+
+    def Mesh "LeftWall" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-13, 0, 16), (-13, 10, 16), (-13, 10, -5), (-13, 0, -5)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/DarkGrayMaterial>
+    }
+
+    def Mesh "RightWall" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(13, 0, -5), (13, 10, -5), (13, 10, 16), (13, 0, 16)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/DarkGrayMaterial>
+    }
+
+    def Mesh "LampDisc" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [
+            (0, 9.95, 0),
+            (1.5, 9.95, 0), (1.06, 9.95, 1.06),
+            (0, 9.95, 1.5), (-1.06, 9.95, 1.06),
+            (-1.5, 9.95, 0), (-1.06, 9.95, -1.06),
+            (0, 9.95, -1.5), (1.06, 9.95, -1.06)
+        ]
+        int[] faceVertexCounts  = [3, 3, 3, 3, 3, 3, 3, 3]
+        int[] faceVertexIndices = [0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, 0, 5, 6, 0, 6, 7, 0, 7, 8, 0, 8, 1]
+        uniform token orientation = "leftHanded"
+        rel material:binding = </Scene/Materials/LightMaterial>
+    }
+
+    def Xform "Dragon_A" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        prepend references = @scenes/objects/xyzrgb_dragon.usda@
+    )
+    {
+        rel material:binding = </Scene/Materials/DragonNone>
+        double3 xformOp:translate = (-9, 1.8, 0)
+        double3 xformOp:scale = (0.045, 0.045, 0.045)
+        float xformOp:rotateY = -35
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale", "xformOp:rotateY"]
+    }
+
+    def Xform "Dragon_B" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        prepend references = @scenes/objects/xyzrgb_dragon.usda@
+    )
+    {
+        rel material:binding = </Scene/Materials/DragonTexture>
+        double3 xformOp:translate = (-3, 1.8, 0)
+        double3 xformOp:scale = (0.045, 0.045, 0.045)
+        float xformOp:rotateY = -35
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale", "xformOp:rotateY"]
+    }
+
+    def Xform "Dragon_C" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        prepend references = @scenes/objects/xyzrgb_dragon.usda@
+    )
+    {
+        rel material:binding = </Scene/Materials/DragonCostBenefit>
+        double3 xformOp:translate = (3, 1.8, 0)
+        double3 xformOp:scale = (0.045, 0.045, 0.045)
+        float xformOp:rotateY = -35
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale", "xformOp:rotateY"]
+    }
+
+    def Xform "Dragon_D" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+        prepend references = @scenes/objects/xyzrgb_dragon.usda@
+    )
+    {
+        rel material:binding = </Scene/Materials/DragonMaterial>
+        double3 xformOp:translate = (9, 1.8, 0)
+        double3 xformOp:scale = (0.045, 0.045, 0.045)
+        float xformOp:rotateY = -35
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale", "xformOp:rotateY"]
+    }
+
+    def Mesh "MirrorLeft" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-12.98, 0, -5), (-12.98, 0, 16), (-12.98, 10, 16), (-12.98, 10, -5)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/MirrorMaterial>
+    }
+
+    def Mesh "MirrorRight" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(12.98, 0, 16), (12.98, 0, -5), (12.98, 10, -5), (12.98, 10, 16)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/MirrorMaterial>
+    }
+
+    def Mesh "AccentLightBacking_A" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-6.2289, 0.0990, 4.3443), (-5.9903, 0.5862, 4.4835), (-5.7485, 0.5862, 4.0688), (-5.9871, 0.0990, 3.9297)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/AccentLightBlack>
+    }
+
+    def Mesh "AccentLight_A" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-6.2030, 0.1412, 4.3131), (-5.9985, 0.5588, 4.4324), (-5.7970, 0.5588, 4.0869), (-6.0015, 0.1412, 3.9676)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/AccentLight>
+    }
+
+    def Mesh "AccentLightBacking_B" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-0.2289, 0.0990, 4.3443), (0.0097, 0.5862, 4.4835), (0.2515, 0.5862, 4.0688), (0.0129, 0.0990, 3.9297)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/AccentLightBlack>
+    }
+
+    def Mesh "AccentLight_B" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(-0.2030, 0.1412, 4.3131), (0.0015, 0.5588, 4.4324), (0.2030, 0.5588, 4.0869), (-0.0015, 0.1412, 3.9676)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/AccentLight>
+    }
+
+    def Mesh "AccentLightBacking_C" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(5.7711, 0.0990, 4.3443), (6.0097, 0.5862, 4.4835), (6.2515, 0.5862, 4.0688), (6.0129, 0.0990, 3.9297)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/AccentLightBlack>
+    }
+
+    def Mesh "AccentLight_C" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(5.7970, 0.1412, 4.3131), (6.0015, 0.5588, 4.4324), (6.2030, 0.5588, 4.0869), (5.9985, 0.1412, 3.9676)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/AccentLight>
+    }
+
+    def Mesh "AccentLightBacking_D" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(11.7711, 0.0990, 4.3443), (12.0097, 0.5862, 4.4835), (12.2515, 0.5862, 4.0688), (12.0129, 0.0990, 3.9297)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/AccentLightBlack>
+    }
+
+    def Mesh "AccentLight_D" (apiSchemas = ["MaterialBindingAPI"])
+    {
+        point3f[] points = [(11.7970, 0.1412, 4.3131), (12.0015, 0.5588, 4.4324), (12.2030, 0.5588, 4.0869), (11.9985, 0.1412, 3.9676)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        uniform token orientation = "rightHanded"
+        rel material:binding = </Scene/Materials/AccentLight>
+    }
+}

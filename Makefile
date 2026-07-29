@@ -99,6 +99,14 @@ golden-render: build
 		--policy none --cost-rr 0 --ray-sort 0 \
 		--progress-interval $(GOLDEN_PROGRESS_INTERVAL)
 
+material-variants: build
+	@$(RENDERER) scenes/materialVariants.usda \
+		output/materialVariants_$(SAMPLES)_$(POLICY).exr \
+		scenes/cameras/materialVariantsCamera.usda \
+		--quiet --width 1600 --height 700 \
+		--denoise $(COST_RR_FLAG) $(RAY_SORT_FLAG) $(ENV_FLAG) \
+		$(POLICY_FLAG) $(SAMPLES_FLAG)
+
 # Stress
 define run_stress
 	@set -o pipefail; $(RENDERER) scenes/$(1).usda \
