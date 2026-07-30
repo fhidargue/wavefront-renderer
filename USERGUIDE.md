@@ -2,6 +2,16 @@
 
 > Detailed usage reference for the Wavefront Path Tracer. For a project overview, stack and implementation details see `README.md`.
 
+### Table of Contents
+
+- [Prerequisites](#1-prerequisites)
+- [Build](#2-build)
+- [CLI Usage](#3-cli-usage)
+- [Makefile Targets](#4-makefile-targets)
+- [GUI](#5-gui)
+- [Testing](#6-testing)
+- [Python Scripts](#7-python-scripts)
+
 ### 1. Prerequisites
 
 #### C++ Dependencies
@@ -217,3 +227,84 @@ To run a specific test filter:
 ./build/tests --gtest_filter=AdaptiveSamplerTest*
 ./build/tests --gtest_filter=CostTrackerTest*
 ```
+
+### 7. Python Scripts
+
+All scripts live under `scripts/` and are run from the project root unless noted.
+
+#### `scripts/generate_stress_scenes.py`
+
+Procedurally generates the `stressTestDragons.usda` and `stressTestMixed.usda` scene files. Builds a 3×6×5 grid of teapots and dragons inside the Cornell box, assigns a randomised pool of 30+ materials with procedurally generated textures at varying resolutions (256px–4096px), and writes the final `.usda` files to `scenes/`.
+
+```bash
+make generate-stress-scenes
+
+# or directly
+
+cd scripts && python generate_stress_scenes.py
+```
+
+Configuration constants (grid dimensions, object counts, material mix, texture resolutions) are in `scripts/constants.py`.
+
+#### `scripts/generate_uvs.py`
+
+Adds UV primvars (`primvars:st`) to an existing `.usda` mesh using planar projection. Uses Newell's method to compute face normals for projection axis selection. Useful for adding texture coordinates to meshes that were exported without UVs.
+
+```bash
+python scripts/generate_uvs.py <scene.usda> --texel-size 1.5
+```
+
+| Argument       | Default  | Description                                       |
+| -------------- | -------- | ------------------------------------------------- |
+| `scene.usda`   | required | Path to the USD file to process                   |
+| `--texel-size` | `1.5`    | World-space size of one texel — controls UV scale |
+
+#### `scripts/results/parse_results.py`
+
+Parses renderer stdout and appends one row to the benchmark CSV. Called automatically by the Makefile after each render and by the GUI after each completed render. Can also be called manually to import results from a saved stdout log.
+
+```bash
+python scripts/results/parse_results.py \
+  --stdout renderer_output.txt \
+  --scene stressTestDragons \
+  --policy costBenefit \
+  --samples 4096 \
+  --width 1080 \
+  --height 1080
+```
+
+Appends to `results/benchmark_results_<samples>.csv`, creating the file if it does not exist.
+
+#### `scripts/results/plot_results.py`
+
+Reads all benchmark CSVs from `results/`, computes per-policy means across runs and generates four publication-quality figures per sample tier:
+
+| Figure      | Description                                                                                                                              |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Homogeneity | Material and texture ID cache line homogeneity per policy and scene                                                                      |
+| Pipeline    | Stacked bar showing sort, intersect and shade time with per-stage annotations                                                            |
+| Run Length  | Average consecutive rays hitting the same material per policy                                                                            |
+| Shade Time  | Bar chart of mean shade time per policy per scene with % change vs `none` baseline                                                       |
+| Shaded Hits | Total ray-material intersections shaded per policy and scene. Confirms scheduling does not affect path termination, only execution order |
+
+```bash
+make reports
+
+# or directly
+
+python scripts/results/plot_results.py
+```
+
+Figures are written to `results/figures/` as PNG. The Results tab in the GUI calls this script automatically on refresh.
+
+#### `scripts/utils/`
+
+Internal utility modules used by `generate_stress_scenes.py`. Not intended to be called directly.
+
+| Module                 | Description                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `materials.py`         | Material recipe definitions and material pool builder                           |
+| `textures.py`          | Procedural texture generators (noise, checker, stripe, gradient, fractal noise) |
+| `geometry.py`          | Grid population helpers for dragon and mixed object layouts                     |
+| `usd_materials.py`     | USD material scope writer                                                       |
+| `cornell_reference.py` | Builds the empty Cornell box USD reference used by stress scenes                |

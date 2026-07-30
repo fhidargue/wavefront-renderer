@@ -20,6 +20,15 @@ A CPU wavefront path tracer built as part of the MSc thesis _"Adaptive Schedulin
   <em>Cornell box dragon, 256spp</em>
 </p>
 
+### Table of Contents
+
+- [Stack](#stack)
+- [The Research Question](#the-research-question)
+- [Implementation](#implementation)
+- [Scenes](#scenes)
+- [Benchmarks](#benchmarks)
+- [Findings](#findings)
+
 ### Stack
 
 |                    | Version                                   |
@@ -121,42 +130,15 @@ A full research toolchain automates data collection and visualisation. The rende
 | ----------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | <img src="./output/readme/results-graph.png" height="600" width="500"/> | <img src="./output/readme/heatmap.png" height="600" width="500"/> |
 
-### Build
+### Findings
 
-```bash
-make rebuild
-```
+Benchmarks ran at three sample tiers (256 at 600×600, 1024 at 720×720, 4096 at 1080×1080) across both stress scenes with 3 runs per policy. Shade times were averaged across runs.
 
-Requires Embree 4, oneTBB, OpenUSD and OIDN installed and discoverable by CMake.
+- **CostBenefit** was the only policy to outperform the `none` baseline consistently across all sample counts and both scenes, delivering between **7% and 10% shade time reduction**. The result held at every resolution from 256 samples at 600×600 up to 4096 samples at 1080×1080. Confirming that the benefit scales with wavefront size rather than being an artefact of a specific configuration. The key insight behind CostBenefit is that it solves two problems at once, rays hitting the same material are shaded together, keeping shader code and material data warm in cache, while the spatial sub-sort ensures that the next batch of rays fired from those hit points originate from nearby locations in the scene. This means both the shading step and the subsequent traversal step benefit from locality, compounding the gain across every bounce in the path.
 
-### Render
+- **MaterialAware** and **TextureAware** both increased shade time by 1–7% over baseline on both scenes. Sorting by a single key reorganises rays enough to pay the cost of the sort, but not enough to recover that cost through faster shading. Grouping rays by material makes shading more coherent, but the rays then fired from those hit points are spatially scattered, the next traversal step becomes less efficient. The sort solves one problem while creating another, resulting in a net loss.
 
-```bash
-./build/renderer scenes/cornellBoxDragon.usda output/render.exr \
-  --samples 256 --policy costBenefit --denoise
-```
-
-| Flag                   | Default    | Description                                      |
-| ---------------------- | ---------- | ------------------------------------------------ |
-| `--policy`             | `material` | `none`, `material`, `texture`, `costBenefit`     |
-| `--samples`            | `256`      | Samples per pixel                                |
-| `--width` / `--height` | `600`      | Output resolution                                |
-| `--max-depth`          | `8`        | Maximum path bounce depth                        |
-| `--denoise`            | off        | Apply OIDN denoiser to final image               |
-| `--no-adaptive`        | —          | Disable adaptive sampling                        |
-| `--cost-rr`            | `1`        | Cost-aware Russian Roulette (`0` to disable)     |
-| `--ray-sort`           | `1`        | Ray sorting (`0` to disable)                     |
-| `--env`                | —          | Path to environment map (HDR)                    |
-| `--firefly-threshold`  | —          | Clamp firefly contributions above this luminance |
-| `--progress-interval`  | `4`        | Sample interval between progress updates         |
-| `--memory-stats`       | off        | Print memory coherence statistics after render   |
-| `--quiet`              | off        | Suppress per-sample progress output              |
-
-## Test
-
-```bash
-make test
-```
+The pattern is consistent across all three sample tiers, indicating that scheduling benefit is structural rather than noise-dependent. The full data and per-policy figures are available in the Results tab of the GUI.
 
 ---
 
