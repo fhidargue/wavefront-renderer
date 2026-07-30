@@ -1,13 +1,15 @@
 # Wavefront Path Tracer
 
-![C++](https://img.shields.io/badge/C%2B%2B-17-blue)
-![CMake](https://img.shields.io/badge/CMake-3.8+-blue)
-![Embree](https://img.shields.io/badge/Embree-4.x-orange)
-![oneTBB](https://img.shields.io/badge/oneTBB-supported-orange)
-![OpenUSD](https://img.shields.io/badge/OpenUSD-supported-brightgreen)
-![OpenImageDenoise](https://img.shields.io/badge/OpenImageDenoise-2.x-brightgreen)
-![PySide6](https://img.shields.io/badge/PySide6-preview%20UI-9cf)
-![GoogleTest](https://img.shields.io/badge/GoogleTest-enabled-yellow)
+![C++](https://img.shields.io/badge/C%2B%2B-17-f34b7d)
+![CMake](https://img.shields.io/badge/CMake-3.20+-DA3434)
+![Embree](https://img.shields.io/badge/Embree-4.x-0071C5)
+![oneTBB](https://img.shields.io/badge/oneTBB-bundled-0071C5)
+![OpenUSD](https://img.shields.io/badge/OpenUSD-26.5-lightgrey)
+![OpenImageIO](https://img.shields.io/badge/OpenImageIO-2.5-brightgreen)
+![OpenImageDenoise](https://img.shields.io/badge/OpenImageDenoise-2.x-0071C5)
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB)
+![PySide6](https://img.shields.io/badge/PySide6-6.7+-41CD52)
+![GoogleTest](https://img.shields.io/badge/GoogleTest-enabled-B7472A)
 
 ![Material Variants](./output/readme/materialVariants.png)
 
@@ -33,6 +35,8 @@ A CPU wavefront path tracer built as part of the MSc thesis _"Adaptive Schedulin
 | GUI                | PySide6 6.7+                              |
 | Plotting           | matplotlib 3.11, seaborn 0.13, pandas 3.0 |
 | Testing            | GoogleTest                                |
+
+_For scene setup, GUI usage and benchmark pipeline details see [USERGUIDE.md](./USERGUIDE.md)_
 
 ### The Research Question
 
@@ -153,8 +157,6 @@ Requires Embree 4, oneTBB, OpenUSD and OIDN installed and discoverable by CMake.
 ```bash
 make test
 ```
-
-_For scene setup, GUI usage and benchmark pipeline details see `USERGUIDE.md`_
 
 ---
 
