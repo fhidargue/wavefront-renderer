@@ -1,6 +1,6 @@
 #usda 1.0
 (
-    doc = "Material Variants - Wide Cornell Box"
+    doc = "Material Variants Wide Cornell Box"
     defaultPrim = "Scene"
     upAxis = "Y"
     metersPerUnit = 0.01
