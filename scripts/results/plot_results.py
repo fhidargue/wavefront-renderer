@@ -133,7 +133,7 @@ def _compute_baseline_lookup(df_mean: pd.DataFrame) -> dict:
     return baseline_lookup
 
 
-def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
+def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: str = "") -> dict:
     """
     Builds all benchmark figures. When save_to_disk is True, saves each figure
     as a PNG to FIGURES_OUTPUT_DIR. Always returns the dict of figures for GUI use.
@@ -215,7 +215,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
     figures["shade_time"] = fig
 
     if save_to_disk:
-        save(fig, "shade_time")
+        save(fig, f"shade_time_{sample_label}")
 
     # Pipeline breakdown
     baseline_lookup = _compute_baseline_lookup(df_mean)
@@ -316,7 +316,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
     figures["pipeline"] = fig
 
     if save_to_disk:
-        save(fig, "pipeline_breakdown")
+        save(fig, f"pipeline_breakdown_{sample_label}")
 
     # Run Length
     fig, ax = plt.subplots(figsize=(18, 7))
@@ -357,7 +357,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
     figures["run_length"] = fig
 
     if save_to_disk:
-        save(fig, "run_length")
+        save(fig, f"run_length_{sample_label}")
 
     # Cache homogeneity
     df_melt = df.melt(
@@ -428,7 +428,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
     figures["homogeneity"] = fig
 
     if save_to_disk:
-        save(fig, "cache_homogeneity")
+        save(fig, f"cache_homogeneity_{sample_label}")
 
     # Total shaded hits
     fig, ax = plt.subplots(figsize=SHADE_TIME_FIGURE_SIZE)
@@ -497,16 +497,16 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False) -> dict:
     figures["shaded_hits"] = fig
 
     if save_to_disk:
-        save(fig, "shaded_hits")
+        save(fig, f"shaded_hits_{sample_label}")
 
     return figures
 
 
-def build_figures(df: pd.DataFrame) -> dict:
+def build_figures(df: pd.DataFrame, sample_label: str = "") -> dict:
     """
     GUI entry point. Builds figures without saving to disk.
     """
-    return create_figures(df, save_to_disk=False)
+    return create_figures(df, save_to_disk=False, sample_label=sample_label)
 
 
 def main():
@@ -529,7 +529,7 @@ def main():
             print("No valid data. Skipping")
             continue
 
-        create_figures(df, save_to_disk=True)
+        create_figures(df, save_to_disk=True, sample_label=sample_label)
         print(f"Figures saved for {sample_label} samples")
 
     print(f"\nAll figures saved to {FIGURES_OUTPUT_DIR}/")
