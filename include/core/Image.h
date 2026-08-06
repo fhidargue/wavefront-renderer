@@ -23,4 +23,6 @@ struct Image
     }
 
     void write(const std::string& filePath, bool applyColorTransform = true) const;
+
+    void writePreview(const std::string& filePath) const;
 };

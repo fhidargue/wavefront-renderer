@@ -85,7 +85,7 @@ class RenderWorker(QThread):
         """
         path = Path(output_path)
 
-        return str(path.parent / f"{path.stem}_preview{path.suffix}")
+        return str(path.parent / f"{path.stem}_preview.png")
 
     def stop(self):
         """

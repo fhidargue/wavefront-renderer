@@ -11,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 from OpenGL import GL
+from PIL import Image as PILImage
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 from gui.image_loader import linear_to_srgb, load_exr
@@ -166,17 +167,22 @@ class RenderDisplay(QOpenGLWidget):
         """
         if self.texture_id is None:
             return
-
-        # If the file fails mid write, skip the frame
         try:
-            pixels = load_exr(filepath)
+            if filepath.endswith(".png"):
+                img = PILImage.open(filepath)
+                max_uint8 = float(np.iinfo(np.uint8).max)
+                pixels = np.flipud(np.array(img).astype(np.float32) / max_uint8)
+            else:
+                pixels = load_exr(filepath)
 
-            if pixels is None:
-                return
-        except (OSError, RuntimeError):
+                if pixels is None:
+                    return
+
+                pixels = linear_to_srgb(pixels)
+        except (OSError, RuntimeError, SyntaxError):
             return
 
-        self._upload_pixels(linear_to_srgb(pixels))
+        self._upload_pixels(pixels)
         self.has_image = True
         self.update()
 

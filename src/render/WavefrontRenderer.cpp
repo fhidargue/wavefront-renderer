@@ -294,14 +294,14 @@ double WavefrontRenderer::renderScene(const Scene& scene, const Camera& camera, 
             }
         }
 
-        // Write preview EXR every progressInterval samples
+        // Write preview PNG every progressInterval samples
         // Python UI polls this file and updates the display
         if (!previewPath.empty() && progressInterval > 0 && (sample + 1) % progressInterval == 0)
         {
             int samplesCompleted = sample + 1;
 
             writeAveragedImage(samplesCompleted);
-            image.write(previewPath, enableSampleLogging);
+            image.writePreview(previewPath);
 
             if (!enableSampleLogging)
                 cout << "Sample: " << samplesCompleted << "/" << samplesPerPixel << endl;

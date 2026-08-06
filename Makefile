@@ -11,9 +11,12 @@ KITCHEN_SET_PATH = $(HOME)/Downloads/Kitchen_set
 export PXR_AR_DEFAULT_SEARCH_PATH := $(KITCHEN_SET_PATH)
 
 # Golden
-GOLDEN_SAMPLES ?= 500000
+GOLDEN_SAMPLES ?= 200000
 GOLDEN_MAX_DEPTH ?= 64
 GOLDEN_PROGRESS_INTERVAL ?= 5000
+
+SCENE ?= scenes/cornellBoxDragon.usda
+GOLDEN_OUTPUT ?= output/$(basename $(notdir $(SCENE)))_$(WIDTH)x$(HEIGHT)_$(GOLDEN_SAMPLES)_none_golden.exr
 
 # Flags
 ifeq ($(COST_RR),0)
@@ -92,8 +95,7 @@ kitchen: build
 
 golden-render: build
 	@echo "Starting golden render: $(GOLDEN_SAMPLES) samples, depth $(GOLDEN_MAX_DEPTH)"
-	@$(RENDERER) scenes/cornellBoxDragon.usda \
-		output/cornellBoxDragon_$(GOLDEN_SAMPLES)_none_golden.exr \
+	@$(RENDERER) $(SCENE) $(GOLDEN_OUTPUT) \
 		$(CAMERA) --quiet --width $(WIDTH) --height $(HEIGHT) \
 		--samples $(GOLDEN_SAMPLES) --max-depth $(GOLDEN_MAX_DEPTH) \
 		--policy none --cost-rr 0 --ray-sort 0 \
@@ -143,3 +145,119 @@ format:
 generate-stress-scenes:
 	@rm -rf scenes/textures/generated
 	@uv run scripts/generate_stress_scenes.py
+
+generate-goldens:
+	$(MAKE) golden-render SCENE=scenes/stressTestMixed.usda WIDTH=600 HEIGHT=600
+	$(MAKE) golden-render SCENE=scenes/stressTestDragons.usda WIDTH=600 HEIGHT=600
+	$(MAKE) golden-render SCENE=scenes/stressTestMixed.usda WIDTH=720 HEIGHT=720
+	$(MAKE) golden-render SCENE=scenes/stressTestDragons.usda WIDTH=720 HEIGHT=720
+	$(MAKE) golden-render SCENE=scenes/stressTestMixed.usda WIDTH=840 HEIGHT=840
+	$(MAKE) golden-render SCENE=scenes/stressTestDragons.usda WIDTH=840 HEIGHT=840
+	$(MAKE) golden-render SCENE=scenes/stressTestMixed.usda WIDTH=1080 HEIGHT=1080
+	$(MAKE) golden-render SCENE=scenes/stressTestDragons.usda WIDTH=1080 HEIGHT=1080
+
+generate-benchmarks:
+	$(MAKE) stress-mixed POLICY=none SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=none SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=none SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=material SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=material SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=material SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=none SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=none SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=none SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=material SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=material SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=material SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=256 WIDTH=600 HEIGHT=600
+	$(MAKE) stress-mixed POLICY=none SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=none SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=none SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=material SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=material SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=material SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=none SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=none SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=none SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=material SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=material SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=material SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=1024 WIDTH=720 HEIGHT=720
+	$(MAKE) stress-mixed POLICY=none SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=none SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=none SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=material SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=material SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=material SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=none SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=none SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=none SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=material SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=material SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=material SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=2048 WIDTH=840 HEIGHT=840
+	$(MAKE) stress-mixed POLICY=none SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=none SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=none SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=material SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=material SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=material SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=texture SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-mixed POLICY=costBenefit SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=none SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=none SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=none SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=material SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=material SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=material SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=texture SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) stress-dragons POLICY=costBenefit SAMPLES=4096 WIDTH=1080 HEIGHT=1080
+	$(MAKE) golden-render SCENE=scenes/stressTestMixed.usda WIDTH=600 HEIGHT=600
+	$(MAKE) golden-render SCENE=scenes/stressTestDragons.usda WIDTH=600 HEIGHT=600
+	$(MAKE) golden-render SCENE=scenes/stressTestMixed.usda WIDTH=720 HEIGHT=720
+	$(MAKE) golden-render SCENE=scenes/stressTestDragons.usda WIDTH=720 HEIGHT=720
+	$(MAKE) golden-render SCENE=scenes/stressTestMixed.usda WIDTH=840 HEIGHT=840
+	$(MAKE) golden-render SCENE=scenes/stressTestDragons.usda WIDTH=840 HEIGHT=840
+	$(MAKE) golden-render SCENE=scenes/stressTestMixed.usda WIDTH=1080 HEIGHT=1080
+	$(MAKE) golden-render SCENE=scenes/stressTestDragons.usda WIDTH=1080 HEIGHT=1080

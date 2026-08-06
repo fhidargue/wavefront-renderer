@@ -27,9 +27,9 @@ static string derivePreviewPath(const string& outputPath)
     auto dot = outputPath.rfind('.');
 
     if (dot != string::npos)
-        return outputPath.substr(0, dot) + "_preview" + outputPath.substr(dot);
+        return outputPath.substr(0, dot) + "_preview.png";
 
-    return outputPath + "_preview";
+    return outputPath + "_preview.png";
 }
 
 int main(int argc, char* argv[])
