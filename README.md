@@ -13,7 +13,7 @@
 
 ![Material Variants](./output/readme/materialVariants.png)
 
-A CPU wavefront path tracer built as part of the MSc thesis _"Adaptive Scheduling for Coherent Wavefront Rendering"_ (NCCA, Bournemouth University, 2026). The project investigates whether reordering rays by material or texture ID before shading improves CPU cache utilisation and reduces render time.
+A CPU wavefront path tracer built as part of the MSc thesis _"Adaptive Wavefront Scheduling for Coherent CPU Path Tracing"_ (NCCA, Bournemouth University, 2026). The project investigates whether reordering rays by material or texture ID before shading improves CPU cache utilisation and reduces render time.
 
 <p align="center">
   <img src="./output/readme/cornellDragon.gif" width="600"><br>
@@ -142,4 +142,4 @@ The pattern is consistent across all three sample tiers, indicating that schedul
 
 ---
 
-_Status: active development, thesis due August 2026._
+_Status: development completed, thesis submitted August 2026._
