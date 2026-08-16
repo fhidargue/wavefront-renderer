@@ -345,9 +345,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
                 fontweight="bold",
             )
 
-    ax.set_title(
-        "Average Run Length by Policy", fontsize=SUBPLOT_TITLE_FONT_SIZE
-    )
+    ax.set_title("Average Run Length by Policy", fontsize=SUBPLOT_TITLE_FONT_SIZE)
     ax.set_xlabel("Average Run Length (consecutive rays hitting same material)")
     ax.set_ylabel("Policy")
     ax.legend(title="Scene")
