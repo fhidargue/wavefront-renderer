@@ -346,7 +346,7 @@ def create_figures(df: pd.DataFrame, save_to_disk: bool = False, sample_label: s
             )
 
     ax.set_title(
-        "Average Run Length by Policy — higher is better", fontsize=SUBPLOT_TITLE_FONT_SIZE
+        "Average Run Length by Policy", fontsize=SUBPLOT_TITLE_FONT_SIZE
     )
     ax.set_xlabel("Average Run Length (consecutive rays hitting same material)")
     ax.set_ylabel("Policy")
