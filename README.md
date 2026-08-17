@@ -140,6 +140,8 @@ Benchmarks ran at three sample tiers (256 at 600×600, 1024 at 720×720, 4096 at
 
 The pattern is consistent across all three sample tiers, indicating that scheduling benefit is structural rather than noise-dependent. The full data and per-policy figures are available in the Results tab of the GUI.
 
+> **Full benchmark results and graphs available in [RESULTS.md](./RESULTS.md)**
+
 ---
 
 _Status: development completed, thesis submitted August 2026._
